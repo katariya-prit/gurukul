@@ -23,26 +23,19 @@ export default function SidebarDropdown({ title, icon, items, setSidebarOpen, is
     const navigate = useNavigate();
     const location = useLocation();
 
-    const isChildActive = items.some(
-        (item) =>
-            location.pathname === item.path ||
-            location.pathname.startsWith(item.path + "/")
-    );
+    const isChildActive = items.some((item) => location.pathname === item.path);
 
     const [isOpen, setIsOpen] = useState(isChildActive && !isMiniSidebar);
+    const isParentActive = isChildActive;
 
     const [isHovered, setIsHovered] = useState(false);
     const [menuTop, setMenuTop] = useState<number>(0);
     const menuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        if (isMiniSidebar) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setIsOpen(false);
-            setIsHovered(false);
-        } else if (isChildActive) {
-            setIsOpen(true);
-        }
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setIsOpen(isChildActive && !isMiniSidebar);
+        if (isMiniSidebar) setIsHovered(false);
     }, [isMiniSidebar, isChildActive]);
 
     const handleMouseEnter = () => {
@@ -76,21 +69,21 @@ export default function SidebarDropdown({ title, icon, items, setSidebarOpen, is
                 className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl font-semibold text-[15px] transition-all duration-200 group
                     ${isMiniSidebar ? "justify-center px-2" : ""}
                     ${
-                        isChildActive
+                        isParentActive
                             ? theme
-                                ? "bg-linear-to-tr bg-blue-700 to-blue-400 text-gray-50"
-                                : "bg-red-50 text-red-600"
+                                ? "bg-linear-to-r from-blue-600 to-blue-200/10 text-blue-200 font-bold  "
+                                : "bg-linear-to-r from-red-600 to-red-500/60 text-white font-bold"
                             : theme
                                 ? "text-white hover:bg-gray-800 hover:text-blue-200"
-                                : "text-gray-500 hover:bg-red-50 hover:text-red-600"
+                                : "bg-transparent text-gray-600 hover:bg-red-50 hover:text-red-600"
                     }
                 `}
             >
                 <div className="flex items-center gap-3.5">
                     <span className={`transition-colors ${
-                        isChildActive
-                            ? theme ? "text-gray-50" : "text-red-600"
-                            : theme ? "text-gray-400 group-hover:text-blue-200" : "text-gray-400 group-hover:text-red-600"
+                        isParentActive
+                            ? "text-white"
+                            : theme ? "text-gray-400 group-hover:text-blue-200" : "text-gray-400  group-hover:text-red-600"
                     }`}>
                         {icon}
                     </span>
@@ -99,8 +92,8 @@ export default function SidebarDropdown({ title, icon, items, setSidebarOpen, is
 
                 {!isMiniSidebar && (
                     <HiChevronDown className={`text-lg transition-transform duration-300 ${isOpen ? "rotate-180" : ""} ${
-                        isChildActive
-                            ? theme ? "text-gray-50" : "text-red-600"
+                        isParentActive
+                            ? "text-white"
                             : theme ? "text-gray-400" : "text-gray-400"
                     }`} />
                 )}
@@ -134,20 +127,20 @@ export default function SidebarDropdown({ title, icon, items, setSidebarOpen, is
                                     ${
                                         isActive
                                             ? theme
-                                                ? "bg-linear-to-r from-blue-700 to-blue-400 text-blue-200 font-bold"
-                                                : "bg-red-50 text-red-600 font-bold"
+                                                ? "bg-linear-to-r from-blue-600 to-blue-200/10 text-blue-200 font-bold"
+                                                : "bg-linear-to-r from-red-600 to-red-500/60 text-white font-bold"
                                             : theme
-                                                ? "text-gray-400 hover:bg-gray-800 hover:text-blue-200"
-                                                : "text-gray-600 hover:bg-gray-50 hover:text-red-600"
+                                                ? "bg-transparent text-white hover:bg-gray-800 hover:text-blue-200"
+                                                : "bg-transparent text-gray-600 hover:bg-red-50 hover:text-red-600"
                                     }
                                 `}
                             >
                                 {isActive && (
-                                    <div className={`w-1 h-6 rounded-2xl bg-blue-50`} />
+                                    <div className="w-1 h-6 shrink-0 rounded-2xl bg-white" />
                                 )}
                                 <span className={`text-lg transition-colors ${
                                     isActive
-                                        ? theme ? "text-blue-200" : "text-red-600"
+                                        ? "text-white"
                                         : theme ? "text-gray-400" : "text-gray-400"
                                 }`}>
                                     {sub.icon}

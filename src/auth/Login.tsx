@@ -1,18 +1,18 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
 import Logo from "../assets/gurukul.png";
 import Input from "../components/common/Input";
 import { useTheme } from "../components/theme/ThemeContext";
 import { HiOutlineMail } from "react-icons/hi";
 import { IoIosLock } from "react-icons/io";
-import { FaLock, FaSpinner } from "react-icons/fa";
+import { FaLock } from "react-icons/fa";
 import { toast } from "sonner";
+import LoginBackground from "../components/backgrounds/LoginBackground";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
 
 export default function Login() {
-  const { theme } = useTheme();
+  const { theme } = useTheme(); // Assume theme === true is Dark Mode, theme === false is Light Mode
   const navigate = useNavigate();
 
   const [username, setUsername] = useState("");
@@ -22,128 +22,120 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     setError("");
     setLoading(true);
-
     try {
       const response = await fetch(`${API_URL}/users/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({
+          username,
+          password,
+        }),
       });
 
       const result = await response.json();
 
-      if (result.success && result.data) {
-        const userData = result.data;
+      if (!response.ok) {
+        toast.error(
+          result.message ||
+            result.errors?.[0]?.message ||
+            "Invalid Username or Password."
+        );
+        return;
+      }
+
+      if (result.user && result.token) {
+        const userData = result.user;
 
         const loggedInUserData = {
           id: userData.suid,
           username: userData.username,
           name: userData.name,
+          avatar: userData.avatar,
           roleName: userData.roleName,
           roleCode: userData.roleCode,
           departmentId: userData.departmentId,
+          sectionId: userData.sectionId,
           permissions: userData.permissions,
         };
 
         localStorage.setItem("user", JSON.stringify(loggedInUserData));
-
-        if (result.token) {
-          localStorage.setItem("token", result.token);
-        }
+        localStorage.setItem("token", result.token);
 
         toast.success("Login Successfully");
+
         navigate("/dashboard");
       } else {
         toast.error(result.message || "Invalid Username or Password.");
       }
     } catch (err) {
       console.error("Login Connection Error:", err);
+
       setError("સર્વર કનેક્શન ફેલ થયું અથવા કોડમાં કોઈ ભૂલ આવી છે!");
+
+      toast.error("Server connection failed");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div
-      className={`relative min-h-screen w-full flex items-center justify-center p-4 sm:p-8 overflow-hidden font-sans transition-colors duration-500 ${
+    <div  
+      className={`relative min-h-screen w-full flex items-center justify-center p-4 sm:p-8 overflow-hidden font-sans transition-colors duration-300 ${
         theme ? "bg-gray-900" : "bg-red-50"
       }`}
     >
-      {/* Dynamic Background */}
+      {/* Three.js Flag Background - Only visible when Dark Theme is OFF (!theme) */}
+      <LoginBackground isVisible={!theme} />
 
-      {/* Background Floating Animated Blobs */}
-      <motion.div
-        animate={{
-          scale: [1, 1.2, 1],
-          opacity: [0.3, 0.6, 0.3],
-        }}
-        transition={{
-          duration: 8,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
-        className={`absolute top-10 left-20 w-48 h-48 rounded-full blur-3xl pointer-events-none ${
-          theme ? "bg-blue-600/20" : "bg-red-200/60"
+      {/* Background Decorative Blur Circles */}
+      <div
+        className={`absolute top-10 left-20 w-40 h-40 rounded-full blur-3xl animate-pulse ${
+          theme ? "bg-blue-600/20" : "bg-red-200/50"
         }`}
-      />
+      ></div>
 
-      <motion.div
-        animate={{
-          scale: [1, 1.15, 1],
-          opacity: [0.2, 0.5, 0.2],
-        }}
-        transition={{
-          duration: 10,
-          repeat: Infinity,
-          ease: "easeInOut",
-          delay: 1,
-        }}
-        className={`absolute bottom-20 right-32 w-80 h-80 rounded-full blur-3xl pointer-events-none ${
-          theme ? "bg-indigo-600/20" : "bg-red-300/40"
+      <div
+        className={`absolute bottom-20 right-32 w-72 h-72 rounded-full blur-3xl ${
+          theme ? "bg-indigo-600/20" : "bg-red-300/30"
         }`}
-      />
+      ></div>
 
-      {/* Main Glass Container with Morph Layout Animation */}
-      <motion.div
-        layoutId="login-card-transform"
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{
-          type: "spring",
-          stiffness: 180,
-          damping: 20,
-        }}
-        className={`relative z-10 w-full max-w-250 min-h-150 rounded-[40px] flex flex-col md:flex-row overflow-hidden border transition-colors duration-500 ${
+      <div
+        className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full blur-3xl z-0 ${
+          theme ? "bg-gray-800/60" : "bg-white/40"
+        }`}
+      ></div>
+
+      {/* Main Login Box Container */}
+      <div
+        className={`relative z-10 w-full max-w-250 min-h-150 rounded-[40px] flex flex-col md:flex-row overflow-hidden border transition-all duration-300 ${
           theme
-            ? "bg-gray-900/70 backdrop-blur-2xl border-gray-800 shadow-[0_25px_60px_rgba(0,0,0,0.6)]"
-            : "bg-white/80 backdrop-blur-2xl border-white/80 shadow-[0_25px_60px_rgba(239,68,68,0.12)]"
+            ? "bg-gray-900/70 backdrop-blur-xl border-gray-800 shadow-[0_20px_60px_rgba(0,0,0,0.5)]"
+            : "bg-white/80 backdrop-blur-xl border-white shadow-[0_20px_60px_rgba(239,68,68,0.08)]"
         }`}
       >
-        {/* Left Side: Login Form */}
         <div
-          className={`w-full md:w-1/2 p-8 sm:p-12 md:p-14 flex flex-col justify-center z-20 transition-colors duration-300 ${
-            theme ? "bg-gray-900/40" : "bg-white/60"
+          className={`w-full md:w-1/2 p-10 sm:p-14 md:p-16 flex flex-col justify-center z-20 transition-colors duration-300 ${
+            theme ? "bg-gray-900/50" : "bg-white/80"
           }`}
         >
           <div className="flex flex-col items-center">
-            <motion.div
-              whileHover={{ rotate: 15, scale: 1.05 }}
-              transition={{ type: "spring", stiffness: 300 }}
-              className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 shadow-lg ${
+            <div
+              className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 shadow-lg transition-transform duration-300 hover:rotate-12 ${
                 theme
-                  ? "bg-gray-800 text-blue-400 border border-gray-700 shadow-blue-500/10"
-                  : "bg-red-600 text-white shadow-red-600/30"
+                  ? "bg-gray-800 text-blue-400 border border-gray-700"
+                  : "bg-red-600 text-white shadow-red-600/20"
               }`}
             >
               <FaLock size={20} />
-            </motion.div>
+            </div>
 
-            <div className="mb-6 text-center">
+            <div className="mb-8 text-center">
               <h2
                 className={`text-3xl font-black tracking-tight ${
                   theme ? "text-white" : "text-neutral-800"
@@ -151,54 +143,57 @@ export default function Login() {
               >
                 Sign In
               </h2>
-              <p className="text-xs sm:text-sm text-gray-400 mt-1">
+
+              <p className="text-sm text-gray-400 mt-1">
                 Access your ERP master dashboard
               </p>
             </div>
           </div>
 
-          {/* Error Banner */}
           {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-5 p-3.5 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 rounded-xl text-xs text-red-600 dark:text-red-400 text-center font-bold"
-            >
+            <div className="mb-6 p-3.5 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-xl text-xs text-red-600 dark:text-red-400 text-center font-bold">
               {error}
-            </motion.div>
+            </div>
           )}
 
-          <form onSubmit={handleSubmit} className="w-full flex flex-col space-y-4">
+          <form
+            onSubmit={handleSubmit}
+            className="w-full flex flex-col space-y-5"
+          >
             <div>
               <label
                 htmlFor="username"
-                className={`block text-xs font-bold mb-1.5 ml-1 tracking-wide uppercase ${
+                className={`block text-xs font-bold mb-2 ml-1 tracking-wide uppercase ${
                   theme ? "text-gray-400" : "text-neutral-500"
                 }`}
               >
-                Email / Username
+                Username
               </label>
+
               <Input
                 id="username"
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="e.g. super-admin or teacher"
+                placeholder="e.g. super-admin"
                 required
                 className="w-full"
-                icon={<HiOutlineMail className="text-xl text-gray-400" />}
+                icon={
+                  <HiOutlineMail className="text-xl text-gray-400" />
+                }
               />
             </div>
 
             <div>
               <label
                 htmlFor="password"
-                className={`block text-xs font-bold mb-1.5 ml-1 tracking-wide uppercase ${
+                className={`block text-xs font-bold mb-2 ml-1 tracking-wide uppercase ${
                   theme ? "text-gray-400" : "text-neutral-500"
                 }`}
               >
                 Password
               </label>
+
               <Input
                 id="password"
                 type="password"
@@ -212,7 +207,7 @@ export default function Login() {
               />
             </div>
 
-            <div className="flex justify-end pt-0.5">
+            <div className="flex justify-end pt-1">
               <button
                 type="button"
                 className={`text-xs font-bold transition-colors cursor-pointer ${
@@ -225,40 +220,35 @@ export default function Login() {
               </button>
             </div>
 
-            <motion.button
-              whileTap={{ scale: 0.98 }}
+            <button
               type="submit"
               disabled={loading}
-              className={`w-full mt-2 py-3.5 rounded-2xl font-bold text-sm transition-all cursor-pointer shadow-md flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${
+              className={`w-full mt-2 py-3.5 rounded-2xl font-bold text-sm transition-all transform active:scale-[0.98] cursor-pointer shadow-md disabled:opacity-60 disabled:cursor-not-allowed ${
                 theme
-                  ? "bg-blue-500 hover:bg-blue-600 text-white shadow-blue-500/20"
-                  : "bg-red-600 hover:bg-red-700 text-white shadow-red-600/30"
+                  ? "bg-blue-500 hover:bg-blue-600 text-white shadow-blue-500/10"
+                  : "bg-red-600 hover:bg-red-700 text-white shadow-red-600/20"
               }`}
             >
-              {loading ? (
-                <>
-                  <FaSpinner className="animate-spin text-base" />
-                  <span>Logging in...</span>
-                </>
-              ) : (
-                "Log In to System"
-              )}
-            </motion.button>
+              {loading ? "Logging in..." : "Log In to System"}
+            </button>
           </form>
         </div>
 
-        {/* Right Side: Gurukul Branding */}
         <div
           className={`w-full md:w-1/2 relative hidden md:flex flex-col items-center justify-center p-10 text-center transition-colors duration-300 ${
-            theme ? "bg-gray-900/10" : "bg-red-50/20"
+            theme ? "bg-gray-900/20" : "bg-red-50/30"
           }`}
         >
-          <motion.img
+          <div
+            className={`absolute w-64 h-64 rounded-full blur-3xl -z-10 ${
+              theme ? "bg-blue-600/15" : "bg-red-100"
+            }`}
+          ></div>
+
+          <img
             src={Logo}
             alt="Gurukul Logo"
-            whileHover={{ y: -6 }}
-            transition={{ type: "spring", stiffness: 200 }}
-            className="w-full max-w-55 object-contain drop-shadow-2xl"
+            className="w-full max-w-55 object-contain drop-shadow-2xl hover:-translate-y-2 transition-transform duration-500"
           />
 
           <div className="mt-8 z-10">
@@ -269,18 +259,19 @@ export default function Login() {
             >
               Welcome to Gurukul
             </h1>
+
             <h2
-              className={`text-xs font-black tracking-widest uppercase px-3.5 py-1 rounded-full border inline-block ${
+              className={`text-xs font-black tracking-widest uppercase px-3 py-1 rounded-full border inline-block ${
                 theme
                   ? "text-blue-300 bg-blue-500/10 border-blue-500/20"
-                  : "text-red-600 bg-red-100/60 border-red-200"
+                  : "text-red-600 bg-red-100/50 border-red-200"
               }`}
             >
               I Am Gurukul Sevak
             </h2>
           </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

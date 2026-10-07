@@ -20,9 +20,10 @@ import ImageUploader from "../../../components/common/ImageUploader";
 import type { StudentFormData } from "../../../Types/Student";
 import { sectionService } from "../../../services/sectionService";
 
-const API_URL = import.meta.env.VITsE_API_URL || "http://localhost:5000";
+// 🎯 FIX: typo hatu "VITsE_API_URL", sahi chhe "VITE_API_URL"
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
 
-// 🎯 FIX: Aa form ma have fakt 2 j role select thai shake chhe —
+// Aa form ma have fakt 2 j role select thai shake chhe —
 // Section Head (SECHEAD101) ane Student (STUDENT). Role code database
 // na "roles" table na role_code sathe exact match hovo joie.
 const ROLE_OPTIONS = [
@@ -43,13 +44,12 @@ const CreateStudent = () => {
         password: "",
     });
 
-    // 🎯 FIX: Role have dropdown thi select thay chhe, hardcoded nathi.
-    // Default "STUDENT" rakhyu chhe.
     const [roleCode, setRoleCode] = useState<string>("STUDENT");
 
     const [sectionName, setSectionName] = useState<string>("");
     const [departmentName, setDepartmentName] = useState<string>("");
     const [sectionLoading, setSectionLoading] = useState(true);
+    const [sectionError, setSectionError] = useState<string | null>(null); // 🎯 FIX: invalid id na case ma error dekhadva mate
 
     const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
     const [showPassword, setShowPassword] = useState(false);
@@ -57,19 +57,29 @@ const CreateStudent = () => {
 
     useEffect(() => {
         const fetchSectionDetail = async () => {
-            if (!sectionId) {
+            // 🎯 FIX: sectionId missing hoy, "undefined" string hoy, ya number na hoy
+            // to API call j na karo — URL ma NaN jashe to backend 500 aapshe
+            const parsedSectionId = Number(sectionId);
+            if (!sectionId || Number.isNaN(parsedSectionId)) {
                 setSectionLoading(false);
+                setSectionError("Invalid or missing section link. Please open this page from a section.");
                 return;
             }
+
             try {
                 setSectionLoading(true);
-                const result = await sectionService.getSectionById(Number(sectionId));
+                setSectionError(null);
+                const result = await sectionService.getSectionById(parsedSectionId);
                 if (result.success && result.data) {
                     setSectionName(result.data.name);
-                    setDepartmentName(result.data.department_name || "");
+                    // 🎯 FIX: backend camelCase mokle chhe (departmentName), snake_case nahi
+                    setDepartmentName(result.data.departmentName || "");
+                } else {
+                    setSectionError(result.message || "Section not found.");
                 }
             } catch {
                 toast.error("Failed to load section details.");
+                setSectionError("Failed to load section details.");
             } finally {
                 setSectionLoading(false);
             }
@@ -89,7 +99,7 @@ const CreateStudent = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!deptId || !sectionId) {
+        if (!deptId || !sectionId || Number.isNaN(Number(sectionId)) || Number.isNaN(Number(deptId))) {
             toast.error("Department/Section missing. Open this page from a section link.");
             return;
         }
@@ -124,13 +134,18 @@ const CreateStudent = () => {
                 departmentId: Number(deptId),
                 sectionId: Number(sectionId),
                 standardId: roleCode === "STUDENT" ? 1 : null, // ⚠️ TODO: Standard/Class dropdown add karvani baki che
-                roleCode: roleCode, // 🎯 FIX: have dropdown thi selected value vaparay chhe
+                roleCode: roleCode,
                 joiningDate: formData.joiningDate,
             };
 
+            const token = localStorage.getItem("token"); // 🎯 FIX: register route have auth-protected chhe
+
             const response = await fetch(`${API_URL}/users/register`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
                 body: JSON.stringify(payload),
             });
 
@@ -172,6 +187,19 @@ const CreateStudent = () => {
         ? "text-gray-500 group-focus-within:text-blue-400 group-hover:text-blue-400"
         : "text-slate-400 group-focus-within:text-red-500 group-hover:text-red-500"
         }`;
+
+    // 🎯 FIX: Invalid section link hoy to form j na dekhado, clear error dekhado
+    if (!sectionLoading && sectionError) {
+        return (
+            <div className={`max-w-2xl mx-auto mt-10 p-8 rounded-2xl border text-center ${theme ? "bg-[#111827]/90 border-gray-800 text-gray-200" : "bg-white border-slate-100 text-slate-800"
+                }`}>
+                <p className="text-red-500 font-bold mb-2">{sectionError}</p>
+                <p className={`text-sm ${theme ? "text-gray-400" : "text-slate-500"}`}>
+                    Please navigate here from Sections list using the "Add Student" button.
+                </p>
+            </div>
+        );
+    }
 
     return (
         <div className={`group/maincard max-w-7xl mx-auto p-6 sm:p-8 rounded-3xl mt-6 mb-8 border transition-all duration-700 relative overflow-hidden font-sans backdrop-blur-xl ${theme
@@ -228,7 +256,6 @@ const CreateStudent = () => {
 
                 <div className="space-y-8">
 
-                    {/* 🎯 NAVU: Role selection section */}
                     <div className="relative">
                         <h2 className={`text-sm font-black uppercase tracking-[0.2em] mb-5 flex items-center gap-2.5 transition-colors ${theme ? "text-gray-400" : "text-slate-500"
                             }`}>

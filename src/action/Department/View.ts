@@ -8,19 +8,23 @@ export interface DepartmentData {
   description: string;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
 
-const mapDepartment = (item: any): DepartmentData => ({
-  departmentId: item.department_id,
-  departmentName: item.department_name,
-  departmentHeadId: item.department_head_id ?? null,
-  departmentHeadName: item.department_head_name ?? null,
-  description: item.description ?? "",
-});
+// 🎯 FIX: token header banavva mate helper function
+const getAuthHeaders = (): HeadersInit => {
+  const token = localStorage.getItem("token");
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+};
 
+// mapDepartment ni jarur j nathi have - backend already camelCase pathave chhe
 export const getDepartments = async (): Promise<DepartmentData[]> => {
   try {
-    const response = await fetch(`${API_URL}/departments`);
+    const response = await fetch(`${API_URL}/departments`, {
+      headers: getAuthHeaders(), // 🎯 FIX
+    });
     const result = await response.json();
 
     if (!response.ok || !result.success) {
@@ -31,7 +35,7 @@ export const getDepartments = async (): Promise<DepartmentData[]> => {
       return [];
     }
 
-    return result.data.map(mapDepartment);
+    return result.data;   // 👈 direct return, mapping ni jarur nathi
   } catch (error) {
     console.error("getDepartments error:", error);
     toast.error("Failed to fetch departments.");
@@ -41,14 +45,16 @@ export const getDepartments = async (): Promise<DepartmentData[]> => {
 
 export const getDepartmentById = async (departmentId: number): Promise<DepartmentData | null> => {
   try {
-    const response = await fetch(`${API_URL}/departments/${departmentId}`);
+    const response = await fetch(`${API_URL}/departments/${departmentId}`, {
+      headers: getAuthHeaders(), // 🎯 FIX
+    });
     const result = await response.json();
 
     if (!response.ok || !result.success) {
       throw new Error(result.message || "Department not found");
     }
 
-    return result.data ? mapDepartment(result.data) : null;
+    return result.data ?? null;   // 👈 direct return
   } catch (error) {
     console.error("getDepartmentById error:", error);
     toast.error("Failed to load department details.");
@@ -60,9 +66,7 @@ export const deleteDepartment = async (departmentId: number): Promise<boolean> =
   try {
     const response = await fetch(`${API_URL}/departments/delete/${departmentId}`, {
       method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: getAuthHeaders(), // 🎯 FIX
     });
 
     const result = await response.json();

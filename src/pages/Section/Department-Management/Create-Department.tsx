@@ -12,7 +12,7 @@ import {
 import { FaBuilding } from "react-icons/fa";
 import { toast } from "sonner";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
 
 function SectionHeading({
     icon,
@@ -53,7 +53,7 @@ export default function CreateDepartment() {
     const { departmentId } = useParams<{ departmentId: string }>();
     const isEditMode = Boolean(departmentId);
     const [loading, setLoading] = useState<boolean>(false);
-    
+
     const [formData, setFormData] = useState<DepartmentCreate>({
         departmentName: "",
         description: "",
@@ -67,7 +67,7 @@ export default function CreateDepartment() {
                 const result = await response.json();
                 if (!response.ok || !result.success) throw new Error(result.message || "Department not found");
                 setFormData({
-                    departmentName: result.data.department_name || "",
+                    departmentName: result.data.departmentName || "",
                     description: result.data.description || "",
                 });
             } catch (error) {
@@ -95,11 +95,11 @@ export default function CreateDepartment() {
             const response = await fetch(
                 isEditMode ? `${API_URL}/departments/${departmentId}` : `${API_URL}/departments/create`,
                 {
-                method: isEditMode ? "PUT" : "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(formData),
+                    method: isEditMode ? "PUT" : "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(formData),
                 }
             );
 

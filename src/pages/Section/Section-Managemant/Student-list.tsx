@@ -24,7 +24,7 @@ interface StudentListProps {
     sectionId?: number; // 🎯 Optional: auto-load if passed
 }
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
 
 export default function StudentList({ 
     students: initialStudents = [],

@@ -13,7 +13,7 @@ interface ApplicationProps {
     onClose?: () => void;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
 
 // Defensive helper — normalizes whatever shape the API returns into a plain array.
 // Handles: a bare array, { data: [...] }, { departments: [...] }, { sections: [...] },

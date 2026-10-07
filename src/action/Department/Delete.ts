@@ -1,6 +1,6 @@
 import { toast } from "sonner";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
 
 export default async function departmentDelete(departmentId: number): Promise<boolean> {
     try {

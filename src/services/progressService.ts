@@ -1,10 +1,9 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
 
-// 🎯 Growth trend — last 30 days metric
 export interface GrowthTrendPoint {
-  date: string; // YYYY-MM-DD format
+  date: string;
   newEnrollments: number;
   totalActive: number;
 }
@@ -26,8 +25,8 @@ export interface SectionProgress {
   completedTasks: number;
   percentage: number;
   users: UserProgress[];
-  studentCount?: number; // 🎯 NEW: Actual student count (no admins/heads)
-  growthTrend?: GrowthTrendPoint[]; // 🎯 NEW: Last 30 days enrollment trend
+  studentCount?: number;
+  growthTrend?: GrowthTrendPoint[];
 }
 
 export interface DepartmentProgress {
@@ -37,7 +36,7 @@ export interface DepartmentProgress {
   completedTasks: number;
   percentage: number;
   sections: SectionProgress[];
-  growthTrend?: GrowthTrendPoint[]; // 🎯 NEW: Last 30 days enrollment trend
+  growthTrend?: GrowthTrendPoint[];
 }
 
 export interface DepartmentSummary {
@@ -46,10 +45,16 @@ export interface DepartmentSummary {
   percentage: number;
 }
 
+const getAuthHeaders = () => ({
+  Authorization: `Bearer ${localStorage.getItem("token")}`,
+});
+
 export const progressService = {
   getAllDepartmentsProgress: async (): Promise<{ success: boolean; data: DepartmentSummary[] }> => {
     try {
-      const response = await axios.get(`${API_URL}/progress/departments`);
+      const response = await axios.get(`${API_URL}/progress/departments`, {
+        headers: getAuthHeaders(),
+      });
       return response.data;
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to fetch departments progress');
@@ -58,7 +63,9 @@ export const progressService = {
 
   getDepartmentProgress: async (departmentId: number): Promise<{ success: boolean; data: DepartmentProgress }> => {
     try {
-      const response = await axios.get(`${API_URL}/progress/department/${departmentId}`);
+      const response = await axios.get(`${API_URL}/progress/department/${departmentId}`, {
+        headers: getAuthHeaders(),
+      });
       return response.data;
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to fetch department progress');
@@ -67,7 +74,9 @@ export const progressService = {
 
   getSectionProgress: async (sectionId: number): Promise<{ success: boolean; data: SectionProgress }> => {
     try {
-      const response = await axios.get(`${API_URL}/progress/section/${sectionId}`);
+      const response = await axios.get(`${API_URL}/progress/section/${sectionId}`, {
+        headers: getAuthHeaders(),
+      });
       return response.data;
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to fetch section progress');
@@ -76,7 +85,9 @@ export const progressService = {
 
   getUserProgress: async (suid: number): Promise<{ success: boolean; data: UserProgress }> => {
     try {
-      const response = await axios.get(`${API_URL}/progress/user/${suid}`);
+      const response = await axios.get(`${API_URL}/progress/user/${suid}`, {
+        headers: getAuthHeaders(),
+      });
       return response.data;
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to fetch user progress');

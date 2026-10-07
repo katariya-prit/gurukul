@@ -4,7 +4,7 @@ import { useTheme } from '../../components/theme/ThemeContext';
 import DatePicker from '../../components/common/Calendar';
 
 // બેકએન્ડનું યુઆરએલ (તમારા સર્વર પોર્ટ મુજબ સેટ કરો)
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
 
 // બેકએન્ડ ડેટા મુજબનું ઇન્ટરફેસ
 interface AmrutItem {

@@ -5,12 +5,12 @@ export type UserCreate = {
     name: string;
     username: string;
     password: string;
-    bod: string,
-    departmentId: number; // 🌟 department માંથી departmentId કર્યું
+    bod: string;
+    departmentId: number | null; // 🎯 FIX: null pan allow karyu (HEAD100 sivay departmentId null jay chhe)
     sectionId: number | null;
-    standardId: number;   // 🌟 standard માંથી standardId કર્યું
-    roleId: number;       // 🌟 નવું ઉમેર્યું
-    roleCode: string;     // 🌟 નવું ઉમેર્યું
+    standardId: number;
+    // roleId: number;   👈 REMOVED - backend ma aa field exist j nathi karto (roleCode j primary key chhe)
+    roleCode: string;
     joiningDate: string;
     status?: "PENDING" | "APPROVED"; // optional status
 };

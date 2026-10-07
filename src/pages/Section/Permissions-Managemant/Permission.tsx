@@ -5,23 +5,24 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import Table from "../../../components/common/Table";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
 
-// 🎯 FIX: Backend actual ma je fields mokle chhe e j rakhya.
-// "performance" ane "hasAccess" jevu koi field database/backend ma nathi,
-// etle e static/fake fields remove kari didha.
 interface PendingUser {
     suid: number;
     avatar: string | null;
     name: string;
     username: string;
     roleCode: string;
-    role: string | null; // roles table thi role_name (LEFT JOIN)
+    role: string | null;
     departmentId: number | null;
     sectionId: number | null;
     joiningDate: string;
     status: "PENDING" | "APPROVED";
 }
+
+const getAuthHeaders = (): HeadersInit => ({
+    Authorization: `Bearer ${localStorage.getItem("token")}`,
+});
 
 export default function Permission() {
     const { theme } = useTheme();
@@ -33,13 +34,14 @@ export default function Permission() {
     const [error, setError] = useState<string | null>(null);
     const [users, setUsers] = useState<PendingUser[]>([]);
 
-    // 🎯 FIX: Static demo data ni jagya e — backend thi real PENDING users fetch karo
     const fetchPendingUsers = async () => {
         try {
             setLoading(true);
             setError(null);
 
-            const res = await fetch(`${API_URL}/users/pending`);
+            const res = await fetch(`${API_URL}/users/pending`, {
+                headers: getAuthHeaders(),
+            });
             const json = await res.json();
 
             if (!res.ok || !json.success) {
@@ -57,16 +59,14 @@ export default function Permission() {
     };
 
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         fetchPendingUsers();
     }, []);
 
-    // 🎯 Approve — status ne APPROVED karo, pachi list mathi remove karo
-    // (kem ke aa screen fakt PENDING users batave chhe)
     const handleApprove = async (suid: number) => {
         try {
             const res = await fetch(`${API_URL}/users/approve/${suid}`, {
                 method: "PUT",
+                headers: getAuthHeaders(),
             });
             const json = await res.json();
 
@@ -81,8 +81,6 @@ export default function Permission() {
         }
     };
 
-    // 🎯 Deny — database na CHECK constraint ma fakt PENDING/APPROVED j allowed
-    // chhe (REJECTED nathi), etle Deny no matlab chhe user ne delete karvo.
     const handleDeny = async (suid: number) => {
         const confirmed = window.confirm("Are you sure you want to deny and remove this user?");
         if (!confirmed) return;
@@ -90,6 +88,7 @@ export default function Permission() {
         try {
             const res = await fetch(`${API_URL}/users/delete/${suid}`, {
                 method: "DELETE",
+                headers: getAuthHeaders(),
             });
             const json = await res.json();
 

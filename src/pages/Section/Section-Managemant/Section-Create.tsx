@@ -74,6 +74,7 @@ export default function CreateSection() {
         description: "",
     });
 
+    // 🎯 FIX: backend camelCase mokle chhe (sectionHeadId, departmentId), snake_case nahi
     useEffect(() => {
         if (!sectionId) return;
         const loadSection = async () => {
@@ -82,8 +83,8 @@ export default function CreateSection() {
                 if (!result.success || !result.data) throw new Error(result.message || "Section not found");
                 setFormData({
                     sectionName: result.data.name,
-                    sectionHead: result.data.section_head_id ? String(result.data.section_head_id) : "",
-                    departmentId: String(result.data.department_id),
+                    sectionHead: result.data.sectionHeadId ? String(result.data.sectionHeadId) : "",
+                    departmentId: String(result.data.departmentId),
                     description: result.data.description || "",
                 });
             } catch (error) {
@@ -102,8 +103,9 @@ export default function CreateSection() {
             const userData = await departmentService.getUsersByDepartment(departmentId);
 
             if (userData.success && Array.isArray(userData.data)) {
+                // 🎯 FIX: backend camelCase mokle chhe (roleCode), role_code nahi
                 const sectionHeadUsers = userData.data.filter(
-                    (u: any) => u.role_code === SECTION_HEAD_ROLE_CODE
+                    (u: any) => u.roleCode === SECTION_HEAD_ROLE_CODE
                 );
 
                 const mapped = sectionHeadUsers.map((u: any) => ({
@@ -128,9 +130,10 @@ export default function CreateSection() {
         try {
             const deptData = await departmentService.getAllDepartments();
             if (deptData.success && Array.isArray(deptData.data)) {
+                // 🎯 FIX: backend camelCase mokle chhe (departmentId, departmentName), snake_case nahi
                 const mappedDepts = deptData.data.map((d: any) => ({
-                    value: d.department_id,
-                    label: d.department_name,
+                    value: d.departmentId,
+                    label: d.departmentName,
                 }));
                 setDeptOptions(mappedDepts);
             }
@@ -185,7 +188,7 @@ export default function CreateSection() {
         setLoading(true);
 
         try {
-            // 🎯 FIX: sectionHead have ek alag field tarike jay che, description ma nahi
+            // sectionHead ek alag field tarike jay che, description ma nahi
             const result = isEditMode
                 ? await sectionService.updateSection(Number(sectionId), {
                       name: formData.sectionName,

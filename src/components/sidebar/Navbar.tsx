@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useCallback, type ReactNode } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTheme } from "../theme/ThemeContext";
@@ -17,19 +16,25 @@ import {
     HiOutlineArrowLeft
 } from "react-icons/hi";
 import { FiUsers, FiRefreshCw } from "react-icons/fi";
-import { CiCircleList } from "react-icons/ci";
-import { IoCreateOutline } from "react-icons/io5";
-import { SiGoogledataproc, SiGoogleearth, SiNginxproxymanager } from "react-icons/si";
-import { RiEditBoxLine } from "react-icons/ri";
+import { SiNginxproxymanager } from "react-icons/si";
 import type { AuthUser } from "../../Types/Role-create";
 import { AiOutlineFileProtect } from "react-icons/ai";
 import { toast } from "sonner";
 import { departmentService } from "../../services/departmentService";
 import { sectionService } from "../../services/sectionService";
 import { groupService, isGroupLeader, type GroupData } from "../../services/groupService";
-import { RxActivityLog } from "react-icons/rx";
-import { MdOutlineEvent } from "react-icons/md";
 import { useSidebarView } from "../../context/SidebarViewContext";
+import { createPermissionChecker } from "./core/PermitionValidetor";
+import {
+    getDepartmentItems,
+    getUserItems,
+    getWebsiteItems,
+    getSectionItems,
+    getRoleItems,
+    getLessonItems,
+    getGroupItems,
+    getStudentSectionItems,
+} from "./core/Pagedata";
 
 interface NavbarProps {
     setSidebarOpen: (isOpen: boolean) => void;
@@ -45,9 +50,9 @@ interface DepartmentData {
 }
 
 interface SectionData {
-    section_id: number;
+    sectionId: number;
     name: string;
-    department_id: number;
+    departmentId: number;
 }
 
 export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
@@ -61,7 +66,6 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
     const [refreshing, setRefreshing] = useState<boolean>(false);
     const { activeDepartmentId, setActiveDepartment } = useSidebarView();
 
-    // 🎯 NAVU: user je-je groups no member chhe e list — data-driven (role-based nathi)
     const [myGroups, setMyGroups] = useState<GroupData[]>([]);
     const [groupsLoading, setGroupsLoading] = useState<boolean>(false);
 
@@ -76,24 +80,24 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
                 if (typeof parsed.permissions === "string") {
                     try {
                         parsed.permissions = JSON.parse(parsed.permissions);
-                    } catch (parseError) {
-                        console.error("❌ Error parsing permissions string:", parseError);
+                    } catch {
+                        setUser(parsed);
+                        return;
                     }
                 }
 
                 setUser(parsed);
 
-                // 🎯 NAVU: user load thay etle j tena groups fetch karo (navbar "My Groups" mate)
-                if ((parsed as any)?.suid) {
+                if (parsed?.suid) {
                     setGroupsLoading(true);
-                    groupService.getGroupsByMember((parsed as any).suid)
+                    groupService.getGroupsByMember(parsed.suid)
                         .then((res) => {
                             if (res.success && Array.isArray(res.data)) setMyGroups(res.data);
                         })
                         .finally(() => setGroupsLoading(false));
                 }
-            } catch (e) {
-                console.error("❌ Error parsing overall user data:", e);
+            } catch {
+                setUser(null);
             }
         }
     }, []);
@@ -102,17 +106,17 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
         try {
             const result = await departmentService.getAllDepartments();
             if (result.success) {
-                const mapped = result.data.map((d: any) => ({
-                    departmentId: d.department_id,
-                    departmentName: d.department_name,
-                    departmentHeadId: d.department_head_id,
-                    departmentHeadName: d.department_head_name,
+                const mapped = result.data.map((d: DepartmentData) => ({
+                    departmentId: d.departmentId,
+                    departmentName: d.departmentName,
+                    departmentHeadId: d.departmentHeadId,
+                    departmentHeadName: d.departmentHeadName,
                     description: d.description,
                 }));
                 setDepartment(mapped);
             }
-        } catch (error: any) {
-            toast.error(error.message || "Error fetching departments");
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : "Error fetching departments");
         }
     }, []);
 
@@ -135,8 +139,8 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
                     map[dept.departmentId] = res.success && Array.isArray(res.data) ? res.data : [];
                 });
                 setSectionsByDept(map);
-            } catch (error: any) {
-                toast.error(error.message || "Error fetching sections");
+            } catch (error) {
+                toast.error(error instanceof Error ? error.message : "Error fetching sections");
             } finally {
                 setSectionsLoading(false);
             }
@@ -154,23 +158,15 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
         }
     };
 
-    const hasAccess = (module: string, action: string) => {
-        if (user?.roleCode === "SUPER_ADMIN") return true;
+    const hasAccess = createPermissionChecker(user);
 
-        const userPerms: any = user?.permissions;
-        if (userPerms && typeof userPerms === "object") {
-            return !!userPerms[module]?.[action];
-        }
-        return false;
-    };
-
-    const departmentItems = [];
-    if (hasAccess("Department", "create")) {
-        departmentItems.push({ name: "Create Departments", path: "/dashboard/departments/create", icon: <IoCreateOutline /> });
-    }
-    if (hasAccess("Department", "view")) {
-        departmentItems.push({ name: "Departments List", path: "/dashboard/departments/list", icon: <CiCircleList /> });
-    }
+    const departmentItems = getDepartmentItems(hasAccess);
+    const userItems = getUserItems(hasAccess);
+    const websiteItems = getWebsiteItems(hasAccess);
+    const sectionItems = getSectionItems(hasAccess);
+    const roleItems = getRoleItems(hasAccess);
+    const lessonItems = getLessonItems(hasAccess);
+    const groupItems = getGroupItems(hasAccess);
 
     const isPermActive = location.pathname === "/dashboard/permissions/messages";
     const isProgressActive = location.pathname === "/dashboard/progress";
@@ -178,68 +174,9 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
 
     const filteredDepartments = (user?.roleCode === "SUPER_ADMIN"
         ? departments
-        : (departments || []).filter(d => d.departmentId === (user as any)?.departmentId)) || [];
+        : departments.filter((d) => d.departmentId === user?.departmentId)) || [];
     const isSuperAdmin = user?.roleCode === "SUPER_ADMIN";
     const singleDepartment = filteredDepartments.length === 1 ? filteredDepartments[0] : null;
-
-    const userItems = [];
-    if (hasAccess("Users", "create")) {
-        userItems.push({ name: "Create User", path: "/dashboard/users/create", icon: <IoCreateOutline /> });
-    }
-    if (hasAccess("Users", "view")) {
-        userItems.push({ name: "User List", path: "/dashboard/users/list", icon: <CiCircleList /> });
-    }
-
-    const websiteItems = [];
-    if (hasAccess("OverviewEdit", "view")) {
-        websiteItems.push({ name: "Overview", path: "/dashboard/overview-management", icon: <RiEditBoxLine /> });
-    }
-    if (hasAccess("OverviewEdit", "view") || hasAccess("Activities", "view")) {
-        websiteItems.push({ name: "Activities", path: "/dashboard/overview-management/activities", icon: <RxActivityLog /> });
-    }
-    if (hasAccess("OverviewEdit", "view") || hasAccess("UpcomingEvents", "view")) {
-        websiteItems.push({ name: "Upcoming Events", path: "/dashboard/overview-management/events", icon: <MdOutlineEvent /> });
-    }
-    if (hasAccess("AmrutNuAachaman", "create") || hasAccess("AmrutNuAachaman", "view")) {
-        websiteItems.push({ name: "Amrut Nu Aachaman", path: "/dashboard/overview-management/amrut-nu-aachaman", icon: <SiGoogledataproc /> });
-    }
-    if (hasAccess("DailyDarshan", "create") || hasAccess("DailyDarshan", "view")) {
-        websiteItems.push({ name: "Daily Darshan", path: "/dashboard/overview-management/daily-darshan", icon: <SiGoogleearth /> });
-    }
-
-    const sectionItems = [];
-    if (hasAccess("Section", "create")) {
-        sectionItems.push({ name: "Create Section", path: "/dashboard/sections/create", icon: <IoCreateOutline /> });
-    }
-    if (hasAccess("Section", "view")) {
-        sectionItems.push({ name: "Section List", path: "/dashboard/sections/list", icon: <CiCircleList /> });
-    }
-
-    const roleItems = [];
-    if (hasAccess("RolesPermissions", "create")) {
-        roleItems.push({ name: "Create Role", path: "/dashboard/permissions/role", icon: <IoCreateOutline /> });
-    }
-    if (hasAccess("RolesPermissions", "view")) {
-        roleItems.push({ name: "Role List", path: "/dashboard/permissions/lesson", icon: <CiCircleList /> });
-    }
-
-    // 🎯 Lesson Management dropdown — fakt SUPER_ADMIN / HEAD100 / SECHEAD101 mate (create+list)
-    const lessonItems = [];
-    if (hasAccess("Lesson", "create")) {
-        lessonItems.push({ name: "Create Lesson", path: "/dashboard/lessons/create", icon: <IoCreateOutline /> });
-    }
-    if (hasAccess("Lesson", "view")) {
-        lessonItems.push({ name: "Lesson List", path: "/dashboard/lessons/list", icon: <CiCircleList /> });
-    }
-
-    // 🎯 Groups management dropdown — fakt SUPER_ADMIN / HEAD100 mate (create/edit/list — WhatsApp-style)
-    const groupItems = [];
-    if (hasAccess("Group", "create")) {
-        groupItems.push({ name: "Create Group", path: "/dashboard/groups/create", icon: <IoCreateOutline /> });
-    }
-    if (hasAccess("Group", "view")) {
-        groupItems.push({ name: "Group List", path: "/dashboard/groups/list", icon: <CiCircleList /> });
-    }
 
     const isActive = location.pathname === "/dashboard";
 
@@ -257,9 +194,8 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
                 <button
                     type="button"
                     onClick={() => setActiveDepartment(null, null)}
-                    className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl font-semibold text-[15px] transition-all duration-200 group cursor-pointer ${
-                        isMiniSidebar ? "justify-center px-2" : ""
-                    } ${theme ? "text-white hover:bg-gray-800 hover:text-blue-200" : "text-gray-500 hover:bg-red-50 hover:text-red-600"}`}
+                    className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl font-semibold text-[15px] transition-all duration-200 group cursor-pointer ${isMiniSidebar ? "justify-center px-2" : ""
+                        } ${theme ? "text-white hover:bg-gray-800 hover:text-blue-200" : "text-gray-500 hover:bg-red-50 hover:text-red-600"}`}
                 >
                     <span className={`transition-colors ${theme ? "text-gray-300 group-hover:text-blue-200" : "text-gray-400 group-hover:text-red-600"}`}>
                         <HiOutlineArrowLeft className="text-xl" />
@@ -284,33 +220,18 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
                 )}
 
                 {!sectionsLoading && activeDept && activeSections.map((section) => {
-                    const sectionItems = [] as Array<{ name: string; path: string; icon: ReactNode }>;
+                    const studentItems = getStudentSectionItems(hasAccess, activeDept.departmentId, section.sectionId);
 
-                    if (hasAccess("Student", "create")) {
-                        sectionItems.push({
-                            name: "Create Student",
-                            path: `/dashboard/departments/${activeDept.departmentId}/sections/${section.section_id}/create-student`,
-                            icon: <IoCreateOutline />
-                        });
-                    }
-                    if (hasAccess("Student", "view")) {
-                        sectionItems.push({
-                            name: "Student List",
-                            path: `/dashboard/departments/${activeDept.departmentId}/sections/${section.section_id}/student-list`,
-                            icon: <CiCircleList />
-                        });
-                    }
-
-                    if (sectionItems.length === 0) {
+                    if (studentItems.length === 0) {
                         return null;
                     }
 
                     return (
                         <SidebarDropdown
-                            key={section.section_id}
+                            key={section.sectionId}
                             title={section.name}
                             icon={<HiOutlineOfficeBuilding className="text-xl" />}
-                            items={sectionItems}
+                            items={studentItems}
                             setSidebarOpen={setSidebarOpen}
                             isMiniSidebar={isMiniSidebar}
                         />
@@ -323,7 +244,6 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
     return (
         <div className="w-full flex flex-col space-y-1.5">
 
-            {/* Dashboard Button */}
             {showDashboardBtn && (
                 <button
                     onClick={() => { navigate("/dashboard"); setSidebarOpen(false); }}
@@ -342,7 +262,6 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
                 </button>
             )}
 
-            {/* Permissions Button */}
             {showPermissionsBtn && (
                 <button
                     onClick={() => { navigate("/dashboard/permissions/messages"); setSidebarOpen(false); }}
@@ -361,7 +280,6 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
                 </button>
             )}
 
-            {/* Progress Button */}
             {showProgressBtn && (
                 <button
                     onClick={() => { navigate("/dashboard/progress"); setSidebarOpen(false); }}
@@ -380,7 +298,6 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
                 </button>
             )}
 
-            {/* My Lessons Button */}
             {showMyLessonsBtn && (
                 <button
                     onClick={() => { navigate("/dashboard/lessons/my-lessons"); setSidebarOpen(false); }}
@@ -399,7 +316,6 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
                 </button>
             )}
 
-            {/* 🎯 NAVU: My Groups — user je groups no member chhe e badha dynamically, leader ne gold star */}
             {myGroups.length > 0 && (
                 <div className="space-y-1">
                     {!isMiniSidebar && (
@@ -409,7 +325,7 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
                     )}
                     {myGroups.map((group) => {
                         const isGroupActive = location.pathname === `/dashboard/groups/member/${group.group_id}`;
-                        const leader = isGroupLeader(group, (user as any)?.suid);
+                        const leader = isGroupLeader(group, user?.suid);
                         return (
                             <button
                                 key={group.group_id}
@@ -500,9 +416,8 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
                             key={dept.departmentId}
                             type="button"
                             onClick={() => setActiveDepartment(dept.departmentId, dept.departmentName)}
-                            className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl font-semibold text-[15px] transition-all duration-200 group cursor-pointer ${
-                                isMiniSidebar ? "justify-center px-2" : ""
-                            } ${theme ? "text-white hover:bg-gray-800 hover:text-blue-200" : "text-gray-500 hover:bg-red-50 hover:text-red-600"}`}
+                            className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl font-semibold text-[15px] transition-all duration-200 group cursor-pointer ${isMiniSidebar ? "justify-center px-2" : ""
+                                } ${theme ? "text-white hover:bg-gray-800 hover:text-blue-200" : "text-gray-500 hover:bg-red-50 hover:text-red-600"}`}
                         >
                             <span className={`transition-colors ${theme ? "text-gray-300 group-hover:text-blue-200" : "text-gray-400 group-hover:text-red-600"}`}>
                                 <HiOutlineAcademicCap className="text-xl" />
@@ -513,33 +428,18 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
                 })
             ) : (
                 (singleDepartment ? (sectionsByDept[singleDepartment.departmentId] || []).map((section) => {
-                    const sectionItems = [] as Array<{ name: string; path: string; icon: ReactNode }>;
+                    const studentItems = getStudentSectionItems(hasAccess, singleDepartment.departmentId, section.sectionId);
 
-                    if (hasAccess("Student", "create")) {
-                        sectionItems.push({
-                            name: "Create Student",
-                            path: `/dashboard/departments/${singleDepartment.departmentId}/sections/${section.section_id}/create-student`,
-                            icon: <IoCreateOutline />
-                        });
-                    }
-                    if (hasAccess("Student", "view")) {
-                        sectionItems.push({
-                            name: "Student List",
-                            path: `/dashboard/departments/${singleDepartment.departmentId}/sections/${section.section_id}/student-list`,
-                            icon: <CiCircleList />
-                        });
-                    }
-
-                    if (sectionItems.length === 0) {
+                    if (studentItems.length === 0) {
                         return null;
                     }
 
                     return (
                         <SidebarDropdown
-                            key={section.section_id}
+                            key={section.sectionId}
                             title={section.name}
                             icon={<HiOutlineOfficeBuilding className="text-xl" />}
-                            items={sectionItems}
+                            items={studentItems}
                             setSidebarOpen={setSidebarOpen}
                             isMiniSidebar={isMiniSidebar}
                         />

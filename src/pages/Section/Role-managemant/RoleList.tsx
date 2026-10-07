@@ -6,9 +6,9 @@ import DataCruding from "../../../components/common/DataCruding";
 import { roleDelete } from "../../../action/Role/Delete";
 
 interface RoleData {
-    role_code: string;
-    role_name: string;
-    description: string;
+    roleCode: string;
+    roleName: string;
+    description: string | null;
     permissions: {
         [key: string]: {
             create: boolean;
@@ -19,7 +19,7 @@ interface RoleData {
     };
 }
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
 
 export default function RoleList() {
     const { theme } = useTheme();
@@ -59,11 +59,11 @@ export default function RoleList() {
             accessor: (role: RoleData) => (
                 <span
                     className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold tracking-wide transition-colors ${theme
-                            ? "bg-slate-500/10 text-slate-200"
-                            : "bg-blue-50 text-red-700"
+                        ? "bg-slate-500/10 text-slate-200"
+                        : "bg-blue-50 text-red-700"
                         }`}
                 >
-                    {role.role_code}
+                    {role.roleCode}
                 </span>
             ),
         },
@@ -72,7 +72,7 @@ export default function RoleList() {
             className: "text-left text-[11px] font-bold tracking-wider text-slate-500",
             accessor: (role: RoleData) => (
                 <span className={`text-sm font-medium ${theme ? "text-slate-200" : "text-slate-800"}`}>
-                    {role.role_name}
+                    {role.roleName}
                 </span>
             ),
         },
@@ -89,8 +89,6 @@ export default function RoleList() {
             header: "ALLOWED MODULES",
             className: "text-left text-[11px] font-bold tracking-wider text-slate-500",
             accessor: (role: RoleData) => {
-                // 🎯 FIX: pehla badha permission-object keys batavta hata, chahe badha actions false hoy.
-                // Have fakt e j modules batave chhe jema ochu-ochu ek action (create/edit/view/delete) true hoy.
                 const allowedModules = role.permissions
                     ? Object.entries(role.permissions)
                         .filter(([, actions]) => actions?.create || actions?.edit || actions?.view || actions?.delete)
@@ -104,8 +102,8 @@ export default function RoleList() {
                                 <span
                                     key={mod}
                                     className={`px-2.5 py-0.5 text-[11px] font-semibold rounded-full transition-colors ${theme
-                                            ? "bg-slate-500/10 text-slate-200 border border-slate-500/20"
-                                            : "bg-rose-50 text-rose-700 border border-rose-200"
+                                        ? "bg-slate-500/10 text-slate-200 border border-slate-500/20"
+                                        : "bg-rose-50 text-rose-700 border border-rose-200"
                                         }`}
                                 >
                                     {mod}
@@ -126,15 +124,15 @@ export default function RoleList() {
             accessor: (role: RoleData) => (
                 <div className="flex justify-center">
                     <DataCruding
-                        onEdit={() => navigate(`/dashboard/permissions/role/edit/${encodeURIComponent(role.role_code)}`)}
+                        onEdit={() => navigate(`/dashboard/permissions/role/edit/${encodeURIComponent(role.roleCode)}`)}
                         onDelete={async () => {
                             if (!window.confirm("Are you sure you want to delete this role?")) {
                                 return;
                             }
-                            const success = await roleDelete(role.role_code);
+                            const success = await roleDelete(role.roleCode);
                             if (success) {
                                 setRoles((prev) =>
-                                    prev.filter((r) => r.role_code !== role.role_code)
+                                    prev.filter((r) => r.roleCode !== role.roleCode)
                                 );
                             }
                         }}
@@ -146,14 +144,14 @@ export default function RoleList() {
 
     return (
         <div className="space-y-6 w-full pb-8">
-            {/* Header Section (Title color matched with your screenshot) */}
+            {/* Header Section */}
             <div className="flex justify-between items-center mb-6">
                 <h2 className={`text-xl md:text-2xl font-bold tracking-wide ${theme ? "text-blue-500" : "text-rose-600"}`}>
                     Role & Permissions List
                 </h2>
             </div>
 
-            {/* Loading / Table Section (No extra ugly boxes) */}
+            {/* Loading / Table Section */}
             {loading ? (
                 <div className="flex flex-col items-center justify-center py-20 space-y-4">
                     <div className={`w-8 h-8 border-4 border-t-transparent rounded-full animate-spin ${theme ? 'border-blue-500' : 'border-rose-600'}`}></div>
@@ -164,7 +162,7 @@ export default function RoleList() {
                     <Table
                         columns={columns}
                         data={roles}
-                        keyExtractor={(role) => role.role_code}
+                        keyExtractor={(role, index) => role.roleCode || `role-${index}`}
                         emptyMessage="No roles defined yet!"
                     />
                 </div>

@@ -42,7 +42,7 @@ const filterOptions = [
     { value: "performance", label: "Performance" }
 ];
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
 
 export default function UserList() {
     const { theme } = useTheme();
@@ -62,8 +62,13 @@ export default function UserList() {
             setLoading(true);
             setError("");
 
+            const token = localStorage.getItem("token");
             const response = await fetch(`${API_URL}/users`, {
                 method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`,   // 👈 aa header missing hoi shake
+                },
             });
 
             if (!response.ok) {
@@ -71,6 +76,8 @@ export default function UserList() {
             }
 
             const result = await response.json();
+            console.log(result);
+            
 
             if (result.success) {
                 setUsers(result.data);
@@ -365,7 +372,7 @@ export default function UserList() {
                 <Table
                     columns={columns}
                     data={filteredUsers}
-                    keyExtractor={(user) => user.suid}
+                    keyExtractor={(user, index) => user.suid ?? `user-${index}`}
                     emptyMessage={
                         searchQuery
                             ? `No users found matching "${searchQuery}"`

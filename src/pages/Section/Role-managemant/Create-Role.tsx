@@ -9,7 +9,7 @@ import { HiOutlineShieldCheck, HiOutlineDocumentText } from "react-icons/hi";
 import type { RoleCreate, PermissionRow } from "../../../Types/Role-create";
 import { toast } from "sonner";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
 
 // 🎯 FIX: Navbar.tsx ma hasAccess() thi je-je modules actually check thay chhe e badha (16 total)
 // category-wise group karya, jethi Create Role form ma badha modules ni permission set kari shakay

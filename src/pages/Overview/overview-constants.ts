@@ -30,4 +30,4 @@ export const STATIC_DATA = {
 };
 
 // 🚀 Backend base URL - .env ma VITE_API_URL set karo, nahi to localhost fallback thashe
-export const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+export const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";

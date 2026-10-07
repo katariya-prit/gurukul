@@ -8,7 +8,7 @@ import LevelBadge from "../components/dashboard/Levelbadge";
 import { HiOutlineOfficeBuilding, HiOutlineUserGroup, HiOutlineShieldCheck, HiOutlineAcademicCap } from "react-icons/hi";
 import type { AuthUser } from "../Types/Role-create";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
 
 interface DashboardStatsResponse {
     cards: { label: string; value: number; subLabel: string; trend?: SparklinePoint[] }[];
@@ -36,7 +36,6 @@ export default function Dashboard() {
             try {
                 setLoading(true);
 
-                // 🎯 Role-aware query params — backend e mujab j alag data return kare chhe
                 const params = new URLSearchParams({
                     role: user.roleCode,
                     range,
@@ -45,7 +44,14 @@ export default function Dashboard() {
                 if ((user as any).sectionId) params.set("sectionId", String((user as any).sectionId));
                 if (user.suid) params.set("suid", String(user.suid));
 
-                const res = await fetch(`${API_URL}/dashboard/stats?${params.toString()}`, { cache: "no-store" });
+                const token = localStorage.getItem("token"); // 👈 ઉમેરવાનું
+
+                const res = await fetch(`${API_URL}/dashboard/stats?${params.toString()}`, {
+                    cache: "no-store",
+                    headers: {
+                        Authorization: `Bearer ${token}`, // 👈 ઉમેરવાનું
+                    },
+                });
                 const json = await res.json();
 
                 if (json.success) {
@@ -91,15 +97,14 @@ export default function Dashboard() {
                             <button
                                 key={r}
                                 onClick={() => setRange(r)}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-                                    range === r
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${range === r
                                         ? theme
                                             ? "bg-gray-700 text-white"
                                             : "bg-white text-gray-900 shadow-sm"
                                         : theme
                                             ? "text-gray-400"
                                             : "text-gray-500"
-                                }`}
+                                    }`}
                             >
                                 {r === "week" ? "1 Week" : "1 Month"}
                             </button>

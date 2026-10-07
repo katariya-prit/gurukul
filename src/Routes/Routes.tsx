@@ -3,7 +3,7 @@ import { Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import Layout from "../pages/Layout/Layout";
 import Overview from "../pages/Overview/Overview";
-import Login from "../auth/Login";
+import Login from "../auth/login";
 import Dashboard from "../pages/Dashboard";
 
 import AmrutAachaman from "../pages/Overview/Amrut-Nu-Aachaman";
@@ -119,8 +119,7 @@ export default function Routers() {
   return (
     /* 🎯 AnimatePresence મૂકવાથી /login માંથી /dashboard પર જતા સમયે layoutId ટ્રાન્ઝિશન સ્મૂથ ચાલશે */
     <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname}>
-        {/* Public Routes */}
+      <Routes location={location}>
         <Route path="/" element={<Overview />} />
         <Route path="/amrut-aachaman" element={<AmrutAachaman />} />
         <Route path="/daily-darshan" element={<DailyDarshanPage />} />

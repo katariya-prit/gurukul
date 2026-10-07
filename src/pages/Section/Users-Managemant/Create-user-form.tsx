@@ -18,13 +18,13 @@ import {
 import type { UserCreate } from "../../../Types/User-create";
 import { FaUserCircle } from "react-icons/fa";
 
-// 🎯 FIX: /api hatavyu — departmentService/sectionService/uploadService badha "http://localhost:5000" (bina /api) vapare che
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
 
+// 🎯 FIX: role_id, role_name, role_code (snake_case) hatavi ne
+// backend (Adonis) camelCase format mujab banavyu — roleName, roleCode
 interface RoleOption {
-    role_id: number;
-    role_name: string;
-    role_code: string;
+    roleName: string;
+    roleCode: string;
 }
 
 interface DepartmentOption {
@@ -80,12 +80,11 @@ export default function CreateUserForm() {
     const isUserRole = incomingData?.requestedRole === "USER";
 
     const [formData, setFormData] = useState<UserCreate>(() => ({
-        suid: incomingData?.id ? Number(incomingData.id) : 0, 
+        suid: incomingData?.id ? Number(incomingData.id) : 0,
         avatar: "",
         name: incomingData?.applicantName || "",
         username: "",
         password: "",
-        roleId: 0,
         bod: new Date().toISOString().split("T")[0],
         roleCode: "",
         departmentId: incomingData?.departmentId || (null as any),
@@ -123,29 +122,28 @@ export default function CreateUserForm() {
                 const rolesResult = await rolesRes.json();
                 const deptsResult = await deptsRes.json();
 
+                // 🎯 FIX: backend already camelCase (roleName, roleCode) pathave chhe,
+                // etle direct set karyu — mapping ni jarur nathi
                 if (rolesRes.ok && rolesResult.success) {
                     setRoles(rolesResult.data);
 
                     if (incomingData) {
-                        const matched = rolesResult.data.find((r: RoleOption) => r.role_code === incomingData.requestedRole);
+                        const matched = rolesResult.data.find(
+                            (r: RoleOption) => r.roleCode === incomingData.requestedRole
+                        );
                         if (matched) {
                             setFormData(prev => ({
                                 ...prev,
-                                roleId: matched.role_id,
-                                roleCode: matched.role_code
+                                roleCode: matched.roleCode,
                             }));
                         }
                     }
                 }
+
+                // 🎯 FIX: department_id/department_name (snake_case) mapping hatavi,
+                // backend already camelCase pathave chhe
                 if (deptsRes.ok && deptsResult.success) {
-                    const mappedDepts = deptsResult.data.map((d: any) => ({
-                        departmentId: d.department_id,
-                        departmentName: d.department_name,
-                        description: d.description,
-                        departmentHeadId: d.department_head_id,
-                        departmentHeadName: d.department_head_name,
-                    }));
-                    setDepartments(mappedDepts);
+                    setDepartments(deptsResult.data);
                 } else {
                     console.error(deptsResult.message);
                 }
@@ -166,9 +164,6 @@ export default function CreateUserForm() {
         }));
     };
 
-    // 🎯 FIX: base64 FileReader logic hatavi didhi — have ImageUploader component
-    // Cloudinary par upload kari ne direct URL pacha aape che, e j formData.avatar ma save thay che
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -177,18 +172,25 @@ export default function CreateUserForm() {
         try {
             const finalPayload = {
                 ...formData,
-                departmentId: formData.roleCode === "HEAD100" ? formData.departmentId : null
+                departmentId: formData.roleCode === "HEAD100" ? formData.departmentId : null,
+                sectionId: formData.sectionId ? formData.sectionId : null,
+                standardId: formData.standardId ? formData.standardId : null,
             };
+
+            const token = localStorage.getItem("token"); // 👈 ઉમેરવાનું
 
             const response = await fetch(`${API_URL}/users/register`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`, // 👈 ઉમેરવાનું
                 },
                 body: JSON.stringify(finalPayload),
             });
 
             const result = await response.json();
+            console.log("Backend Response:", result);
+            console.log("Validation Errors:", result.errors);
 
             if (!response.ok) {
                 throw new Error(result.message || "Failed to create user From server.");
@@ -262,7 +264,7 @@ export default function CreateUserForm() {
 
             <form onSubmit={handleSubmit} className="space-y-8">
 
-                {/* ===== Avatar — have Cloudinary ImageUploader vaparo che ===== */}
+                {/* ===== Avatar ===== */}
                 <div className="flex flex-col items-center justify-center gap-2">
                     <ImageUploader
                         value={formData.avatar}
@@ -321,17 +323,16 @@ export default function CreateUserForm() {
                         <SearchableDropdown
                             label="Select Role *"
                             placeholder={roles.length === 0 ? "Loading roles..." : "Choose Role"}
-                            options={roles.map(r => ({ value: r.role_code, label: `${r.role_name} (${r.role_code})` }))}
+                            options={roles.map(r => ({ value: r.roleCode, label: `${r.roleName} (${r.roleCode})` }))}
                             selectedValue={formData.roleCode || ""}
                             onSelect={(val) => {
-                                const selectedRole = roles.find(r => r.role_code === String(val));
+                                const selectedRole = roles.find(r => r.roleCode === String(val));
 
                                 setFormData(prev => ({
                                     ...prev,
-                                    roleId: selectedRole?.role_id ?? 0,
-                                    roleCode: selectedRole?.role_code ?? "",
-                                    status: selectedRole?.role_code === "USER" ? "PENDING" : "APPROVED",
-                                    ...(selectedRole?.role_code !== "HEAD100" && {
+                                    roleCode: selectedRole?.roleCode ?? "",
+                                    status: selectedRole?.roleCode === "USER" ? "PENDING" : "APPROVED",
+                                    ...(selectedRole?.roleCode !== "HEAD100" && {
                                         departmentId: null as any,
                                     }),
                                 }));

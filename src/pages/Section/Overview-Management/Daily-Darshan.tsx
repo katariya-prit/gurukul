@@ -3,7 +3,7 @@ import { useTheme } from "../../../components/theme/ThemeContext";
 import { HiOutlineSun, HiOutlineTrash, HiOutlinePhotograph, HiOutlinePencil } from "react-icons/hi";
 import { toast } from "sonner";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
 
 interface DarshanEntry {
     id: number;

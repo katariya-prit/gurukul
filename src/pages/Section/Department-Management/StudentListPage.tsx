@@ -5,9 +5,9 @@ import Table from "../../../components/common/Table";
 import { HiOutlineUserGroup, HiSearch, HiFilter, HiChevronDown } from "react-icons/hi";
 import { toast } from "sonner";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
 
-// 🎯 FIX: Backend have camelCase mokle che (departmentId, sectionId, roleCode)
+// Backend have camelCase mokle che (departmentId, sectionId, roleCode)
 interface Student {
   suid: string;
   name: string;
@@ -21,7 +21,6 @@ interface Student {
 export default function StudentListPage() {
   const { theme } = useTheme();
 
-  // 🎯 FIX: sectionId pan URL thi aave che have (section-specific list)
   const { deptId, sectionId } = useParams<{ deptId: string; sectionId: string }>();
   const currentDeptId = Number(deptId);
   const currentSectionId = sectionId ? Number(sectionId) : null;
@@ -33,7 +32,7 @@ export default function StudentListPage() {
   const [allStudents, setAllStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 🎯 FIX: Sirf is section na students j fetch karo (badha /users nahi)
+  // Sirf is section na students j fetch karo (badha /users nahi)
   useEffect(() => {
     const fetchStudents = async () => {
       try {
@@ -44,17 +43,25 @@ export default function StudentListPage() {
           : `${API_URL}/users`;
 
         console.log("🔍 Fetching from:", url); // 🎯 DEBUG
-        
-        const res = await fetch(url);
+
+        // 🎯 FIX: /users/* routes auth-protected chhe, token header vagar 401 "Unauthorized access" aave chhe
+        const token = localStorage.getItem("token");
+        const res = await fetch(url, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
         const json = await res.json();
 
         console.log("📦 Response:", json); // 🎯 DEBUG
+
+        if (!res.ok) {
+          throw new Error(json?.message || "Failed to load students.");
+        }
 
         const students: Student[] = json.data || [];
         setAllStudents(students);
       } catch (error) {
         console.error("❌ Error:", error); // 🎯 DEBUG
-        toast.error("Failed to load students.");
+        toast.error(error instanceof Error ? error.message : "Failed to load students.");
       } finally {
         setLoading(false);
       }
@@ -65,7 +72,7 @@ export default function StudentListPage() {
     }
   }, [currentSectionId]);
 
-  // 🎯 FIX: department_id nahi, departmentId (camelCase) — ane already section-specific API vaparyu che
+  // department_id nahi, departmentId (camelCase) — ane already section-specific API vaparyu che
   const deptFilteredStudents = allStudents.filter((s) => s.departmentId === currentDeptId);
 
   const filterOptions = [
