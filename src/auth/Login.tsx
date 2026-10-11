@@ -7,7 +7,6 @@ import { HiOutlineMail } from "react-icons/hi";
 import { IoIosLock } from "react-icons/io";
 import { FaLock } from "react-icons/fa";
 import { toast } from "sonner";
-import LoginBackground from "../components/backgrounds/LoginBackground";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
 
@@ -89,10 +88,6 @@ export default function Login() {
         theme ? "bg-gray-900" : "bg-red-50"
       }`}
     >
-      {/* Three.js Flag Background - Only visible when Dark Theme is OFF (!theme) */}
-      <LoginBackground isVisible={!theme} />
-
-      {/* Background Decorative Blur Circles */}
       <div
         className={`absolute top-10 left-20 w-40 h-40 rounded-full blur-3xl animate-pulse ${
           theme ? "bg-blue-600/20" : "bg-red-200/50"
