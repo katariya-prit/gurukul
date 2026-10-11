@@ -57,6 +57,7 @@ import GroupList from "../pages/Section/Group-Managemant/Group-List";
 
 // 👥 Group Member Detail — group ma je member chhe e joi shake tevu page
 import GroupMemberDetail from "../pages/Section/Group-Managemant/Groupmemberdetail";
+import { toast } from "sonner";
 
 interface ProtectedRouteProps {
   module?: string;
@@ -85,8 +86,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   if (typeof permissions === "string") {
     try {
       permissions = JSON.parse(permissions);
-    } catch (e) {
+    } catch {
       permissions = {};
+      toast.error("Failed to parse user permissions. Please log in again.");
     }
   }
 
