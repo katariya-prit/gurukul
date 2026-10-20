@@ -45,19 +45,30 @@ interface ActivityCard {
     imageCount?: number;
 }
 
-// 🎯 NAVU: Group JSON Text ne Parse karva mate helper
 const GROUP_PREFIX = "__GURUKUL_ACTIVITY_GROUP_V1__";
 
-function parseActivityGroupData(rawText: string) {
+interface ActivityGroupData {
+    groupId?: string;
+    title?: string;
+    description?: string;
+    coverImage?: string;
+    cover_image?: string;
+    coverUrl?: string;
+    image?: string;
+}
+
+function parseActivityGroupData(rawText: string): ActivityGroupData | null {
     if (!rawText || !rawText.startsWith(GROUP_PREFIX)) return null;
+
     try {
-        return JSON.parse(rawText.replace(GROUP_PREFIX, ""));
-    } catch (e) {
+        return JSON.parse(
+            rawText.slice(GROUP_PREFIX.length)
+        ) as ActivityGroupData;
+    } catch {
         return null;
     }
 }
 
-// 🎯 Backend QuoteData ne Events card na shape ma convert karo
 interface EventCard {
     id: number;
     title: string;
@@ -70,50 +81,6 @@ interface EventCard {
     displayEndDate: string;
 }
 
-function formatEventDate(value: string | null | undefined): string {
-    if (!value) return "Date not set";
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value;
-    return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase();
-}
-
-function getDateOnly(value: string | null | undefined): string {
-    return value?.split("T")[0] || "";
-}
-
-function getTodayDateOnly(): string {
-    const today = new Date();
-    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-}
-
-function isEventVisibleToday(event: QuoteData): boolean {
-    if (event.is_approved !== "Approved") return false;
-    const today = getTodayDateOnly();
-    const startDate = getDateOnly(event.display_start_date || event.event_start_date || event.event_date);
-    const endDate = getDateOnly(event.display_end_date || event.event_end_date || event.event_date);
-    return Boolean(startDate && endDate && today >= startDate && today < endDate);
-}
-
-function mapQuoteToEventCard(q: QuoteData): EventCard {
-    const fallbackDate = q.event_date;
-    const eventStartDate = getDateOnly(q.event_start_date || fallbackDate);
-    const eventEndDate = getDateOnly(q.event_end_date || fallbackDate);
-    return {
-        id: q.id,
-        title: q.name?.trim() || "Upcoming Event",
-        eventStartDate: formatEventDate(eventStartDate),
-        eventEndDate: formatEventDate(eventEndDate),
-        status: eventStartDate && eventEndDate && getTodayDateOnly() >= eventStartDate && getTodayDateOnly() <= eventEndDate
-            ? "Active"
-            : (q.status || "Active"),
-        description: q.description?.trim() || "No description provided.",
-        thumbnail: q.image_url,
-        displayStartDate: getDateOnly(q.display_start_date || eventStartDate),
-        displayEndDate: getDateOnly(q.display_end_date || eventEndDate),
-    };
-}
-
-// 🎯 Daily Darshan backend DTO ne home page card na shape ma convert karo
 interface DarshanCard {
     id: number;
     title: string;
@@ -126,7 +93,7 @@ interface DarshanDTO {
     title: string;
     imageUrl: string;
     description: string;
-    date: string; // "YYYY-MM-DD"
+    date: string;
 }
 
 interface HeroSlide {
@@ -135,13 +102,122 @@ interface HeroSlide {
     description: string;
 }
 
+function getDateOnly(value: string | null | undefined): string {
+    if (!value) return "";
+
+    const match = value.match(/^\d{4}-\d{2}-\d{2}/);
+
+    if (match) return match[0];
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) return "";
+
+    return [
+        date.getFullYear(),
+        String(date.getMonth() + 1).padStart(2, "0"),
+        String(date.getDate()).padStart(2, "0"),
+    ].join("-");
+}
+
+
+interface EventApiData {
+    id: number;
+    name?: string | null;
+    title?: string | null;
+    description?: string | null;
+    imageUrl?: string | null;
+    image_url?: string | null;
+    eventDate?: string | null;
+    eventStartDate?: string | null;
+    eventEndDate?: string | null;
+    displayStartDate?: string | null;
+    displayEndDate?: string | null;
+    isApproved?: string | null;
+    addToHero?: string | null;
+    status?: string | null;
+    type?: string | null;
+}
+
+interface EventCard {
+    id: number;
+    title: string;
+    eventStartDate: string;
+    eventEndDate: string;
+    status: "Active" | "Inactive";
+    description: string;
+    thumbnail: string;
+    displayStartDate: string;
+    displayEndDate: string;
+}
+
+function isEventVisibleToday(event: EventApiData): boolean {
+    const approval = String(event.isApproved ?? "")
+        .trim()
+        .toLowerCase();
+
+    if (approval !== "approved") {
+        return false;
+    }
+
+    if (
+        event.status &&
+        event.status.trim().toLowerCase() !== "active"
+    ) {
+        return false;
+    }
+
+    return true;
+}
+
+function mapQuoteToEventCard(event: EventApiData): EventCard {
+    const startDate =
+        event.eventStartDate ||
+        event.eventDate ||
+        "";
+
+    const endDate =
+        event.eventEndDate ||
+        event.eventDate ||
+        startDate;
+
+    return {
+        id: event.id,
+        title:
+            event.name?.trim() ||
+            event.title?.trim() ||
+            "Upcoming Event",
+        eventStartDate: startDate,
+        eventEndDate: endDate,
+        status:
+            event.status?.toLowerCase() === "inactive"
+                ? "Inactive"
+                : "Active",
+        description: event.description?.trim() || "",
+        thumbnail: event.imageUrl || event.image_url || "",
+        displayStartDate:
+            event.displayStartDate || startDate,
+        displayEndDate:
+            event.displayEndDate || endDate,
+    };
+}
+
 function mapDarshanToCard(d: DarshanDTO): DarshanCard {
-    const dateObj = new Date(d.date);
+    const date = getDateOnly(d.date);
+    const dateObj = date ? new Date(`${date}T00:00:00`) : null;
+
     return {
         id: d.id,
-        title: d.title,
-        date: dateObj.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase(),
-        image: d.imageUrl,
+        title: d.title || "Daily Darshan",
+        date:
+            dateObj && !Number.isNaN(dateObj.getTime())
+                ? dateObj.toLocaleDateString("en-GB", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                }).toUpperCase()
+                : "DATE NOT SET",
+        image: d.imageUrl || "",
     };
 }
 
@@ -188,23 +264,68 @@ export default function Overview() {
     const [darshanLoading, setDarshanLoading] = useState<boolean>(true);
 
     useEffect(() => {
+        const controller = new AbortController();
+
         const fetchOverviewData = async () => {
             try {
-                const res = await fetch(`${API_BASE_URL}/overview`);
-                const result = await res.json();
-                if (result.success && result.data.heroSlider?.length) {
-                    const slides = result.data.heroSlider.map((img: { id: number; url: string; title?: string; description?: string }) => ({
-                        url: img.url,
-                        title: img.title || "",
-                        description: img.description || "",
-                    }));
+                const token = localStorage.getItem("token");
+
+                const response = await fetch(`${API_BASE_URL}/overview`, {
+                    cache: "no-store",
+                    headers: token
+                        ? {
+                            Authorization: `Bearer ${token}`,
+                        }
+                        : {},
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Overview API failed: ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (!result.success) {
+                    throw new Error(result.message || "Failed to load overview");
+                }
+
+                const data = result.data;
+
+                const rawSlides = Array.isArray(data)
+                    ? data
+                    : Array.isArray(data?.heroSlider)
+                        ? data.heroSlider
+                        : Array.isArray(data?.data)
+                            ? data.data
+                            : [];
+
+                const slides: HeroSlide[] = rawSlides
+                    .map((item: Record<string, unknown>) => ({
+                        url: String(
+                            item.url ||
+                            item.imageUrl ||
+                            item.image_url ||
+                            item.image ||
+                            ""
+                        ),
+                        title: String(item.title || ""),
+                        description: String(item.description || ""),
+                    }))
+                    .filter((slide: HeroSlide) => Boolean(slide.url));
+
+                if (slides.length > 0) {
                     setOverviewImages(slides);
                 }
             } catch (error) {
-                console.error("Error fetching overview data:", error);
+                if (error instanceof Error && error.name !== "AbortError") {
+                    console.error("Error fetching overview:", error);
+                }
             }
         };
+
         fetchOverviewData();
+
+        return () => controller.abort();
     }, []);
 
     // 🎯 Activities Fetch and Group Logic (Cover image resolution updated)
@@ -213,7 +334,7 @@ export default function Overview() {
             try {
                 setActivitiesLoading(true);
                 const result = await quoteService.getQuotesByType("activity");
-                if (result.success) {
+                if (result.success && Array.isArray(result.data)) {
                     const rawData: QuoteData[] = result.data;
                     const grouped = new Map<string, ActivityCard>();
                     const standalone: ActivityCard[] = [];
@@ -237,8 +358,11 @@ export default function Overview() {
                             } else {
                                 const existing = grouped.get(parsed.groupId)!;
                                 existing.imageCount = (existing.imageCount || 1) + 1;
-                                if (parsed.coverImage || parsed.cover_image || parsed.coverUrl) {
-                                    existing.image = parsed.coverImage || parsed.cover_image || parsed.coverUrl;
+
+                                const coverImage = parsed.coverImage || parsed.cover_image || parsed.coverUrl;
+
+                                if (coverImage) {
+                                    existing.image = coverImage;
                                 }
                             }
                         } else {
@@ -255,7 +379,11 @@ export default function Overview() {
 
                     // Combine unique grouped activities and standalone activities
                     const uniqueActivities = [...Array.from(grouped.values()), ...standalone];
-                    setActivities(uniqueActivities.slice(0, 4));
+                    setActivities(
+                        [...uniqueActivities]
+                            .sort((a, b) => b.id - a.id)
+                            .slice(0, 4)
+                    );
                 }
             } catch (error) {
                 console.error("Error fetching activities:", error);
@@ -267,30 +395,74 @@ export default function Overview() {
     }, []);
 
     useEffect(() => {
+        let cancelled = false;
+
         const fetchEvents = async () => {
+            setEventsLoading(true);
+
             try {
-                setEventsLoading(true);
                 const result = await quoteService.getQuotesByType("event");
-                if (result.success) {
-                    const visibleEvents = result.data.filter(isEventVisibleToday);
-                    setEvents(visibleEvents.map(mapQuoteToEventCard).slice(0, 4));
-                    setHeroEventSlides(
-                        visibleEvents
-                            .filter((event: QuoteData) => event.add_to_hero === "Yes")
-                            .map((event: QuoteData) => ({
-                                url: event.image_url,
-                                title: event.name?.trim() || "Upcoming Event",
-                                description: event.description?.trim() || "No description provided.",
-                            }))
-                    );
+
+                if (cancelled) return;
+
+                const rawData = (
+                    result as unknown as { data?: EventApiData[] }
+                ).data;
+
+                if (!Array.isArray(rawData)) {
+                    console.error("Invalid events response:", result);
+                    setEvents([]);
+                    setHeroEventSlides([]);
+                    return;
                 }
+
+                console.log("Events received:", rawData);
+
+                const visibleEvents = rawData
+                    .filter(isEventVisibleToday)
+                    .sort((a, b) => b.id - a.id);
+
+                console.log("Events displayed:", visibleEvents);
+
+                setEvents(
+                    visibleEvents.map(mapQuoteToEventCard).slice(0, 4)
+                );
+
+                setHeroEventSlides(
+                    visibleEvents
+                        .filter(
+                            event =>
+                                event.addToHero?.trim().toLowerCase() === "yes" &&
+                                Boolean(event.imageUrl || event.image_url)
+                        )
+                        .map(event => ({
+                            url: event.imageUrl || event.image_url || "",
+                            title:
+                                event.name?.trim() ||
+                                event.title?.trim() ||
+                                "Upcoming Event",
+                            description: event.description?.trim() || "",
+                        }))
+                );
             } catch (error) {
                 console.error("Error fetching events:", error);
+
+                if (!cancelled) {
+                    setEvents([]);
+                    setHeroEventSlides([]);
+                }
             } finally {
-                setEventsLoading(false);
+                if (!cancelled) {
+                    setEventsLoading(false);
+                }
             }
         };
+
         fetchEvents();
+
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
     useEffect(() => {
@@ -300,7 +472,11 @@ export default function Overview() {
                 const res = await fetch(`${API_BASE_URL}/daily-darshan`, { cache: "no-store" });
                 const result = await res.json();
                 if (result.success) {
-                    setDarshanItems((result.data as DarshanDTO[]).map(mapDarshanToCard).slice(0, 3));
+                    setDarshanItems(
+                        (result.data as DarshanDTO[])
+                            .map(mapDarshanToCard)
+                            .slice(0, 3)
+                    );
                 }
             } catch (error) {
                 console.error("Error fetching daily darshan:", error);
@@ -312,12 +488,20 @@ export default function Overview() {
     }, []);
 
     useEffect(() => {
-        const heroSlideCount = overviewImages.length + heroEventSlides.length;
-        if (heroSlideCount === 0) return;
-        const timer = setInterval(() => {
-            setCurrentImgIndex((prev) => (prev + 1) % heroSlideCount);
+        const totalSlides = overviewImages.length + heroEventSlides.length;
+
+        if (totalSlides <= 1) {
+            setCurrentImgIndex(0);
+            return;
+        }
+
+        setCurrentImgIndex((current) => current % totalSlides);
+
+        const timer = window.setInterval(() => {
+            setCurrentImgIndex((current) => (current + 1) % totalSlides);
         }, 4000);
-        return () => clearInterval(timer);
+
+        return () => window.clearInterval(timer);
     }, [overviewImages.length, heroEventSlides.length]);
 
     const heroImages: HeroSlide[] = [
@@ -611,62 +795,48 @@ export default function Overview() {
                     </Reveal>
 
                     {eventsLoading ? (
-                        <div className="flex justify-center py-16">
-                            <div className={`w-10 h-10 rounded-full border-4 border-t-transparent animate-spin ${theme ? "border-blue-500" : "border-red-600"}`} />
-                        </div>
-                    ) : events.length === 0 ? (
-                        <p className={`text-center py-16 text-sm ${theme ? "text-slate-500" : "text-slate-400"}`}>
-                            No upcoming events added yet.
-                        </p>
-                    ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            {events.map((item, idx) => (
-                                <Reveal key={item.id} delay={idx * 0.12} yOffset={40}>
-                                    <Link to="/events">
-                                        <motion.div
-                                            whileHover={{ scale: 1.02, x: 6 }}
-                                            transition={{ duration: 0.3 }}
-                                            className={`group flex flex-col gap-5 p-6 rounded-2xl border transition-all duration-300 ${theme
-                                                ? "bg-slate-900/80 border-slate-800 hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-900/30"
-                                                : "bg-white border-slate-200/80 hover:shadow-xl hover:border-red-300"
-                                                }`}
-                                        >
-                                            <div className="flex items-start gap-5">
-                                                <div className="overflow-hidden rounded-xl w-24 h-24 shrink-0">
-                                                    <img src={item.thumbnail} alt={item.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-125" />
-                                                </div>
-                                                <div className="min-w-0 flex-1">
-                                                    <h3 className="font-bold text-lg leading-snug">
-                                                        {item.title}
-                                                    </h3>
-                                                    <span className={`inline-flex mt-3 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${item.status === "Active"
-                                                        ? theme ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300" : "border-emerald-200 bg-emerald-50 text-emerald-700"
-                                                        : theme ? "border-slate-700 bg-slate-800 text-slate-400" : "border-slate-200 bg-slate-100 text-slate-500"
-                                                        }`}>
-                                                        {item.status}
-                                                    </span>
-                                                </div>
-                                            </div>
+                        <p>Loading events...</p>
+                    ) : events.length > 0 ? (
+                        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                            {events.map(event => (
+                                <article
+                                    key={event.id}
+                                    className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900"
+                                >
+                                    {event.thumbnail && (
+                                        <img
+                                            src={event.thumbnail}
+                                            alt={event.title}
+                                            className="h-48 w-full object-cover"
+                                        />
+                                    )}
 
-                                            <div className={`grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs ${theme ? "text-slate-400" : "text-slate-500"}`}>
-                                                <div>
-                                                    <span className="block font-bold uppercase tracking-wider opacity-60">Event Start Date</span>
-                                                    <span className="block mt-1 font-semibold">{item.eventStartDate}</span>
-                                                </div>
-                                                <div>
-                                                    <span className="block font-bold uppercase tracking-wider opacity-60">Event End Date</span>
-                                                    <span className="block mt-1 font-semibold">{item.eventEndDate}</span>
-                                                </div>
-                                            </div>
+                                    <div className="p-4">
+                                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                                            {event.title}
+                                        </h3>
 
-                                            <p className={`text-sm leading-relaxed line-clamp-3 ${theme ? "text-slate-400" : "text-slate-600"}`}>
-                                                {item.description}
+                                        {event.description && (
+                                            <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                                                {event.description}
                                             </p>
-                                        </motion.div>
-                                    </Link>
-                                </Reveal>
+                                        )}
+
+                                        <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+                                            {event.displayStartDate}
+                                            {event.displayEndDate &&
+                                                event.displayEndDate !== event.displayStartDate
+                                                ? ` - ${event.displayEndDate}`
+                                                : ""}
+                                        </p>
+                                    </div>
+                                </article>
                             ))}
                         </div>
+                    ) : (
+                        <p className="text-center text-gray-500">
+                            No events available.
+                        </p>
                     )}
                 </div>
             </section>

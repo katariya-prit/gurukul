@@ -28,12 +28,20 @@ type AssignmentTabKey = "all" | "department" | "section" | "student" | "group";
 interface LessonFormState {
     lesson_title: string;
     lesson_type: string;
-    department_id: string;
     date_start: string;
     date_end: string;
     description: string;
     progress_points: string;
 }
+
+const initialFormState: LessonFormState = {
+    lesson_title: "",
+    lesson_type: "video",
+    date_start: "",
+    date_end: "",
+    description: "",
+    progress_points: "50",
+};
 
 const mediaTypes: DropdownOption[] = [
     { value: "video", label: "Video" },
@@ -89,15 +97,7 @@ export default function CreateLesson() {
     const [assignHeadOnly, setAssignHeadOnly] = useState(false);
     const [mediaFile, setMediaFile] = useState<File | null>(null);
 
-    const [formData, setFormData] = useState<LessonFormState>({
-        lesson_title: "",
-        lesson_type: "video",
-        department_id: "",
-        date_start: "",
-        date_end: "",
-        description: "",
-        progress_points: "50",
-    });
+    const [formData, setFormData] = useState<LessonFormState>(initialFormState);
 
     const user = useMemo(() => {
         const raw = localStorage.getItem("user");
@@ -331,11 +331,6 @@ export default function CreateLesson() {
             return;
         }
 
-        if (isSuperAdmin && !formData.department_id) {
-            toast.error("Please select a department");
-            return;
-        }
-
         if (!formData.date_start) {
             toast.error("Please select start date");
             return;
@@ -351,9 +346,13 @@ export default function CreateLesson() {
             return;
         }
 
+        const resolvedDepartmentId = ["department", "section", "student"].includes(activeAssignTab)
+            ? Number(selectedDepartmentId) || null
+            : null;
+
         const assignment = {
             scope: activeAssignTab,
-            department_id: ["department", "section", "student"].includes(activeAssignTab) ? Number(selectedDepartmentId) || null : null,
+            department_id: resolvedDepartmentId,
             section_id: ["section", "student"].includes(activeAssignTab) ? Number(selectedSectionId) || null : null,
             student_id: activeAssignTab === "student" ? Number(selectedStudentId) || null : null,
             group_id: activeAssignTab === "group" ? Number(selectedGroupId) || null : null,
@@ -363,8 +362,8 @@ export default function CreateLesson() {
         const payload = {
             lesson_title: title,
             lesson_type: formData.lesson_type,
-            department_id: isSuperAdmin ? Number(formData.department_id) : null,
-            departmentId: isSuperAdmin ? Number(formData.department_id) : null,
+            department_id: resolvedDepartmentId,
+            departmentId: resolvedDepartmentId,
             start_date: formData.date_start,
             date_start: formData.date_start,
             end_date: formData.date_end,
@@ -387,15 +386,7 @@ export default function CreateLesson() {
 
             if (response?.success) {
                 toast.success("Lesson created successfully");
-                setFormData({
-                    lesson_title: "",
-                    lesson_type: "video",
-                    department_id: "",
-                    date_start: "",
-                    date_end: "",
-                    description: "",
-                    progress_points: "50",
-                });
+                setFormData(initialFormState);
                 resetAssignmentSelection();
                 setActiveAssignTab("all");
                 setMediaFile(null);

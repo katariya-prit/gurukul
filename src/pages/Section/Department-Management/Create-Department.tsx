@@ -14,6 +14,14 @@ import { toast } from "sonner";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
 
+const authHeaders = (): HeadersInit => {
+    const token = localStorage.getItem("token");
+    return {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+};
+
 function SectionHeading({
     icon,
     title,
@@ -63,7 +71,9 @@ export default function CreateDepartment() {
         if (!departmentId) return;
         const loadDepartment = async () => {
             try {
-                const response = await fetch(`${API_URL}/departments/${departmentId}`);
+                const response = await fetch(`${API_URL}/departments/${departmentId}`, {
+                    headers: authHeaders(),
+                });
                 const result = await response.json();
                 if (!response.ok || !result.success) throw new Error(result.message || "Department not found");
                 setFormData({
@@ -91,14 +101,11 @@ export default function CreateDepartment() {
         setLoading(true);
 
         try {
-            // બેકએન્ડ API કોલ
             const response = await fetch(
                 isEditMode ? `${API_URL}/departments/${departmentId}` : `${API_URL}/departments/create`,
                 {
                     method: isEditMode ? "PUT" : "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
+                    headers: authHeaders(),
                     body: JSON.stringify(formData),
                 }
             );
@@ -142,7 +149,7 @@ export default function CreateDepartment() {
                     <FaBuilding size={24} />
                 </div>
                 <h2 className={`text-3xl sm:text-4xl font-bold tracking-tight ${theme ? "text-blue-200" : "text-red-600"}`}>
-                    {isEditMode ? "Update Department" : "Create Department"}
+                    { isEditMode ? "Update Department" : "Create Department"}
                 </h2>
                 <p className={`text-sm max-w-md ${theme ? "text-gray-400" : "text-neutral-500"}`}>
                     Fill in the details below to register a new department.

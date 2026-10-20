@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useTheme } from "../../../components/theme/ThemeContext";
 import Table from "../../../components/common/Table";
+import DataCruding from "../../../components/common/DataCruding"; // path tamara DataCruding file pramane adjust karjo
 import { HiOutlineUserGroup, HiSearch, HiFilter, HiChevronDown } from "react-icons/hi";
 import { toast } from "sonner";
 
@@ -10,6 +11,7 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
 // Backend have camelCase mokle che (departmentId, sectionId, roleCode)
 interface Student {
   suid: string;
+  avatar?: string | null;
   name: string;
   username: string;
   roleCode: string;
@@ -73,6 +75,43 @@ export default function StudentListPage() {
   }, [currentSectionId]);
 
   // department_id nahi, departmentId (camelCase) — ane already section-specific API vaparyu che
+  // Student ma "delete" permission hoy tyare j Actions menu dekhado (SUPER_ADMIN ne hammesha)
+  const canDelete = (() => {
+    try {
+      const storedUser = JSON.parse(localStorage.getItem("user") || "null");
+      if (!storedUser) return false;
+      if (storedUser.roleCode === "SUPER_ADMIN") return true;
+      let perms = storedUser.permissions;
+      if (typeof perms === "string") perms = JSON.parse(perms);
+      return !!perms?.Student?.delete;
+    } catch {
+      return false;
+    }
+  })();
+
+  const handleDelete = async (student: Student) => {
+    if (!window.confirm(`Delete ${student.name} (SUID ${student.suid})? Aa pachu nahi malse.`)) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/users/delete/${student.suid}`, {
+        method: "DELETE",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      const json = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        throw new Error(json?.message || "Failed to delete user.");
+      }
+
+      // List ma thi turant hatavo (page reload vagar)
+      setAllStudents((prev) => prev.filter((s) => s.suid !== student.suid));
+      toast.success(json?.message || "User deleted successfully.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete user.");
+    }
+  };
+
   const deptFilteredStudents = allStudents.filter((s) => s.departmentId === currentDeptId);
 
   const filterOptions = [
@@ -128,8 +167,26 @@ export default function StudentListPage() {
   const columns = [
     {
       header: "SUID",
-      className: "w-32 text-center font-mono font-bold",
-      accessor: (student: Student) => student.suid,
+      className: "w-52 text-left font-mono font-bold",
+      accessor: (student: Student) => (
+        <div className="flex items-center gap-3">
+          {student.avatar ? (
+            <img
+              src={student.avatar}
+              alt={student.name}
+              className="w-9 h-9 rounded-full object-cover shrink-0"
+            />
+          ) : (
+            <span
+              className={`w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-xs font-bold ${theme ? "bg-blue-500/10 text-blue-300" : "bg-[#9b001c]/10 text-[#9b001c]"
+                }`}
+            >
+              {student.name?.charAt(0).toUpperCase() || "?"}
+            </span>
+          )}
+          <span>{student.suid}</span>
+        </div>
+      ),
     },
     {
       header: "Full Name",
@@ -146,20 +203,32 @@ export default function StudentListPage() {
       className: "text-center",
       accessor: (student: Student) => (
         <span
-          className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
-            student.roleCode === "STUDENT"
-              ? theme
-                ? "bg-emerald-950/30 text-emerald-400"
-                : "bg-green-100 text-green-700"
-              : theme
-                ? "bg-purple-950/30 text-purple-400"
-                : "bg-purple-100 text-purple-700"
-          }`}
+          className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${student.roleCode === "STUDENT"
+            ? theme
+              ? "bg-emerald-950/30 text-emerald-400"
+              : "bg-green-100 text-green-700"
+            : theme
+              ? "bg-purple-950/30 text-purple-400"
+              : "bg-purple-100 text-purple-700"
+            }`}
         >
           {student.roleCode || "N/A"}
         </span>
       ),
     },
+    ...(canDelete
+      ? [
+        {
+          header: "Actions",
+          className: "w-20 text-center",
+          accessor: (student: Student) => (
+            <div className="flex justify-center">
+              <DataCruding onDelete={() => handleDelete(student)} />
+            </div>
+          ),
+        },
+      ]
+      : []),
   ];
 
   return (
@@ -169,9 +238,8 @@ export default function StudentListPage() {
 
         <div className="flex items-center gap-3">
           <span
-            className={`flex items-center justify-center w-10 h-10 rounded-xl shrink-0 transition-colors ${
-              theme ? "bg-blue-500/10 text-blue-300" : "bg-[#9b001c]/10 text-[#9b001c]"
-            }`}
+            className={`flex items-center justify-center w-10 h-10 rounded-xl shrink-0 transition-colors ${theme ? "bg-blue-500/10 text-blue-300" : "bg-[#9b001c]/10 text-[#9b001c]"
+              }`}
           >
             <HiOutlineUserGroup size={20} />
           </span>
@@ -192,16 +260,14 @@ export default function StudentListPage() {
           <div className="relative group">
             <button
               onClick={() => setIsFilterOpen(!isFilterOpen)}
-              className={`flex items-center justify-between pl-9 pr-3 py-2.5 w-36 sm:w-40 rounded-xl border text-sm font-medium outline-none transition-all duration-300 ${
-                theme
-                  ? "bg-gray-800/60 border-gray-700 text-gray-200 focus:ring-2 focus:ring-blue-500/50 hover:border-gray-600 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.3)]"
-                  : "bg-white border-gray-200/80 text-gray-700 focus:ring-2 focus:ring-[#9b001c]/20 hover:border-gray-300 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.05)]"
-              }`}
+              className={`flex items-center justify-between pl-9 pr-3 py-2.5 w-36 sm:w-40 rounded-xl border text-sm font-medium outline-none transition-all duration-300 ${theme
+                ? "bg-gray-800/60 border-gray-700 text-gray-200 focus:ring-2 focus:ring-blue-500/50 hover:border-gray-600 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.3)]"
+                : "bg-white border-gray-200/80 text-gray-700 focus:ring-2 focus:ring-[#9b001c]/20 hover:border-gray-300 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.05)]"
+                }`}
             >
               <div
-                className={`absolute left-3 flex items-center pointer-events-none transition-colors ${
-                  theme ? "text-gray-400 group-hover:text-blue-400" : "text-gray-500 group-hover:text-[#9b001c]"
-                }`}
+                className={`absolute left-3 flex items-center pointer-events-none transition-colors ${theme ? "text-gray-400 group-hover:text-blue-400" : "text-gray-500 group-hover:text-[#9b001c]"
+                  }`}
               >
                 <HiFilter className="w-4 h-4" />
               </div>
@@ -209,9 +275,8 @@ export default function StudentListPage() {
                 {filterOptions.find((opt) => opt.value === filterType)?.label}
               </span>
               <HiChevronDown
-                className={`w-4 h-4 shrink-0 transition-transform duration-300 ${isFilterOpen ? "rotate-180" : ""} ${
-                  theme ? "text-gray-400" : "text-gray-500"
-                }`}
+                className={`w-4 h-4 shrink-0 transition-transform duration-300 ${isFilterOpen ? "rotate-180" : ""} ${theme ? "text-gray-400" : "text-gray-500"
+                  }`}
               />
             </button>
 
@@ -221,11 +286,10 @@ export default function StudentListPage() {
 
             {isFilterOpen && (
               <div
-                className={`absolute right-0 z-20 mt-2 w-44 rounded-xl border py-1.5 shadow-xl backdrop-blur-md transform transition-all duration-200 origin-top-right ${
-                  theme
-                    ? "bg-gray-800/95 border-gray-700 text-gray-200 shadow-black/40"
-                    : "bg-white/95 border-gray-100 text-gray-700 shadow-gray-200/50"
-                }`}
+                className={`absolute right-0 z-20 mt-2 w-44 rounded-xl border py-1.5 shadow-xl backdrop-blur-md transform transition-all duration-200 origin-top-right ${theme
+                  ? "bg-gray-800/95 border-gray-700 text-gray-200 shadow-black/40"
+                  : "bg-white/95 border-gray-100 text-gray-700 shadow-gray-200/50"
+                  }`}
               >
                 {filterOptions.map((option) => (
                   <div
@@ -235,15 +299,14 @@ export default function StudentListPage() {
                       setSearchQuery("");
                       setIsFilterOpen(false);
                     }}
-                    className={`px-4 py-2 text-sm cursor-pointer transition-colors flex items-center justify-between ${
-                      filterType === option.value
-                        ? theme
-                          ? "bg-blue-500/10 text-blue-400 font-bold"
-                          : "bg-[#9b001c]/5 text-[#9b001c] font-bold"
-                        : theme
-                          ? "hover:bg-gray-700/50"
-                          : "hover:bg-gray-50"
-                    }`}
+                    className={`px-4 py-2 text-sm cursor-pointer transition-colors flex items-center justify-between ${filterType === option.value
+                      ? theme
+                        ? "bg-blue-500/10 text-blue-400 font-bold"
+                        : "bg-[#9b001c]/5 text-[#9b001c] font-bold"
+                      : theme
+                        ? "hover:bg-gray-700/50"
+                        : "hover:bg-gray-50"
+                      }`}
                   >
                     {option.label}
                     {filterType === option.value && (
@@ -257,9 +320,8 @@ export default function StudentListPage() {
 
           <div className="relative group">
             <div
-              className={`absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none transition-colors ${
-                theme ? "text-gray-400 group-focus-within:text-blue-400" : "text-gray-400 group-focus-within:text-[#9b001c]"
-              }`}
+              className={`absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none transition-colors ${theme ? "text-gray-400 group-focus-within:text-blue-400" : "text-gray-400 group-focus-within:text-[#9b001c]"
+                }`}
             >
               <HiSearch className="w-4 h-4" />
             </div>
@@ -268,11 +330,10 @@ export default function StudentListPage() {
               placeholder={inputConfig.placeholder}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className={`pl-10 pr-4 py-2.5 w-full sm:w-48 lg:w-64 xl:w-72 rounded-xl border text-sm outline-none transition-all duration-300 ease-in-out focus:w-full sm:focus:w-56 lg:focus:w-72 xl:focus:w-80 ${
-                theme
-                  ? "bg-gray-800/60 border-gray-700 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 hover:border-gray-600 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.3)]"
-                  : "bg-white border-gray-200/80 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-[#9b001c]/20 focus:border-[#9b001c] hover:border-gray-300 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.05)]"
-              }`}
+              className={`pl-10 pr-4 py-2.5 w-full sm:w-48 lg:w-64 xl:w-72 rounded-xl border text-sm outline-none transition-all duration-300 ease-in-out focus:w-full sm:focus:w-56 lg:focus:w-72 xl:focus:w-80 ${theme
+                ? "bg-gray-800/60 border-gray-700 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 hover:border-gray-600 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.3)]"
+                : "bg-white border-gray-200/80 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-[#9b001c]/20 focus:border-[#9b001c] hover:border-gray-300 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.05)]"
+                }`}
             />
           </div>
 
@@ -280,9 +341,8 @@ export default function StudentListPage() {
       </div>
 
       <div
-        className={`rounded-2xl border shadow-sm overflow-hidden p-2 ${
-          theme ? "bg-gray-900 border-gray-800" : "bg-white border-gray-100"
-        }`}
+        className={`rounded-2xl border shadow-sm overflow-hidden p-2 ${theme ? "bg-gray-900 border-gray-800" : "bg-white border-gray-100"
+          }`}
       >
         <Table
           columns={columns}
@@ -292,8 +352,8 @@ export default function StudentListPage() {
             loading
               ? "Loading students..."
               : searchQuery
-              ? `No student matches "${searchQuery}"`
-              : "No registered students found in this section yet."
+                ? `No student matches "${searchQuery}"`
+                : "No registered students found in this section yet."
           }
         />
       </div>

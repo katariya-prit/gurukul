@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import axios from "axios"; // 👈 tamara existing api client no actual path check kari levo
+import axios from "axios";
 
 export interface GroupMember {
     suid: number;
@@ -16,13 +16,9 @@ export interface GroupData {
     created_by_name?: string;
     members: GroupMember[];
     created_at?: string;
-    // 🆕 getGroupsByMember API thi aave chhe (Navbar "My Groups" mate) —
-    // backend already nakki kare chhe: member_ids[1] === logged-in suid
     is_leader?: boolean;
 }
 
-// 🎯 Navbar "My Groups" mate — leader flag backend thi j aave chhe (member_ids no pahelo member).
-// suid param signature-compatibility mate rakhyu chhe, pan vaparyu nathi — backend j source of truth chhe.
 export const isGroupLeader = (group: Pick<GroupData, "is_leader">, _suid?: number | null): boolean => {
     return !!group.is_leader;
 };
@@ -33,7 +29,6 @@ export interface CreateGroupPayload {
     member_ids: number[];
 }
 
-// 🆕 GroupMemberDetail.tsx page mate — camelCase shape, leader flag sathe
 export interface GroupMemberDetailItem {
     suid: number;
     name: string;
@@ -51,10 +46,21 @@ export interface GroupDetail {
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
 
+// 🎯 NAVU: har API call mate Authorization header banavva mate helper
+const getAuthHeaders = () => {
+    const token = localStorage.getItem("token");
+    return {
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+    };
+};
+
 export const groupService = {
     createGroup: async (payload: CreateGroupPayload) => {
         try {
-            const res = await axios.post(`${API_URL}/groups/create`, payload);
+            const res = await axios.post(`${API_URL}/groups/create`, payload, getAuthHeaders());
             return { success: true, data: res.data?.data ?? res.data };
         } catch (error: any) {
             return { success: false, message: error?.response?.data?.message || "Error creating group" };
@@ -63,39 +69,34 @@ export const groupService = {
 
     getAllGroups: async () => {
         try {
-            const res = await axios.get(`${API_URL}/groups/list`);
+            const res = await axios.get(`${API_URL}/groups/list`, getAuthHeaders());
             return { success: true, data: res.data?.data ?? res.data };
         } catch (error: any) {
             return { success: false, message: error?.response?.data?.message || "Error fetching groups" };
         }
     },
 
-    // 🆕 Logged-in user je je groups no member chhe te — Navbar "My Groups" mate
     getGroupsByMember: async (suid: number) => {
         try {
-            const res = await axios.get(`${API_URL}/groups/member/${suid}`);
+            const res = await axios.get(`${API_URL}/groups/member/${suid}`, getAuthHeaders());
             return { success: true, data: res.data?.data ?? res.data };
         } catch (error: any) {
             return { success: false, message: error?.response?.data?.message || "Error fetching your groups" };
         }
     },
 
-    // Edit page prefill karva mate (raw snake_case shape)
     getGroupById: async (groupId: number) => {
         try {
-            const res = await axios.get(`${API_URL}/groups/${groupId}`);
+            const res = await axios.get(`${API_URL}/groups/${groupId}`, getAuthHeaders());
             return { success: true, data: res.data?.data ?? res.data };
         } catch (error: any) {
             return { success: false, message: error?.response?.data?.message || "Error fetching group" };
         }
     },
 
-    // 🆕 GroupMemberDetail.tsx page mate — camelCase mapped shape, isLeader flag sathe.
-    // 👑 Leader = member_ids array ma sauthi pahela add thayelo member (index 0) —
-    // backend "getGroupById" already members ne array_position thi order karine mokle chhe.
     getGroupMembers: async (groupId: number) => {
         try {
-            const res = await axios.get(`${API_URL}/groups/${groupId}`);
+            const res = await axios.get(`${API_URL}/groups/${groupId}`, getAuthHeaders());
             const raw = res.data?.data ?? res.data;
 
             const mapped: GroupDetail = {
@@ -107,7 +108,7 @@ export const groupService = {
                     name: m.name,
                     username: m.username ?? "",
                     roleCode: m.role_code ?? "",
-                    isLeader: idx === 0, // 👑 array no pahelo member = leader
+                    isLeader: idx === 0,
                 })),
             };
 
@@ -119,7 +120,7 @@ export const groupService = {
 
     updateGroup: async (groupId: number, payload: Partial<CreateGroupPayload>) => {
         try {
-            const res = await axios.put(`${API_URL}/groups/${groupId}`, payload);
+            const res = await axios.put(`${API_URL}/groups/${groupId}`, payload, getAuthHeaders());
             return { success: true, data: res.data?.data ?? res.data };
         } catch (error: any) {
             return { success: false, message: error?.response?.data?.message || "Error updating group" };
@@ -128,7 +129,7 @@ export const groupService = {
 
     deleteGroup: async (groupId: number) => {
         try {
-            const res = await axios.delete(`${API_URL}/groups/${groupId}`);
+            const res = await axios.delete(`${API_URL}/groups/${groupId}`, getAuthHeaders());
             return { success: true, data: res.data };
         } catch (error: any) {
             return { success: false, message: error?.response?.data?.message || "Error deleting group" };

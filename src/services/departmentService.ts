@@ -21,7 +21,7 @@ api.interceptors.request.use((config) => {
 });
 
 export const departmentService = {
-  createDepartment: async (data: { departmentId: number; departmentName: string; departmentHeadId?: number | string | null; description?: string }) => {
+  createDepartment: async (data: { departmentName: string; departmentHeadId?: number | string | null; description?: string }) => {
     try {
       const response = await api.post(`/departments/create`, data);
       return response.data;

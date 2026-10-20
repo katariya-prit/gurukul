@@ -4,6 +4,7 @@ import { useTheme } from "../../../components/theme/ThemeContext";
 import Table from "../../../components/common/Table";
 import DataCruding from "../../../components/common/DataCruding";
 import { roleDelete } from "../../../action/Role/Delete";
+import { toast } from "sonner";
 
 interface RoleData {
     roleCode: string;
@@ -21,6 +22,10 @@ interface RoleData {
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
 
+const getAuthHeaders = () => ({
+    Authorization: `Bearer ${localStorage.getItem("token")}`,
+});
+
 export default function RoleList() {
     const { theme } = useTheme();
     const navigate = useNavigate();
@@ -31,17 +36,19 @@ export default function RoleList() {
     const fetchRoles = async () => {
         setLoading(true);
         try {
-            const response = await fetch(`${API_URL}/roles`);
+            const response = await fetch(`${API_URL}/roles`, {
+                headers: getAuthHeaders(),
+            });
             const result = await response.json();
 
             if (response.ok && result.success) {
                 setRoles(result.data);
             } else {
-                alert(`⚠️ ભૂલ: ${result.message || "ડેટા લોડ થઈ શક્યો નહીં."}`);
+                toast.error(result.message || "ડેટા લોડ થઈ શક્યો નહીં.");
             }
         } catch (error) {
             console.error("Error fetching roles:", error);
-            alert("❌ સર્વર સાથે કનેક્ટ થવામાં પ્રોબ્લેમ આવ્યો છે!");
+            toast.error("સર્વર સાથે કનેક્ટ થવામાં પ્રોબ્લેમ આવ્યો છે!");
         } finally {
             setLoading(false);
         }
@@ -51,7 +58,6 @@ export default function RoleList() {
         fetchRoles();
     }, []);
 
-    // 📊 Table Columns (Perfect Premium Colors)
     const columns = [
         {
             header: "ROLE CODE",
@@ -144,14 +150,12 @@ export default function RoleList() {
 
     return (
         <div className="space-y-6 w-full pb-8">
-            {/* Header Section */}
             <div className="flex justify-between items-center mb-6">
                 <h2 className={`text-xl md:text-2xl font-bold tracking-wide ${theme ? "text-blue-500" : "text-rose-600"}`}>
                     Role & Permissions List
                 </h2>
             </div>
 
-            {/* Loading / Table Section */}
             {loading ? (
                 <div className="flex flex-col items-center justify-center py-20 space-y-4">
                     <div className={`w-8 h-8 border-4 border-t-transparent rounded-full animate-spin ${theme ? 'border-blue-500' : 'border-rose-600'}`}></div>
