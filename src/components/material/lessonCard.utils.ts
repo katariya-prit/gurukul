@@ -1,5 +1,5 @@
 import { resolveAssetUrl } from "../../services/lessonService";
-import type { LessonCardData } from "./Lessoncard.types";
+import type { LessonCardData } from "./lessonCard.types";
 
 export type { LessonCardData };
 

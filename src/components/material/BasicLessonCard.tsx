@@ -1,5 +1,5 @@
 import { useTheme } from "../theme/ThemeContext";
-import type { LessonCardData } from "./Lessoncard.types";
+import type { LessonCardData } from "./lessonCard.types";
 
 interface BasicLessonCardProps {
   lesson: LessonCardData;

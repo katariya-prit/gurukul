@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent, PointerEvent } from "react";
 import { FaMusic, FaPause, FaPlay } from "react-icons/fa";
 import { useTheme } from "../theme/ThemeContext";
-import type { LessonCardData } from "./Lessoncard.types";
+import type { LessonCardData } from "./lessonCard.types";
 
 let activeAudio: HTMLAudioElement | null = null;
 
