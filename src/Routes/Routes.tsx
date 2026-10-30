@@ -11,31 +11,25 @@ import DailyDarshanPage from "../pages/Overview/Daily-Darshan";
 import ActivitiesPage from "../pages/Overview/ActivitiesPage";
 import UpcomingEventsPage from "../pages/Overview/UpcomingEventsPage";
 
-// યુઝર મેનેજમેન્ટ
 import CreateUserForm from "../pages/Section/Users-Managemant/Create-user-form";
 import UserList from "../pages/Section/Users-Managemant/User-list";
 
-// ડિપાર્ટમેન્ટ મેનેજમેન્ટ
 import CreateDepartment from "../pages/Section/Department-Management/Create-Department";
 import DepartmentList from "../pages/Section/Department-Management/Department-List";
 import DepartmentView from "../pages/Section/Department-Management/core/View";
 import CreateStudent from "../pages/Section/Department-Management/Create-Student";
 import StudentListPage from "../pages/Section/Department-Management/StudentListPage";
 
-// 👑 સેક્શન મેનેજમેન્ટ ઇમ્પોર્ટ
 import CreateSection from "../pages/Section/Section-Managemant/Section-Create";
 import SectionList from "../pages/Section/Section-Managemant/Section-list";
 
-// રોલ મેનેજમેન્ટ
 import CreateRole from "../pages/Section/Role-managemant/Create-Role";
 import RoleList from "../pages/Section/Role-managemant/RoleList";
 
-// પ્રોફાઈલ
 import Profile from "../pages/Profile";
 import ProfileSetting from "../pages/Profile-Setting";
 import type { AuthUser } from "../Types/Role-create";
 
-// ઓવરવ્યૂ મેનેજમેન્ટ
 import OverviewManagement from "../pages/Section/Overview-Management/Overview-Management";
 import AdminAmrutNuAachaman from "../pages/Section/Overview-Management/Amrut-Nu-Aachaman";
 import AdminDailyDarshan from "../pages/Section/Overview-Management/Daily-Darshan";
@@ -46,18 +40,14 @@ import UpcomingEvents from "../pages/Section/Overview-Management/Upcoming-Events
 
 import ProgressDashboard from "../pages/Section/ProgressDashboard";
 
-// 📚 Lesson Management
 import CreateLesson from "../pages/Section/Lesson-management/create-lesson";
 import LessonList from "../pages/Section/Lesson-management/Lesson-list";
 import MyLessons from "../pages/Section/Lesson-management/My-Lessons";
 
-// 👑 ગ્રુપ મેનેજમેન્ટ ઇમ્પોર્ટ
 import CreateGroup from "../pages/Section/Group-Managemant/Create-Group";
 import GroupList from "../pages/Section/Group-Managemant/Group-List";
 
-// 👥 Group Member Detail — group ma je member chhe e joi shake tevu page
 import GroupMemberDetail from "../pages/Section/Group-Managemant/Groupmemberdetail";
-import { toast } from "sonner";
 
 interface ProtectedRouteProps {
   module?: string;
@@ -65,15 +55,35 @@ interface ProtectedRouteProps {
   requireLoginOnly?: boolean;
 }
 
+const getStoredUser = (): AuthUser | null => {
+  const userString = localStorage.getItem("user");
+  if (!userString) return null;
+  try {
+    return JSON.parse(userString) as AuthUser;
+  } catch {
+    return null;
+  }
+};
+
+const isAuthenticated = (): boolean => {
+  return Boolean(localStorage.getItem("token")) && getStoredUser() !== null;
+};
+
+const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  if (!isAuthenticated()) {
+    return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+};
+
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   module,
   action = "view",
   requireLoginOnly = false,
 }) => {
-  const userString = localStorage.getItem("user");
-  let user: AuthUser | null = userString ? JSON.parse(userString) : null;
+  const user = getStoredUser();
 
-  if (!user) {
+  if (!user || !localStorage.getItem("token")) {
     return <Navigate to="/login" replace />;
   }
 
@@ -81,18 +91,17 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Outlet />;
   }
 
-  // Permissions string parse safety check
   let permissions = user.permissions;
   if (typeof permissions === "string") {
     try {
       permissions = JSON.parse(permissions);
     } catch {
       permissions = {};
-      toast.error("Failed to parse user permissions. Please log in again.");
     }
   }
 
-  const hasPermission = permissions?.[module || ""]?.[action];
+  const hasPermission =
+    user.roleCode === "SUPER_ADMIN" || permissions?.[module || ""]?.[action];
 
   if (!hasPermission) {
     return <Navigate to="/dashboard/unauthorized" replace />;
@@ -119,7 +128,6 @@ export default function Routers() {
   const location = useLocation();
 
   return (
-    /* 🎯 AnimatePresence મૂકવાથી /login માંથી /dashboard પર જતા સમયે layoutId ટ્રાન્ઝિશન સ્મૂથ ચાલશે */
     <AnimatePresence mode="wait">
       <Routes location={location}>
         <Route path="/" element={<Overview />} />
@@ -129,8 +137,14 @@ export default function Routers() {
         <Route path="/activities" element={<ActivitiesPage />} />
         <Route path="/login" element={<Login />} />
 
-        {/* Dashboard & Protected Routes */}
-        <Route path="/dashboard" element={<Layout />}>
+        <Route
+          path="/dashboard"
+          element={
+            <RequireAuth>
+              <Layout />
+            </RequireAuth>
+          }
+        >
           <Route index element={<Dashboard />} />
           <Route path="unauthorized" element={<UnauthorizedView />} />
 
@@ -183,7 +197,6 @@ export default function Routers() {
             <Route path="permissions/lesson" element={<RoleList />} />
           </Route>
 
-          {/* 👑 Group & Lesson Management */}
           <Route element={<ProtectedRoute module="Lesson" action="create" />}>
             <Route path="lessons/create" element={<CreateLesson />} />
           </Route>
@@ -213,7 +226,6 @@ export default function Routers() {
             <Route path="settings/profile" element={<ProfileSetting />} />
           </Route>
 
-          {/* 📊 Progress Module Route */}
           <Route element={<ProtectedRoute module="Progress" action="view" />}>
             <Route path="progress" element={<ProgressDashboard />} />
           </Route>

@@ -5,6 +5,7 @@ import ThemeToggle from "../../components/theme/ThemeToggle";
 import { useTheme } from "../../components/theme/ThemeContext";
 import { Link, useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../../services/OverviewService";
+import VideoShowcaseCard from "./core/VideoShowcaseCard";
 import { quoteService, type QuoteData } from "../../services/Quoteservice";
 
 function Reveal({
@@ -264,68 +265,78 @@ export default function Overview() {
     const [darshanLoading, setDarshanLoading] = useState<boolean>(true);
 
     useEffect(() => {
-        const controller = new AbortController();
-
-        const fetchOverviewData = async () => {
+        const fetchActivities = async () => {
             try {
-                const token = localStorage.getItem("token");
+                setActivitiesLoading(true);
+                const result = await quoteService.getQuotesByType("activity");
+                if (result.success && Array.isArray(result.data)) {
+                    const rawData: QuoteData[] = result.data;
+                    const grouped = new Map<string, ActivityCard>();
+                    const standalone: ActivityCard[] = [];
 
-                const response = await fetch(`${API_BASE_URL}/overview`, {
-                    cache: "no-store",
-                    headers: token
-                        ? {
-                            Authorization: `Bearer ${token}`,
+                    rawData.forEach((q) => {
+                        const record = q as unknown as {
+                            event_date?: string;
+                            eventDate?: string;
+                            image_url?: string;
+                            imageUrl?: string;
+                        };
+                        const imageUrl = record.image_url ?? record.imageUrl ?? "";
+                        const dateObj = new Date(record.event_date ?? record.eventDate ?? "");
+                        const formattedDate = dateObj
+                            .toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+                            .toUpperCase();
+
+                        const parsed = parseActivityGroupData(q.description || "");
+
+                        if (parsed && parsed.groupId) {
+                            const groupCoverImage =
+                                parsed.coverImage || parsed.cover_image || parsed.coverUrl || parsed.image || imageUrl;
+                            if (!grouped.has(parsed.groupId)) {
+                                grouped.set(parsed.groupId, {
+                                    id: q.id,
+                                    title: parsed.title || "Gurukul Activity",
+                                    description: parsed.description || "",
+                                    date: formattedDate,
+                                    image: groupCoverImage,
+                                    imageCount: 1,
+                                });
+                            } else {
+                                const existing = grouped.get(parsed.groupId)!;
+                                existing.imageCount = (existing.imageCount || 1) + 1;
+
+                                const coverImage = parsed.coverImage || parsed.cover_image || parsed.coverUrl;
+
+                                if (coverImage) {
+                                    existing.image = coverImage;
+                                }
+                            }
+                        } else {
+                            standalone.push({
+                                id: q.id,
+                                title: q.description?.trim() || "Gurukul Activity",
+                                description: "",
+                                date: formattedDate,
+                                image: imageUrl,
+                                imageCount: 1,
+                            });
                         }
-                        : {},
-                });
+                    });
 
-                if (!response.ok) {
-                    throw new Error(`Overview API failed: ${response.status}`);
-                }
-
-                const result = await response.json();
-
-                if (!result.success) {
-                    throw new Error(result.message || "Failed to load overview");
-                }
-
-                const data = result.data;
-
-                const rawSlides = Array.isArray(data)
-                    ? data
-                    : Array.isArray(data?.heroSlider)
-                        ? data.heroSlider
-                        : Array.isArray(data?.data)
-                            ? data.data
-                            : [];
-
-                const slides: HeroSlide[] = rawSlides
-                    .map((item: Record<string, unknown>) => ({
-                        url: String(
-                            item.url ||
-                            item.imageUrl ||
-                            item.image_url ||
-                            item.image ||
-                            ""
-                        ),
-                        title: String(item.title || ""),
-                        description: String(item.description || ""),
-                    }))
-                    .filter((slide: HeroSlide) => Boolean(slide.url));
-
-                if (slides.length > 0) {
-                    setOverviewImages(slides);
+                    const uniqueActivities = [...Array.from(grouped.values()), ...standalone];
+                    setActivities(
+                        [...uniqueActivities]
+                            .sort((a, b) => b.id - a.id)
+                            .slice(0, 4)
+                    );
                 }
             } catch (error) {
-                if (error instanceof Error && error.name !== "AbortError") {
-                    console.error("Error fetching overview:", error);
-                }
+                console.error("Error fetching activities:", error);
+            } finally {
+                setActivitiesLoading(false);
             }
         };
-
-        fetchOverviewData();
-
-        return () => controller.abort();
+        fetchActivities();
     }, []);
 
     // 🎯 Activities Fetch and Group Logic (Cover image resolution updated)
@@ -984,6 +995,11 @@ export default function Overview() {
                     </div>
                 </div>
             </footer>
+            <VideoShowcaseCard
+                videoUrl="https://youtu.be/dLi0_cwqPWk?si=umT3vhSHxNekWVmP"
+                width={800}
+                height={450}
+            />
         </div>
     );
 }

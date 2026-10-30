@@ -118,16 +118,24 @@ export const quoteService = {
       const response = await axios.get<ApiResponse<QuoteData[]>>(
         `${API_BASE_URL}/quotes/type/${encodeURIComponent(type)}`,
         {
-          params: includeUnapproved ? { includeUnapproved: "true" } : undefined,
+          params: includeUnapproved
+            ? { includeUnapproved: "true" }
+            : undefined,
           headers: getAuthHeaders(),
         }
       );
 
-      return response.data;
-    } catch (error: unknown) {
-      const message = getApiError(error, "Failed to fetch quotes");
-      toast.error(message);
-      throw new Error(message, { cause: error });
+      return {
+        success: response.data.success ?? true,
+        data: Array.isArray(response.data.data) ? response.data.data : [],
+        message: response.data.message,
+      };
+    } catch {
+      return {
+        success: false,
+        data: [],
+        message: "Unable to load data",
+      };
     }
   },
 
