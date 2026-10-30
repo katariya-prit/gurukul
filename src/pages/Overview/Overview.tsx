@@ -248,7 +248,7 @@ export default function Overview() {
     const [currentImgIndex, setCurrentImgIndex] = useState(0);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-    const [overviewImages, setOverviewImages] = useState<HeroSlide[]>([
+    const [overviewImages] = useState<HeroSlide[]>([
         { url: "https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&q=80&w=1600", title: "", description: "" },
         { url: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&q=80&w=1600", title: "", description: "" },
         { url: "https://images.unsplash.com/photo-1616080409883-a96ae084a7e1?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", title: "", description: "" }
