@@ -2,14 +2,6 @@ import axios, { AxiosError } from "axios";
 
 export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
 
-const getToken = () => localStorage.getItem("token");
-
-const getAuthHeaders = (): Record<string, string> => {
-  const token = getToken();
-
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};
-
 const getErrorMessage = (error: unknown, fallback: string) => {
   const axiosError = error as AxiosError<{ message?: string }>;
   return axiosError.response?.data?.message || fallback;
@@ -73,7 +65,7 @@ export const lessonService = {
   createLesson: async (payload: LessonPayload) => {
     try {
       const response = await axios.post(`${API_URL}/lessons/create`, buildFormData(payload), {
-        headers: getAuthHeaders(),
+        withCredentials: true,
       });
       return response.data;
     } catch (error) {
@@ -84,7 +76,7 @@ export const lessonService = {
   getMyLessons: async () => {
     try {
       const response = await axios.get(`${API_URL}/lessons/my`, {
-        headers: getAuthHeaders(),
+        withCredentials: true,
       });
       return response.data;
     } catch (error) {
@@ -95,7 +87,7 @@ export const lessonService = {
   getCreatedLessons: async () => {
     try {
       const response = await axios.get(`${API_URL}/lessons/created`, {
-        headers: getAuthHeaders(),
+        withCredentials: true,
       });
       return response.data;
     } catch (error) {
@@ -106,7 +98,7 @@ export const lessonService = {
   deleteLesson: async (id: number | string) => {
     try {
       const response = await axios.delete(`${API_URL}/lessons/delete/${id}`, {
-        headers: getAuthHeaders(),
+        withCredentials: true,
       });
       return response.data;
     } catch (error) {

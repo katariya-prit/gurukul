@@ -1,48 +1,41 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from "react";
 import Table from "../../../components/common/Table";
 import { useTheme } from "../../../components/theme/ThemeContext";
 import { HiOutlineUsers, HiSearch, HiFilter, HiChevronDown } from "react-icons/hi";
 import userDelete from "../../../action/User/Delete";
 import UserDetailsModal from "./core/UserDetailsModal";
-import EditUserModal from "./core/EditUserModal";
+import EditUserModal, { type EditUserModalData } from "./core/EditUserModal";
 import { toast } from "sonner";
 import DataCruding from "../../../components/common/DataCruding";
 
-// 🟢 ૧. બેકએન્ડ સ્ટ્રક્ચર મુજબ પરમિશન ઇન્ટરફેસ
-interface PermissionActions {
-    create: boolean;
-    edit: boolean;
-    view: boolean;
-    delete: boolean;
-}
-
-interface ModulePermissions {
-    [moduleName: string]: PermissionActions;
-}
-
 interface UserData {
     suid: number;
-    avatar: string;
+    avatar: string | null;
     name: string;
-    performance: string;
-    requestDate?: string;
-    joiningDate?: string;
-    status: "APPROVED" | "PENDING" | "REJECTED";
-    role: string;
-    permissions: ModulePermissions;
+    username: string;
+    bod: string;
+    departmentId: number | null;
+    sectionId: number | null;
+    standardId: number | null;
+    roleCode: string;
+    joiningDate: string;
+    status: "APPROVED" | "PENDING";
 }
 
 const filterOptions = [
     { value: "all", label: "All Records" },
     { value: "name", label: "Name" },
     { value: "suid", label: "SUID" },
-    { value: "role", label: "Role" },
+    { value: "roleCode", label: "Role" },
     { value: "status", label: "Status" },
-    { value: "performance", label: "Performance" }
 ];
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
+
+const getAuthHeaders = () => ({
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${localStorage.getItem("token")}`,
+});
 
 export default function UserList() {
     const { theme } = useTheme();
@@ -62,13 +55,9 @@ export default function UserList() {
             setLoading(true);
             setError("");
 
-            const token = localStorage.getItem("token");
             const response = await fetch(`${API_URL}/users`, {
                 method: "GET",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`,   // 👈 aa header missing hoi shake
-                },
+                headers: getAuthHeaders(),
             });
 
             if (!response.ok) {
@@ -76,15 +65,12 @@ export default function UserList() {
             }
 
             const result = await response.json();
-            console.log(result);
-            
 
             if (result.success) {
                 setUsers(result.data);
             } else {
                 setError(result.message || "ડેટા લાવવામાં કંઈક ભૂલ થઈ!");
             }
-
         } catch (err: any) {
             console.error("Fetch Error:", err);
             setError(err.message || "સર્વર કનેક્શન ફેલ થયું!");
@@ -94,7 +80,6 @@ export default function UserList() {
     };
 
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         fetchUsers();
     }, []);
 
@@ -120,24 +105,55 @@ export default function UserList() {
         }
     };
 
-    const handleSaveUser = async (updatedUser: UserData) => {
-        setUsers((prevUsers) =>
-            prevUsers.map((user) => (user.suid === updatedUser.suid ? { ...user, ...updatedUser } : user))
-        );
-        setActiveModal(null);
-        setSelectedUser(null);
+    const handleSaveUser = async (updatedUser: EditUserModalData) => {
+        try {
+            const originalSuid = selectedUser?.suid;
+            if (!originalSuid) return;
+
+            const payload: Record<string, unknown> = {
+                name: updatedUser.name,
+                username: updatedUser.username,
+                roleCode: updatedUser.roleCode,
+                bod: updatedUser.bod,
+                joiningDate: updatedUser.joiningDate,
+            };
+
+            if (updatedUser.suid && updatedUser.suid !== originalSuid) {
+                payload.suid = updatedUser.suid;
+            }
+            if (updatedUser.password) {
+                payload.password = updatedUser.password;
+            }
+
+            const response = await fetch(`${API_URL}/users/${originalSuid}`, {
+                method: "PUT",
+                headers: getAuthHeaders(),
+                body: JSON.stringify(payload),
+            });
+
+            const result = await response.json();
+
+            if (!response.ok || !result.success) {
+                throw new Error(result.message || "User update failed.");
+            }
+
+            toast.success(result.message || "User updated successfully.");
+            await fetchUsers();
+            setActiveModal(null);
+            setSelectedUser(null);
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to update user.");
+        }
     };
 
     const getSearchInputConfig = () => {
         switch (filterType) {
             case "suid":
                 return { type: "number", placeholder: "Enter SUID number..." };
-            case "role":
-                return { type: "text", placeholder: "Search Role (ADMIN/MANAGER)..." };
+            case "roleCode":
+                return { type: "text", placeholder: "Search Role Code..." };
             case "status":
                 return { type: "text", placeholder: "Search Status (APPROVED/PENDING)..." };
-            case "performance":
-                return { type: "text", placeholder: "Search Performance..." };
             case "name":
                 return { type: "text", placeholder: "Search Name..." };
             default:
@@ -151,49 +167,32 @@ export default function UserList() {
         const query = searchQuery.toLowerCase().trim();
         if (!query) return true;
 
-        const userDate = (user.requestDate || user.joiningDate || "").toLowerCase();
-        const userPerf = (user.performance || "AVERAGE").toLowerCase();
-        const userRole = (user.role || "").toLowerCase();
+        const userRole = (user.roleCode || "").toLowerCase();
 
         switch (filterType) {
             case "name":
                 return user.name.toLowerCase().includes(query);
             case "suid":
                 return user.suid.toString().includes(query);
-            case "role":
+            case "roleCode":
                 return userRole.includes(query);
             case "status":
                 return user.status.toLowerCase().startsWith(query);
-            case "performance":
-                return userPerf.startsWith(query);
             default:
                 return (
                     user.name.toLowerCase().includes(query) ||
                     user.suid.toString().includes(query) ||
                     userRole.includes(query) ||
-                    user.status.toLowerCase().startsWith(query) ||
-                    userPerf.startsWith(query) ||
-                    userDate.includes(query)
+                    user.status.toLowerCase().startsWith(query)
                 );
         }
     });
 
-    const getPerformanceStyle = (performance: string) => {
-        if (performance === "HIGH PERF.") {
-            return theme
-                ? "bg-emerald-950/30 border-emerald-900/50 text-emerald-400"
-                : "bg-emerald-50 border-emerald-200 text-emerald-600";
-        }
-        return theme
-            ? "bg-gray-700 border-gray-600 text-gray-300"
-            : "bg-neutral-50 border-neutral-200 text-neutral-600";
-    };
-
     const getRoleStyle = (role: string) => {
         const cleanRole = role.toUpperCase();
-        if (cleanRole.includes("ADMIN")) {
+        if (cleanRole.includes("SUPER_ADMIN") || cleanRole.includes("HEAD")) {
             return theme ? "bg-red-950/40 border-red-900/50 text-red-400" : "bg-red-50 border-red-200 text-red-700";
-        } else if (cleanRole.includes("MANAGER")) {
+        } else if (cleanRole.includes("SECHEAD")) {
             return theme ? "bg-amber-950/40 border-amber-900/50 text-amber-400" : "bg-amber-50 border-amber-200 text-amber-700";
         }
         return theme ? "bg-blue-950/40 border-blue-900/50 text-blue-400" : "bg-blue-50 border-blue-200 text-blue-700";
@@ -219,19 +218,18 @@ export default function UserList() {
             ),
         },
         {
-            header: "Role",
-            className: "text-center",
+            header: "Username",
+            className: "text-left",
             accessor: (user: UserData) => (
-                <span className={`inline-block px-2.5 py-0.5 text-xs font-bold rounded-md border tracking-wide uppercase ${getRoleStyle(user.role || "SEVAK")}`}>
-                    {user.role || "SEVAK"}
-                </span>
+                <span className={theme ? "text-gray-300" : "text-neutral-600"}>{user.username}</span>
             ),
         },
         {
-            header: "Performance",
+            header: "Role",
+            className: "text-center",
             accessor: (user: UserData) => (
-                <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full border tracking-wide ${getPerformanceStyle(user.performance || "AVERAGE")}`}>
-                    {user.performance || "AVERAGE"}
+                <span className={`inline-block px-2.5 py-0.5 text-xs font-bold rounded-md border tracking-wide uppercase ${getRoleStyle(user.roleCode || "")}`}>
+                    {user.roleCode}
                 </span>
             ),
         },
@@ -381,9 +379,16 @@ export default function UserList() {
                 />
             )}
 
-            {activeModal === "view" && (
+            {activeModal === "view" && selectedUser && (
                 <UserDetailsModal
-                    user={selectedUser}
+                    user={{
+                        suid: selectedUser.suid,
+                        name: selectedUser.name,
+                        role: selectedUser.roleCode,
+                        status: selectedUser.status,
+                        avatar: selectedUser.avatar || undefined,
+                        joiningDate: selectedUser.joiningDate,
+                    }}
                     onClose={() => {
                         setActiveModal(null);
                         setSelectedUser(null);
@@ -391,9 +396,16 @@ export default function UserList() {
                 />
             )}
 
-            {activeModal === "edit" && (
+            {activeModal === "edit" && selectedUser && (
                 <EditUserModal
-                    user={selectedUser}
+                    user={{
+                        suid: selectedUser.suid,
+                        name: selectedUser.name,
+                        username: selectedUser.username,
+                        roleCode: selectedUser.roleCode,
+                        bod: selectedUser.bod,
+                        joiningDate: selectedUser.joiningDate,
+                    }}
                     onClose={() => {
                         setActiveModal(null);
                         setSelectedUser(null);

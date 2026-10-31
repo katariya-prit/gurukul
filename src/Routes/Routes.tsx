@@ -66,7 +66,7 @@ const getStoredUser = (): AuthUser | null => {
 };
 
 const isAuthenticated = (): boolean => {
-  return Boolean(localStorage.getItem("token")) && getStoredUser() !== null;
+  return getStoredUser() !== null;
 };
 
 const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -83,7 +83,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
   const user = getStoredUser();
 
-  if (!user || !localStorage.getItem("token")) {
+  if (!user) {
     return <Navigate to="/login" replace />;
   }
 
