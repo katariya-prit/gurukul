@@ -45,7 +45,6 @@ export default function Layout() {
 
                     <Header toggleSidebar={toggleSidebar} />
                     <NotificationToast />
-                    <NotificationCenter />
 
                     <main className="flex-1 w-full overflow-y-auto p-3 no-scrollbar sm:p-5 lg:p-7">
                         <div className={`mx-auto w-full max-w-[1600px] min-h-full transition-colors duration-300 ${

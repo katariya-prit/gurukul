@@ -168,123 +168,119 @@ export default function Application({ open = true, onClose, triggerRef }: Applic
     };
 
     return (
-        <Modal open={open} onClose={() => onClose?.()} triggerRef={triggerRef} ariaLabel="Application form" className="max-w-4xl p-0">
-            <div className={`relative w-full overflow-hidden rounded-2xl border shadow-2xl ${theme ? "border-gray-800 bg-gray-900 text-white" : "border-neutral-200 bg-white text-neutral-900"}`}>
-
+        <Modal open={open} onClose={() => onClose?.()} triggerRef={triggerRef} ariaLabel="Application form" className="max-w-4xl">
+            <div className={`relative p-6 sm:p-8 ${theme ? "text-white" : "text-neutral-900"}`}>
                 <button
                     type="button"
                     onClick={onClose}
-                    className={`absolute right-4 top-4 rounded-full p-2 transition-all duration-200 z-10 ${theme ? "bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 hover:text-neutral-900"}`}
+                    aria-label="Close application form"
+                    className={`absolute right-4 top-4 sm:right-6 sm:top-6 rounded-full p-2 transition-all duration-200 z-10 ${theme ? "bg-white/10 text-white/70 hover:bg-white/15 hover:text-white" : "bg-black/5 text-neutral-600 hover:bg-black/10 hover:text-neutral-900"}`}
                 >
                     <HiX size={18} />
                 </button>
 
-                <div className="p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
-                    <div className="mb-6 flex flex-col sm:flex-row sm:items-center gap-4 border-b pb-6">
-                        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${theme ? "bg-blue-500/10 text-blue-400" : "bg-red-500/10 text-red-600"}`}>
-                            <HiOutlineDocumentText size={24} />
-                        </div>
-                        <div>
-                            <h2 className={`text-xl sm:text-2xl font-black tracking-tight ${theme ? "text-blue-200" : "text-red-700"}`}>Application Form</h2>
-                            <p className={`mt-1 text-xs sm:text-sm ${theme ? "text-gray-400" : "text-neutral-500"}`}>Create a new application with linked user, department, and section details.</p>
-                        </div>
+                <div className={`mb-6 flex flex-col sm:flex-row sm:items-center gap-4 border-b pb-6 ${theme ? "border-white/10" : "border-neutral-200"}`}>
+                    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-linear-to-br text-white ${theme ? "from-blue-400 to-blue-700" : "from-red-400 to-red-700"}`}>
+                        <HiOutlineDocumentText size={24} />
                     </div>
+                    <div>
+                        <h2 className={`text-xl sm:text-2xl font-black tracking-tight ${theme ? "text-blue-200" : "text-red-700"}`}>Application Form</h2>
+                        <p className={`mt-1 text-xs sm:text-sm ${theme ? "text-white/60" : "text-neutral-500"}`}>Create a new application with linked user, department, and section details.</p>
+                    </div>
+                </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-5">
-                        <div className="grid gap-5 md:grid-cols-2">
-                            <div className="space-y-2">
-                                <label className={`text-sm font-semibold ${theme ? "text-gray-300" : "text-neutral-700"}`}>Name</label>
-                                <Input
-                                    type="text"
-                                    placeholder="Name"
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    className="opacity-75 bg-neutral-100 dark:bg-gray-800"
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className={`text-sm font-semibold ${theme ? "text-gray-300" : "text-neutral-700"}`}>SUID</label>
-                                <Input
-                                    type="number"
-                                    placeholder="SUID will auto-fill"
-                                    value={suid}
-                                    onChange={(e) => setSuid(e.target.value)}
-                                    required
-                                    className="opacity-75 bg-neutral-100 dark:bg-gray-800"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="grid gap-5 md:grid-cols-2">
-                            <div className="space-y-2">
-                                <SearchableDropdown
-                                    label="Department"
-                                    placeholder={loadingOptions ? "Loading departments..." : "Select department"}
-                                    options={departments}
-                                    selectedValue={departmentId}
-                                    onSelect={(value) => setDepartmentId(value)}
-                                    required
-                                    disabled={loadingOptions}
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <SearchableDropdown
-                                    label="Section"
-                                    placeholder={
-                                        loadingOptions
-                                             ? "Loading sections..."
-                                            : departmentId
-                                            ? "Select section"
-                                            : "Select department first"
-                                    }
-                                    options={filteredSections}
-                                    selectedValue={sectionId}
-                                    onSelect={(value) => setSectionId(value)}
-                                    required
-                                    disabled={!departmentId || loadingOptions}
-                                />
-                            </div>
+                <form onSubmit={handleSubmit} className="space-y-5">
+                    <div className="grid gap-5 md:grid-cols-2">
+                        <div className="space-y-2">
+                            <label className={`text-sm font-semibold ${theme ? "text-white/80" : "text-neutral-700"}`}>Name</label>
+                            <Input
+                                type="text"
+                                placeholder="Name"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                            />
                         </div>
 
                         <div className="space-y-2">
-                            <label className={`text-sm font-semibold ${theme ? "text-gray-300" : "text-neutral-700"}`}>Subject</label>
+                            <label className={`text-sm font-semibold ${theme ? "text-white/80" : "text-neutral-700"}`}>SUID</label>
                             <Input
-                                type="text"
-                                placeholder="Enter application subject"
-                                value={subject}
-                                onChange={(e) => setSubject(e.target.value)}
+                                type="number"
+                                placeholder="SUID will auto-fill"
+                                value={suid}
+                                onChange={(e) => setSuid(e.target.value)}
                                 required
                             />
                         </div>
+                    </div>
 
+                    <div className="grid gap-5 md:grid-cols-2">
                         <div className="space-y-2">
-                            <label className={`text-sm font-semibold ${theme ? "text-gray-300" : "text-neutral-700"}`}>Description</label>
-                            <textarea
-                                rows={4}
-                                placeholder="Describe your application details..."
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                                className={`w-full rounded-xl border px-4 py-3 text-sm outline-none transition-all duration-300 resize-none ${theme ? "border-gray-700 bg-gray-800 text-white placeholder-gray-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500" : "border-neutral-200 bg-neutral-50 text-neutral-900 placeholder-neutral-400 focus:border-red-500 focus:ring-1 focus:ring-red-500"}`}
+                            <SearchableDropdown
+                                label="Department"
+                                placeholder={loadingOptions ? "Loading departments..." : "Select department"}
+                                options={departments}
+                                selectedValue={departmentId}
+                                onSelect={(value) => setDepartmentId(value)}
+                                required
+                                disabled={loadingOptions}
                             />
                         </div>
 
-                        <div className="flex items-center justify-end gap-3 border-t pt-5 mt-2">
-                            <button
-                                type="button"
-                                onClick={onClose}
-                                disabled={loading}
-                                className={`px-4 py-2 text-sm font-medium rounded-xl transition-all duration-200 ${theme ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}
-                            >
-                                Cancel
-                            </button>
-                            <Button type="submit" isLoading={loading} className="px-6">
-                                {loading ? "Submitting..." : "Submit Application"}
-                            </Button>
+                        <div className="space-y-2">
+                            <SearchableDropdown
+                                label="Section"
+                                placeholder={
+                                    loadingOptions
+                                        ? "Loading sections..."
+                                        : departmentId
+                                            ? "Select section"
+                                            : "Select department first"
+                                }
+                                options={filteredSections}
+                                selectedValue={sectionId}
+                                onSelect={(value) => setSectionId(value)}
+                                required
+                                disabled={!departmentId || loadingOptions}
+                            />
                         </div>
-                    </form>
-                </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className={`text-sm font-semibold ${theme ? "text-white/80" : "text-neutral-700"}`}>Subject</label>
+                        <Input
+                            type="text"
+                            placeholder="Enter application subject"
+                            value={subject}
+                            onChange={(e) => setSubject(e.target.value)}
+                            required
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className={`text-sm font-semibold ${theme ? "text-white/80" : "text-neutral-700"}`}>Description</label>
+                        <textarea
+                            rows={4}
+                            placeholder="Describe your application details..."
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            className={`w-full rounded-xl border px-4 py-3 text-sm outline-none transition-all duration-300 resize-none ${theme ? "border-white/10 bg-white/5 text-white placeholder-white/40 focus:border-blue-400 focus:ring-1 focus:ring-blue-400" : "border-neutral-200 bg-black/5 text-neutral-900 placeholder-neutral-400 focus:border-red-500 focus:ring-1 focus:ring-red-500"}`}
+                        />
+                    </div>
+
+                    <div className={`flex items-center justify-end gap-3 border-t pt-5 mt-2 ${theme ? "border-white/10" : "border-neutral-200"}`}>
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            disabled={loading}
+                            className={`px-4 py-2 text-sm font-medium rounded-xl transition-all duration-200 ${theme ? 'bg-white/10 text-white/80 hover:bg-white/15' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}
+                        >
+                            Cancel
+                        </button>
+                        <Button type="submit" isLoading={loading} className="px-6">
+                            {loading ? "Submitting..." : "Submit Application"}
+                        </Button>
+                    </div>
+                </form>
             </div>
         </Modal>
     );

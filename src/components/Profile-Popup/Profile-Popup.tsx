@@ -1,10 +1,8 @@
-import React, { useRef, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronRight, LogOut, Settings, User } from "lucide-react";
 import { useTheme } from "../theme/ThemeContext";
-import { Popover } from "../overlay/OverlayPrimitives";
-
-/* ----------------------------- Types ----------------------------- */
+import MorphPopover from "../overlay/MorphPopover";
 
 export interface ProfileUser {
     suid: string;
@@ -21,6 +19,8 @@ interface ProfilePopupProps {
     onLogout?: () => void;
     profilePath?: string;
     settingsPath?: string;
+    open?: boolean;
+    onOpenChange?: (open: boolean) => void;
 }
 
 const DEFAULT_USER: ProfileUser = {
@@ -31,8 +31,6 @@ const DEFAULT_USER: ProfileUser = {
     birthDate: "08 Aug 1990",
     roleLabel: "SUPER_ADMIN",
 };
-
-/* ------------------------- Sub components ------------------------- */
 
 const MenuButton: React.FC<{
     icon: React.ReactNode;
@@ -97,7 +95,7 @@ const Avatar: React.FC<{ user: ProfileUser; initial: string; size?: number; them
         style={{
             height: size * 4,
             width: size * 4,
-            fontSize: size * 1.1
+            fontSize: size * 1.1,
         }}
     >
         {user.avatarUrl ? (
@@ -109,36 +107,45 @@ const Avatar: React.FC<{ user: ProfileUser; initial: string; size?: number; them
     </div>
 );
 
-/* ----------------------------- Main ----------------------------- */
-
 const ProfilePopup: React.FC<ProfilePopupProps> = ({
     user = DEFAULT_USER,
     onLogout,
+    profilePath = "/dashboard/profile",
+    settingsPath = "/dashboard/settings/profile",
+    open,
+    onOpenChange,
 }) => {
     const { theme } = useTheme();
-
-    const [isOpen, setIsOpen] = useState(false);
-    const triggerRef = useRef<HTMLButtonElement>(null);
     const navigate = useNavigate();
+    const [internalOpen, setInternalOpen] = useState(false);
 
-    const togglePopup = () => setIsOpen((prev) => !prev);
+    const isOpen = open ?? internalOpen;
+
+    const setOpen = useCallback(
+        (value: boolean) => {
+            if (open === undefined) setInternalOpen(value);
+            onOpenChange?.(value);
+        },
+        [open, onOpenChange]
+    );
 
     const handleProfileClick = () => {
-        setIsOpen(false);
-        navigate("/dashboard/profile");
+        setOpen(false);
+        navigate(profilePath);
     };
 
     const handleSettingsClick = () => {
-        setIsOpen(false);
-        navigate("/dashboard/settings/profile");
+        setOpen(false);
+        navigate(settingsPath);
     };
 
     const handleLogoutClick = () => {
-        setIsOpen(false);
+        setOpen(false);
         if (onLogout) {
             onLogout();
         } else {
             localStorage.removeItem("token");
+            localStorage.removeItem("user");
             navigate("/login");
         }
     };
@@ -148,10 +155,6 @@ const ProfilePopup: React.FC<ProfilePopupProps> = ({
     return (
         <div className="relative inline-block">
             <style>{`
-        @keyframes popupScaleIn {
-          0% { opacity: 0; transform: scale(0.95) translateY(-12px); }
-          100% { opacity: 1; transform: scale(1) translateY(0); }
-        }
         @keyframes premiumIndicator {
           0%, 100% { filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.5)); transform: scale(1); }
           50% { filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.9)); transform: scale(1.05); }
@@ -172,63 +175,51 @@ const ProfilePopup: React.FC<ProfilePopupProps> = ({
         .animate-waveSway-2 { animation: waveSwayReverse 16s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
       `}</style>
 
-            {/* Trigger Button */}
-            <button
-                ref={triggerRef}
-                onClick={togglePopup}
-                aria-haspopup="menu"
-                aria-expanded={isOpen}
-                className={`group flex items-center gap-2 sm:gap-3 rounded-full py-1.5 pl-1.5 pr-3 sm:pr-5 transition-all duration-300 cursor-pointer border ${isOpen
-                        ? theme
-                            ? "bg-linear-to-r from-blue-700 to-blue-600 shadow-lg shadow-blue-900/30 border-blue-500/50"
-                            : "bg-linear-to-r from-red-700 to-red-600 shadow-lg shadow-red-900/30 border-red-500/50"
-                        : theme
-                            ? "bg-gray-800/80 hover:bg-gray-700 border-gray-700 hover:border-gray-600"
-                            : "bg-white hover:bg-neutral-50 border-neutral-200 shadow-sm hover:shadow-md"
-                    }`}
-            >
-                <span
-                    className={`relative flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center overflow-hidden rounded-full font-bold transition-all duration-300 ${isOpen ? "ring-2 ring-white/40 shadow-inner text-white" : "ring-2 ring-transparent group-hover:ring-gray-300/50"
-                        } ${theme ? (isOpen ? "bg-blue-800" : "bg-gray-700 text-gray-200") : (isOpen ? "bg-red-700 text-white" : "bg-neutral-100 text-neutral-700")}`}
-                >
-                    {user.avatarUrl ? (
-                        <img src={user.avatarUrl} alt={user.fullName} className="h-full w-full object-cover" />
-                    ) : (
-                        initial
-                    )}
-                    <span
-                        className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border border-white/80 bg-emerald-500"
-                        style={{ animation: "premiumIndicator 3s infinite" }}
-                    />
-                </span>
-                <span className="hidden flex-col items-start leading-tight sm:flex">
-                    <span className={`text-[14px] sm:text-[15px] font-bold tracking-wide transition-colors ${isOpen ? "text-white" : theme ? "text-gray-100" : "text-neutral-800"}`}>
-                        {user.fullName}
-                    </span>
-                    <span
-                        className={`text-[9px] sm:text-[10px] font-bold tracking-widest uppercase transition-colors ${isOpen ? (theme ? "text-blue-100/90" : "text-red-100/90") : theme ? "text-gray-400" : "text-neutral-500"
-                            }`}
-                    >
-                        {user.roleLabel}
-                    </span>
-                </span>
-            </button>
-
-            <Popover
-                open={isOpen}
-                onClose={() => setIsOpen(false)}
-                anchorRef={triggerRef}
-                role="menu"
+            <MorphPopover
+                id="profile"
+                isOpen={isOpen}
+                onOpenChange={setOpen}
                 ariaLabel="Profile menu"
-                className="w-[calc(100vw-2rem)] max-w-[24rem] sm:w-96"
+                closedRadius={24}
+                openRadius={32}
+                align="right"
+                triggerContentClassName="flex items-center gap-2 sm:gap-3"
+                triggerClassName={`group py-1.5 pl-1.5 pr-3 sm:pr-5 cursor-pointer border transition-colors duration-300 ${theme
+                        ? "bg-gray-800/80 hover:bg-gray-700 border-gray-700 hover:border-gray-600"
+                        : "bg-white hover:bg-neutral-50 border-neutral-200 shadow-sm hover:shadow-md"
+                    }`}
+                panelClassName={`w-[calc(100vw-2rem)] max-w-[24rem] sm:w-96 border backdrop-blur-xl ${theme
+                        ? "bg-gray-900/95 border-gray-800 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)]"
+                        : "bg-white/95 border-neutral-200 shadow-[0_25px_60px_-15px_rgba(153,27,27,0.18)]"
+                    }`}
+                renderTrigger={() => (
+                    <>
+                        <span
+                            className={`relative flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center overflow-hidden rounded-full font-bold ring-2 ring-transparent transition-all duration-300 group-hover:ring-gray-300/50 ${theme ? "bg-gray-700 text-gray-200" : "bg-neutral-100 text-neutral-700"
+                                }`}
+                        >
+                            {user.avatarUrl ? (
+                                <img src={user.avatarUrl} alt={user.fullName} className="h-full w-full object-cover" />
+                            ) : (
+                                initial
+                            )}
+                            <span
+                                className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border border-white/80 bg-emerald-500"
+                                style={{ animation: "premiumIndicator 3s infinite" }}
+                            />
+                        </span>
+                        <span className="hidden flex-col items-start leading-tight sm:flex">
+                            <span className={`text-[14px] sm:text-[15px] font-bold tracking-wide ${theme ? "text-gray-100" : "text-neutral-800"}`}>
+                                {user.fullName}
+                            </span>
+                            <span className={`text-[9px] sm:text-[10px] font-bold tracking-widest uppercase ${theme ? "text-gray-400" : "text-neutral-500"}`}>
+                                {user.roleLabel}
+                            </span>
+                        </span>
+                    </>
+                )}
             >
-                <div
-                    className={`overflow-hidden rounded-4xl sm:rounded-[2.5rem] ${theme
-                            ? "bg-gray-900/95 border-gray-800 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)]"
-                            : "bg-white/95 border-neutral-200 shadow-[0_25px_60px_-15px_rgba(153,27,27,0.18)]"
-                        }`}
-                >
-                    {/* Premium Luxury Decorative Banner */}
+                <div role="menu">
                     <div className={`relative overflow-hidden px-6 sm:px-8 pb-16 sm:pb-20 pt-8 sm:pt-10 ${theme ? "bg-linear-to-br from-blue-950 via-gray-900 to-slate-950" : "bg-linear-to-br from-red-700 via-red-800 to-neutral-950"}`}>
                         <div
                             className="pointer-events-none absolute -right-6 -top-6 h-48 w-48 rounded-full bg-white/10 blur-3xl mix-blend-overlay"
@@ -239,7 +230,6 @@ const ProfilePopup: React.FC<ProfilePopupProps> = ({
                             style={{ animation: "meshMove 11s ease-in-out infinite alternate-reverse" }}
                         />
 
-                        {/* Ultra-Premium Liquid Multi-Layer Mask Effect */}
                         <div className="absolute bottom-0 left-0 right-0 w-full overflow-hidden leading-0 z-0">
                             <svg
                                 viewBox="0 0 1440 160"
@@ -270,14 +260,11 @@ const ProfilePopup: React.FC<ProfilePopupProps> = ({
                                     strokeWidth="3"
                                     className="opacity-70 animate-waveSway-1"
                                 />
-                                <path
-                                    d="M0,80 C280,135 560,35 840,115 C1120,45 1280,105 1440,75 L1440,160 L0,160 Z"
-                                />
+                                <path d="M0,80 C280,135 560,35 840,115 C1120,45 1280,105 1440,75 L1440,160 L0,160 Z" />
                             </svg>
                         </div>
                     </div>
 
-                    {/* Profile Details Area */}
                     <div className="-mt-10 flex flex-col items-center px-5 sm:px-8 pb-6 sm:pb-8 text-center relative z-10">
                         <Avatar user={user} initial={initial} size={18} theme={theme} />
                         <h3 className={`mt-3 text-lg sm:text-xl font-black tracking-tight ${theme ? "text-white" : "text-neutral-900"}`}>
@@ -298,19 +285,17 @@ const ProfilePopup: React.FC<ProfilePopupProps> = ({
 
                         <div className={`mt-5 w-full border-t ${theme ? "border-gray-800" : "border-neutral-100"}`} />
 
-                        {/* Menu Actions */}
                         <div className="mt-4 flex w-full flex-col gap-1.5 sm:gap-2">
                             <MenuButton icon={<User size={16} strokeWidth={2.5} />} label="My Profile" onClick={handleProfileClick} theme={theme} />
                             <MenuButton icon={<Settings size={16} strokeWidth={2.5} />} label="Account Settings" onClick={handleSettingsClick} theme={theme} />
 
                             <div className={`my-1 w-full border-t border-dashed ${theme ? "border-gray-800" : "border-neutral-200"}`} />
 
-                            {/* Logout Button */}
                             <MenuButton icon={<LogOut size={16} strokeWidth={2.5} />} label="Sign Out" onClick={handleLogoutClick} danger theme={theme} />
                         </div>
                     </div>
                 </div>
-            </Popover>
+            </MorphPopover>
         </div>
     );
 };

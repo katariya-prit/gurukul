@@ -1,6 +1,7 @@
 import { useTheme } from "../components/theme/ThemeContext";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import Logo from "../assets/gurukul.png";
 
 import Navbar from "../components/sidebar/Navbar";
@@ -16,17 +17,56 @@ interface SidebarProps {
     setIsOpen: (isOpen: boolean) => void;
 }
 
+const DESKTOP_QUERY = "(min-width: 768px)";
+
+const subscribeDesktop = (onChange: () => void) => {
+    const media = window.matchMedia(DESKTOP_QUERY);
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+};
+
+const getDesktopSnapshot = () => window.matchMedia(DESKTOP_QUERY).matches;
+
+const getDesktopServerSnapshot = () => true;
+
 export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
     const { theme } = useTheme(); // theme: true (Dark Mode), false (Light Mode)
     const navigate = useNavigate();
+    const location = useLocation();
+    const reduceMotion = useReducedMotion();
+    const isDesktop = useSyncExternalStore(
+        subscribeDesktop,
+        getDesktopSnapshot,
+        getDesktopServerSnapshot
+    );
 
     const [isCollapsed, setIsCollapsed] = useState(false);
-    const isMiniSidebar = isCollapsed && window.innerWidth >= 768;
+    const isMiniSidebar = isCollapsed && isDesktop;
 
     // 🌟 Logout confirmation modal state — have direct logout nathi thatu,
     // pehla confirm karavu pade chhe
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+    const previousPath = useRef(location.pathname);
+
+    useEffect(() => {
+        if (previousPath.current !== location.pathname) {
+            previousPath.current = location.pathname;
+            setIsOpen(false);
+        }
+    }, [location.pathname, setIsOpen]);
+
+    useEffect(() => {
+        if (!isOpen || isDesktop) return;
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape") setIsOpen(false);
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [isOpen, isDesktop, setIsOpen]);
 
     const handleLogoutClick = () => {
         setShowLogoutConfirm(true);
@@ -52,125 +92,159 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
         setShowLogoutConfirm(false);
     };
 
-    return (
+    const panelContent = (
         <>
-            <aside
-                onClick={(e) => e.stopPropagation()}
-                className={`fixed inset-y-0 left-0 z-50 flex flex-col transition-[width,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] md:translate-x-0 md:relative
-                    ${isOpen ? "translate-x-0" : "-translate-x-full"} 
-                    ${isMiniSidebar ? "w-22" : "w-65"} 
-                    ${theme
-                        ? "bg-gray-900 text-white border-r border-gray-800 shadow-[4px_0_24px_rgba(0,0,0,0.5)]"
-                        : "bg-white text-gray-800 border-r border-gray-200 shadow-[4px_0_24px_rgba(0,0,0,0.02)]"
-                    }`}
+            {/* --- હેડર વિભાગ --- */}
+            <div className={`flex items-center justify-between h-19 px-4 mb-4 shrink-0 w-full border-b 
+                ${theme ? "border-gray-800" : "border-gray-200"}`}
             >
-                {/* --- હેડર વિભાગ --- */}
-                <div className={`flex items-center justify-between h-19 px-4 mb-4 shrink-0 w-full border-b 
-                    ${theme ? "border-gray-800" : "border-gray-200"}`}
-                >
-                    <div className="flex items-center justify-start overflow-hidden flex-1">
-                        {!isMiniSidebar ? (
-                            /* --- મોટું સાઇડબાર: લોગો + ટેક્સ્ટ --- */
-                            <div className="flex items-center gap-3 py-2 animate-fadeIn">
-                                <div className={`w-11 h-11 rounded-xl flex items-center justify-center p-1.5 shadow-sm 
-                                    ${theme ? "bg-blue-200" : "bg-linear-to-tr from-red-700 to-red-400"}`}
+                <div className="flex items-center justify-start overflow-hidden flex-1">
+                    {!isMiniSidebar ? (
+                        /* --- મોટું સાઇડબાર: લોગો + ટેક્સ્ટ --- */
+                        <div className="flex items-center gap-3 py-2 animate-fadeIn">
+                            <div className={`w-11 h-11 rounded-xl flex items-center justify-center p-1.5 shadow-sm 
+                                ${theme ? "bg-blue-200" : "bg-linear-to-tr from-red-700 to-red-400"}`}
+                            >
+                                <img
+                                    src={Logo}
+                                    alt="Gurukul Logo"
+                                    className="w-full h-full object-contain"
+                                />
+                            </div>
+                            <div>
+                                <h2 className={`font-extrabold leading-tight text-base tracking-wide 
+                                    ${theme ? "text-white" : "text-gray-800"}`}
                                 >
-                                    <img
-                                        src={Logo}
-                                        alt="Gurukul Logo"
-                                        className="w-full h-full object-contain"
-                                    />
-                                </div>
-                                <div>
-                                    <h2 className={`font-extrabold leading-tight text-base tracking-wide 
-                                        ${theme ? "text-white" : "text-gray-800"}`}
-                                    >
-                                        Gurukul
-                                    </h2>
-                                    <span className={`text-[10px] font-bold uppercase tracking-widest block mt-0.5
-                                        ${theme ? "text-blue-200" : "text-red-500"}`}
-                                    >
-                                        Admin
-                                    </span>
+                                    Gurukul
+                                </h2>
+                                <span className={`text-[10px] font-bold uppercase tracking-widest block mt-0.5
+                                    ${theme ? "text-blue-200" : "text-red-500"}`}
+                                >
+                                    Admin
+                                </span>
+                            </div>
+                        </div>
+                    ) : (
+                        /* --- મિની સાઇડબાર: લોગો હોવર ઇફેક્ટ --- */
+                        <div className="w-full flex justify-center py-2 animate-fadeIn">
+                            <div
+                                onClick={() => setIsCollapsed(false)}
+                                className={`relative w-11 h-11 rounded-xl flex items-center justify-center p-1.5 shadow-sm transition-all duration-300 group cursor-pointer 
+                                    ${theme
+                                        ? "bg-blue-200 hover:bg-blue-300"
+                                        : "bg-red-50 hover:bg-red-600"
+                                    }`}
+                                title="Expand Sidebar"
+                            >
+                                <img
+                                    src={Logo}
+                                    alt="Gurukul Logo"
+                                    className="w-full h-full object-contain transition-opacity duration-300 group-hover:opacity-0"
+                                />
+                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                    <HiChevronRight className={`text-xl font-bold ${theme ? "text-gray-400" : "text-white"}`} />
                                 </div>
                             </div>
-                        ) : (
-                            /* --- મિની સાઇડબાર: લોગો હોવર ઇફેક્ટ --- */
-                            <div className="w-full flex justify-center py-2 animate-fadeIn">
-                                <div
-                                    onClick={() => setIsCollapsed(false)}
-                                    className={`relative w-11 h-11 rounded-xl flex items-center justify-center p-1.5 shadow-sm transition-all duration-300 group cursor-pointer 
-                                        ${theme
-                                            ? "bg-blue-200 hover:bg-blue-300"
-                                            : "bg-red-50 hover:bg-red-600"
-                                        }`}
-                                    title="Expand Sidebar"
-                                >
-                                    <img
-                                        src={Logo}
-                                        alt="Gurukul Logo"
-                                        className="w-full h-full object-contain transition-opacity duration-300 group-hover:opacity-0"
-                                    />
-                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                        <HiChevronRight className={`text-xl font-bold ${theme ? "text-gray-400" : "text-white"}`} />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* --- કોલેપ્સ બટન --- */}
-                    {!isMiniSidebar && (
-                        <button
-                            onClick={() => setIsCollapsed(!isCollapsed)}
-                            className={`hidden md:flex p-2 ml-2 rounded-xl border transition-all cursor-pointer shadow-sm active:scale-95 
-                                ${theme
-                                    ? "bg-gray-800 text-blue-200 border-gray-700 hover:bg-blue-200 hover:text-gray-900"
-                                    : "bg-gray-50 text-gray-500 border-gray-100 hover:bg-red-50 hover:text-red-600"
-                                }`}
-                        >
-                            <HiChevronLeft size={18} />
-                        </button>
+                        </div>
                     )}
                 </div>
 
-                <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar p-3">
-                    <nav className="space-y-1.5 relative">
-                        <Navbar
-                            setSidebarOpen={setIsOpen}
-                            isMiniSidebar={isMiniSidebar}
-                        />
-                    </nav>
-                </div>
-
-                {/* --- લોગઆઉટ બટન વિભાગ --- */}
-                <div className={`pt-4 mt-auto shrink-0 border-t 
-                    ${theme ? "border-gray-800" : "border-gray-100"}`}
-                >
+                {/* --- કોલેપ્સ બટન --- */}
+                {!isMiniSidebar && (
                     <button
-                        onClick={handleLogoutClick}
-                        title={isMiniSidebar ? "Logout" : ""}
-                        className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl font-semibold text-[15px] transition-all duration-200 group cursor-pointer 
-                            ${isMiniSidebar ? "justify-center px-2" : ""} 
+                        onClick={() => setIsCollapsed(!isCollapsed)}
+                        className={`hidden md:flex p-2 ml-2 rounded-xl border transition-all cursor-pointer shadow-sm active:scale-95 
                             ${theme
-                                ? "text-gray-300 hover:bg-gray-800 hover:text-blue-200"
-                                : "text-gray-500 hover:bg-red-50 hover:text-red-600"
+                                ? "bg-gray-800 text-blue-200 border-gray-700 hover:bg-blue-200 hover:text-gray-900"
+                                : "bg-gray-50 text-gray-500 border-gray-100 hover:bg-red-50 hover:text-red-600"
                             }`}
                     >
-                        <HiOutlineLogout className={`text-xl transition-colors 
-                            ${theme ? "text-gray-400 group-hover:text-blue-200" : "text-gray-400 group-hover:text-red-600"}`}
-                        />
-                        {!isMiniSidebar && "Logout"}
+                        <HiChevronLeft size={18} />
                     </button>
-                </div>
-            </aside>
+                )}
+            </div>
 
-            {/* --- મોબાઈલ ઓવરલે --- */}
-            {isOpen && (
-                <div
-                    className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-40 md:hidden cursor-pointer"
-                    onClick={() => setIsOpen(false)}
-                />
+            <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar p-3">
+                <nav className="space-y-1.5 relative">
+                    <Navbar
+                        setSidebarOpen={setIsOpen}
+                        isMiniSidebar={isMiniSidebar}
+                    />
+                </nav>
+            </div>
+
+            {/* --- લોગઆઉટ બટન વિભાગ --- */}
+            <div className={`pt-4 mt-auto shrink-0 border-t 
+                ${theme ? "border-gray-800" : "border-gray-100"}`}
+            >
+                <button
+                    onClick={handleLogoutClick}
+                    title={isMiniSidebar ? "Logout" : ""}
+                    className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl font-semibold text-[15px] transition-all duration-200 group cursor-pointer 
+                        ${isMiniSidebar ? "justify-center px-2" : ""} 
+                        ${theme
+                            ? "text-gray-300 hover:bg-gray-800 hover:text-blue-200"
+                            : "text-gray-500 hover:bg-red-50 hover:text-red-600"
+                        }`}
+                >
+                    <HiOutlineLogout className={`text-xl transition-colors 
+                        ${theme ? "text-gray-400 group-hover:text-blue-200" : "text-gray-400 group-hover:text-red-600"}`}
+                    />
+                    {!isMiniSidebar && "Logout"}
+                </button>
+            </div>
+        </>
+    );
+
+    return (
+        <>
+            {isDesktop ? (
+                <aside
+                    onClick={(e) => e.stopPropagation()}
+                    className={`relative z-50 flex flex-col transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]
+                        ${isMiniSidebar ? "w-22" : "w-65"} 
+                        ${theme
+                            ? "bg-gray-900 text-white border-r border-gray-800 shadow-[4px_0_24px_rgba(0,0,0,0.5)]"
+                            : "bg-white text-gray-800 border-r border-gray-200 shadow-[4px_0_24px_rgba(0,0,0,0.02)]"
+                        }`}
+                >
+                    {panelContent}
+                </aside>
+            ) : (
+                <AnimatePresence>
+                    {isOpen && (
+                        <>
+                            <motion.div
+                                key="sidebar-backdrop"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: reduceMotion ? 0.12 : 0.25, ease: "easeOut" }}
+                                className="fixed inset-0 z-40 cursor-pointer bg-gray-900/40 backdrop-blur-sm"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <motion.aside
+                                key="sidebar-panel"
+                                onClick={(e) => e.stopPropagation()}
+                                initial={reduceMotion ? { opacity: 0 } : { x: "-100%" }}
+                                animate={reduceMotion ? { opacity: 1 } : { x: 0 }}
+                                exit={reduceMotion ? { opacity: 0 } : { x: "-100%" }}
+                                transition={
+                                    reduceMotion
+                                        ? { duration: 0.12, ease: "easeOut" }
+                                        : { type: "spring", stiffness: 300, damping: 30 }
+                                }
+                                className={`fixed bottom-3 left-0 top-3 z-50 flex w-65 max-w-[calc(100%-3rem)] flex-col overflow-hidden rounded-l-none rounded-r-2xl border-y border-r shadow-2xl
+                                    ${theme
+                                        ? "bg-slate-900 text-white border-slate-800"
+                                        : "bg-white text-gray-800 border-gray-200"
+                                    }`}
+                            >
+                                {panelContent}
+                            </motion.aside>
+                        </>
+                    )}
+                </AnimatePresence>
             )}
 
             {/* --- 🌟 લોગઆઉટ કન્ફર્મેશન મોડલ --- */}

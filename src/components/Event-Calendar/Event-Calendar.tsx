@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useTheme } from "../theme/ThemeContext";
-import { Popover } from "../overlay/OverlayPrimitives";
 import { eventsData } from "./event-constants";
 import {
     HiChevronLeft,
@@ -11,14 +10,6 @@ import {
     HiOutlineMoon
 } from "react-icons/hi";
 
-interface EventCalendarProps {
-    isOpen: boolean;
-    onClose: () => void;
-    anchorRef: React.RefObject<HTMLElement | null>;
-    selectedDate?: Date;
-    onSelectDate?: (date: Date) => void;
-}
-
 type CalendarView = "days" | "months" | "years";
 
 type EventDetail = {
@@ -27,7 +18,7 @@ type EventDetail = {
     type: 'event' | 'holiday' | 'tithi' | 'none';
 };
 
-export default function EventCalendarPopup({ isOpen, onClose, anchorRef }: EventCalendarProps) {
+export default function EventCalendarContent() {
     const { theme } = useTheme();
     const [view, setView] = useState<CalendarView>("days");
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -48,16 +39,6 @@ export default function EventCalendarPopup({ isOpen, onClose, anchorRef }: Event
 
     const firstDayOfMonth = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-    useEffect(() => {
-        if (isOpen) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setView("days");
-            setSelectedEventInfo(null);
-            setSelectedDate(null);
-        }
-    }, [isOpen]);
-
 
     const handlePrevMonth = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -101,23 +82,13 @@ export default function EventCalendarPopup({ isOpen, onClose, anchorRef }: Event
     const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
     const yearGrid = Array.from({ length: 12 }, (_, i) => yearRangeStart + i);
 
-    // Ultra Premium Cell Base (Responsive)
     const cellBase = "text-xs font-medium rounded-xl transition-all duration-300 cursor-pointer flex flex-col items-center justify-center relative hover:scale-[1.05]";
     const cellDefault = theme
         ? "hover:bg-slate-700/50 hover:shadow-lg hover:shadow-black/20 text-slate-300"
         : "hover:bg-white hover:shadow-lg hover:shadow-slate-200/50 text-slate-700";
 
     return (
-        <Popover
-            open={isOpen}
-            onClose={onClose}
-            anchorRef={anchorRef}
-            placement="bottom-end"
-            ariaLabel="Event calendar"
-            className="w-[min(92vw,25rem)]"
-        >
-            <div className="p-4 sm:p-6">
-            {/* Header */}
+        <div className={`p-4 sm:p-6 ${theme ? "text-slate-100" : "text-slate-800"}`}>
             <div className="flex items-center justify-between mb-4 sm:mb-6 px-1">
                 <h4 className="text-[15px] sm:text-[17px] font-extrabold flex items-center gap-1 sm:gap-1.5 tracking-wide">
                     <button
@@ -149,7 +120,6 @@ export default function EventCalendarPopup({ isOpen, onClose, anchorRef }: Event
                 )}
             </div>
 
-            {/* Days View */}
             {view === "days" && (
                 <div className="animate-fade-in">
                     <div className="grid grid-cols-7 gap-1 sm:gap-2 text-center mb-2 sm:mb-3">
@@ -182,7 +152,6 @@ export default function EventCalendarPopup({ isOpen, onClose, anchorRef }: Event
                                     key={day}
                                     type="button"
                                     onClick={(e) => handleDateClick(day, dateStr, isSunday, e)}
-                                    // RESPONSIVE H-10 FOR MOBILE, H-12 FOR DESKTOP
                                     className={`py-1 sm:py-2 h-10 sm:h-12 ${cellBase} ${cellDefault} ${isToday
                                         ? (theme ? 'bg-blue-500/10 border border-blue-500/30 text-blue-100 shadow-[0_0_15px_rgba(59,130,246,0.15)]' : 'bg-blue-50 border border-blue-200 text-blue-700 shadow-sm')
                                         : isSelected
@@ -194,7 +163,6 @@ export default function EventCalendarPopup({ isOpen, onClose, anchorRef }: Event
                                         {day}
                                     </span>
 
-                                    {/* Premium Dots Container */}
                                     <div className="flex gap-1 mt-0.5 sm:mt-1 h-1 sm:h-1.5">
                                         {isSunday && <div className="w-1 sm:w-1.5 h-1 sm:h-1.5 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.8)]"></div>}
                                         {hasTithi && <div className="w-1 sm:w-1.5 h-1 sm:h-1.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)]"></div>}
@@ -205,13 +173,11 @@ export default function EventCalendarPopup({ isOpen, onClose, anchorRef }: Event
                         })}
                     </div>
 
-                    {/* Event Info Box  */}
                     {selectedEventInfo && (
                         <div className={`relative overflow-hidden mt-4 sm:mt-6 p-3 sm:p-4 rounded-xl sm:rounded-2xl transition-all duration-500 transform scale-100 opacity-100 ${theme
                             ? "bg-linear-to-br from-slate-800/80 to-slate-900/80 border border-slate-700/50 shadow-inner shadow-white/5"
                             : "bg-linear-to-br from-white to-slate-50/80 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.08)]"
                             }`}>
-                            {/* ડાબી બાજુની કલર લાઈન (Gradient Accent) */}
                             <div className={`absolute left-0 top-0 bottom-0 w-1 sm:w-1.5 ${selectedEventInfo.type === 'event' ? "bg-linear-to-b from-blue-400 to-indigo-600" :
                                 selectedEventInfo.type === 'tithi' ? "bg-linear-to-b from-emerald-400 to-teal-600" :
                                     selectedEventInfo.type === 'holiday' ? "bg-linear-to-b from-red-400 to-rose-600" :
@@ -219,7 +185,6 @@ export default function EventCalendarPopup({ isOpen, onClose, anchorRef }: Event
                                 }`}></div>
 
                             <div className="flex items-center gap-3 sm:gap-4 pl-2">
-                                {/* આઇકન બોક્સ */}
                                 <div className={`shrink-0 p-2 sm:p-3 rounded-xl sm:rounded-2xl shadow-sm ${selectedEventInfo.type === 'event'
                                     ? (theme ? "bg-blue-500/10 text-blue-400 ring-1 ring-blue-500/20" : "bg-blue-50 text-blue-600 ring-1 ring-blue-100")
                                     : selectedEventInfo.type === 'tithi'
@@ -234,7 +199,6 @@ export default function EventCalendarPopup({ isOpen, onClose, anchorRef }: Event
                                     {selectedEventInfo.type === 'none' && <HiOutlineCalendar className="text-xl sm:text-2xl" />}
                                 </div>
 
-                                {/* માહિતી */}
                                 <div className="flex-1">
                                     <p className={`text-[10px] sm:text-[11px] font-black tracking-widest uppercase mb-0.5 sm:mb-1 ${theme ? "text-slate-400" : "text-slate-400"}`}>
                                         {selectedEventInfo.date}
@@ -243,7 +207,6 @@ export default function EventCalendarPopup({ isOpen, onClose, anchorRef }: Event
                                         {selectedEventInfo.title}
                                     </h5>
 
-                                    {/* નાનું સબ-ટેક્સ્ટ (Sub-text) */}
                                     {selectedEventInfo.type === 'event' && (
                                         <p className={`text-[11px] sm:text-[12px] mt-0.5 sm:mt-1 font-medium ${theme ? "text-blue-300/70" : "text-slate-500"}`}>
                                             Grand festival & celebration day.
@@ -266,7 +229,6 @@ export default function EventCalendarPopup({ isOpen, onClose, anchorRef }: Event
                 </div>
             )}
 
-            {/* Months View */}
             {view === "months" && (
                 <div className="grid grid-cols-3 gap-2 sm:gap-3 animate-fade-in">
                     {monthsShort.map((m, idx) => (
@@ -277,7 +239,6 @@ export default function EventCalendarPopup({ isOpen, onClose, anchorRef }: Event
                 </div>
             )}
 
-            {/* Years View */}
             {view === "years" && (
                 <div className="grid grid-cols-3 gap-2 sm:gap-3 animate-fade-in">
                     {yearGrid.map((y) => (
@@ -287,7 +248,6 @@ export default function EventCalendarPopup({ isOpen, onClose, anchorRef }: Event
                     ))}
                 </div>
             )}
-            </div>
-        </Popover>
+        </div>
     );
 }
