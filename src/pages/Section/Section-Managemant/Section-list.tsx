@@ -15,6 +15,7 @@ import {
 } from "react-icons/hi";
 import { toast } from "sonner";
 import SectionDropdown, { type StudentData } from "./Section-Dropdown";
+import { useConfirm } from "../../../components/overlay/useConfirm";
 
 interface SectionData {
     section_id: number;
@@ -31,6 +32,7 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
 export default function SectionListDropdown() {
     const { theme } = useTheme();
     const navigate = useNavigate();
+    const confirm = useConfirm();
     const [sections, setSections] = useState<SectionData[]>([]);
     const [allStudents, setAllStudents] = useState<StudentData[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
@@ -135,19 +137,22 @@ export default function SectionListDropdown() {
 
     const handleDeleteSection = async (id: number) => {
         setOpenActionId(null);
-        if (window.confirm("Are you sure you want to delete this section?")) {
-            try {
-                const result = await sectionService.deleteSection(id);
-                if (result.success) {
-                    setSections((prev) => prev.filter((sec) => sec.section_id !== id));
-                    toast.success("Section deleted successfully");
-                } else {
-                    toast.error(result.message || "Could not delete section");
-                }
-            } catch (error: any) {
-                console.error(error);
-                toast.error(error.message || "Something went wrong");
+        if (!(await confirm({
+            title: "Delete section?",
+            message: "Are you sure you want to delete this section?",
+            destructive: true,
+        }))) return;
+        try {
+            const result = await sectionService.deleteSection(id);
+            if (result.success) {
+                setSections((prev) => prev.filter((sec) => sec.section_id !== id));
+                toast.success("Section deleted successfully");
+            } else {
+                toast.error(result.message || "Could not delete section");
             }
+        } catch (error: any) {
+            console.error(error);
+            toast.error(error.message || "Something went wrong");
         }
     };
 

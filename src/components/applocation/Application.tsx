@@ -1,19 +1,26 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTheme } from "../theme/ThemeContext";
 import Input from "../common/Input";
-import { createPortal } from "react-dom";
 import Button from "../common/Button";
 import SearchableDropdown from "../common/SearchableDropdown";
 import { HiOutlineDocumentText, HiX } from "react-icons/hi";
 import type { ApplicationPayload, DropdownOptionLike } from "../../Types/Application";
 import { toast } from "sonner";
+import { Modal } from "../overlay/OverlayPrimitives";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 interface ApplicationProps {
+    open?: boolean;
     onClose?: () => void;
+    triggerRef?: React.RefObject<HTMLButtonElement | null>;
 }
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
+
+const getAuthHeaders = (): HeadersInit => {
+    const token = localStorage.getItem("token");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+};
 
 // Defensive helper — normalizes whatever shape the API returns into a plain array.
 // Handles: a bare array, { data: [...] }, { departments: [...] }, { sections: [...] },
@@ -29,7 +36,9 @@ const toArray = (result: any): any[] => {
 
 const applicationService = {
     async getDepartments(): Promise<any> {
-        const response = await fetch(`${API_URL}/departments`);
+        const response = await fetch(`${API_URL}/departments`, {
+            headers: getAuthHeaders(),
+        });
         const result: any = await response.json();
         if (!response.ok) {
             throw new Error(result.message || "Departments fetch failed.");
@@ -38,7 +47,9 @@ const applicationService = {
     },
 
     async getSections(): Promise<any> {
-        const response = await fetch(`${API_URL}/sections`);
+        const response = await fetch(`${API_URL}/sections`, {
+            headers: getAuthHeaders(),
+        });
         const result: any = await response.json();
         if (!response.ok) {
             throw new Error(result.message || "Sections fetch failed.");
@@ -60,7 +71,7 @@ const applicationService = {
     },
 };
 
-export default function Application({ onClose }: ApplicationProps) {
+export default function Application({ open = true, onClose, triggerRef }: ApplicationProps) {
     const { theme } = useTheme();
     const [name, setName] = useState<string>("");
     const [suid, setSuid] = useState<string>("");
@@ -93,7 +104,7 @@ export default function Application({ onClose }: ApplicationProps) {
 
                 const sectionOptions: DropdownOptionLike[] = toArray(sectionResult).map(
                     (s: any) => ({
-                        label: s.sectionName,
+                        label: s.sectionName ?? s.name,
                         value: s.sectionId,
                         departmentId: s.departmentId,
                     })
@@ -156,9 +167,9 @@ export default function Application({ onClose }: ApplicationProps) {
         }
     };
 
-    return createPortal(
-        <div className="fixed inset-0 z-99999 flex items-center justify-center bg-black/80 px-4 py-6 overflow-y-auto backdrop-blur-sm">
-            <div className={`relative w-full max-w-4xl overflow-hidden rounded-2xl border shadow-2xl transition-all duration-300 my-auto ${theme ? "border-gray-800 bg-gray-900 text-white" : "border-neutral-200 bg-white text-neutral-900"}`}>
+    return (
+        <Modal open={open} onClose={() => onClose?.()} triggerRef={triggerRef} ariaLabel="Application form" className="max-w-4xl p-0">
+            <div className={`relative w-full overflow-hidden rounded-2xl border shadow-2xl ${theme ? "border-gray-800 bg-gray-900 text-white" : "border-neutral-200 bg-white text-neutral-900"}`}>
 
                 <button
                     type="button"
@@ -223,7 +234,7 @@ export default function Application({ onClose }: ApplicationProps) {
                                     label="Section"
                                     placeholder={
                                         loadingOptions
-                                            ? "Loading sections..."
+                                             ? "Loading sections..."
                                             : departmentId
                                             ? "Select section"
                                             : "Select department first"
@@ -275,7 +286,6 @@ export default function Application({ onClose }: ApplicationProps) {
                     </form>
                 </div>
             </div>
-        </div>,
-        document.body
+        </Modal>
     );
 }

@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronRight, LogOut, Settings, User } from "lucide-react";
 import { useTheme } from "../theme/ThemeContext";
+import { Popover } from "../overlay/OverlayPrimitives";
 
 /* ----------------------------- Types ----------------------------- */
 
@@ -41,6 +42,7 @@ const MenuButton: React.FC<{
     theme: boolean;
 }> = ({ icon, label, onClick, danger, theme }) => (
     <button
+        role="menuitem"
         onClick={onClick}
         className={`group relative flex w-full items-center gap-3 sm:gap-4 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-3 text-xs sm:text-sm font-semibold tracking-wide transition-all duration-300 overflow-hidden cursor-pointer ${danger
                 ? theme
@@ -116,25 +118,8 @@ const ProfilePopup: React.FC<ProfilePopupProps> = ({
     const { theme } = useTheme();
 
     const [isOpen, setIsOpen] = useState(false);
-    const containerRef = useRef<HTMLDivElement>(null);
+    const triggerRef = useRef<HTMLButtonElement>(null);
     const navigate = useNavigate();
-
-    useEffect(() => {
-        function handleClickOutside(e: MouseEvent) {
-            if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-                setIsOpen(false);
-            }
-        }
-        function handleEscape(e: KeyboardEvent) {
-            if (e.key === "Escape") setIsOpen(false);
-        }
-        document.addEventListener("mousedown", handleClickOutside);
-        document.addEventListener("keydown", handleEscape);
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
-            document.removeEventListener("keydown", handleEscape);
-        };
-    }, []);
 
     const togglePopup = () => setIsOpen((prev) => !prev);
 
@@ -161,7 +146,7 @@ const ProfilePopup: React.FC<ProfilePopupProps> = ({
     const initial = user.fullName?.charAt(0)?.toUpperCase() || "U";
 
     return (
-        <div className="relative inline-block" ref={containerRef}>
+        <div className="relative inline-block">
             <style>{`
         @keyframes popupScaleIn {
           0% { opacity: 0; transform: scale(0.95) translateY(-12px); }
@@ -189,7 +174,10 @@ const ProfilePopup: React.FC<ProfilePopupProps> = ({
 
             {/* Trigger Button */}
             <button
+                ref={triggerRef}
                 onClick={togglePopup}
+                aria-haspopup="menu"
+                aria-expanded={isOpen}
                 className={`group flex items-center gap-2 sm:gap-3 rounded-full py-1.5 pl-1.5 pr-3 sm:pr-5 transition-all duration-300 cursor-pointer border ${isOpen
                         ? theme
                             ? "bg-linear-to-r from-blue-700 to-blue-600 shadow-lg shadow-blue-900/30 border-blue-500/50"
@@ -226,14 +214,19 @@ const ProfilePopup: React.FC<ProfilePopupProps> = ({
                 </span>
             </button>
 
-            {/* Dropdown Panel */}
-            {isOpen && (
+            <Popover
+                open={isOpen}
+                onClose={() => setIsOpen(false)}
+                anchorRef={triggerRef}
+                role="menu"
+                ariaLabel="Profile menu"
+                className="w-[calc(100vw-2rem)] max-w-[24rem] sm:w-96"
+            >
                 <div
-                    className={`absolute -right-2 sm:right-0 z-50 mt-3 w-[calc(100vw-2rem)] max-w-[24rem] sm:w-96 overflow-hidden rounded-4xl sm:rounded-[2.5rem] border shadow-2xl backdrop-blur-2xl ${theme
+                    className={`overflow-hidden rounded-4xl sm:rounded-[2.5rem] ${theme
                             ? "bg-gray-900/95 border-gray-800 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)]"
                             : "bg-white/95 border-neutral-200 shadow-[0_25px_60px_-15px_rgba(153,27,27,0.18)]"
                         }`}
-                    style={{ animation: "popupScaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards" }}
                 >
                     {/* Premium Luxury Decorative Banner */}
                     <div className={`relative overflow-hidden px-6 sm:px-8 pb-16 sm:pb-20 pt-8 sm:pt-10 ${theme ? "bg-linear-to-br from-blue-950 via-gray-900 to-slate-950" : "bg-linear-to-br from-red-700 via-red-800 to-neutral-950"}`}>
@@ -317,7 +310,7 @@ const ProfilePopup: React.FC<ProfilePopupProps> = ({
                         </div>
                     </div>
                 </div>
-            )}
+            </Popover>
         </div>
     );
 };

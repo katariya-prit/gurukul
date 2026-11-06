@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useRef } from "react";
-import { createPortal } from "react-dom";
 import Cropper, { type Area } from "react-easy-crop";
 import { Camera, Check, ImagePlus, Loader2, X, ZoomIn, ZoomOut } from "lucide-react";
 import { toast } from "sonner";
 import { uploadService } from "../../services/uploadService";
+import { Modal } from "../overlay/OverlayPrimitives";
 
 interface ImageUploaderProps {
     value?: string | null;
@@ -225,23 +225,13 @@ export default function ImageUploader({
                 </span>
             )}
 
-            {editingImage && createPortal(
-                <div
-                    className={`fixed inset-0 z-9999 flex items-center justify-center p-4 backdrop-blur-sm transition-all duration-300 ${theme ? "bg-slate-950/60" : "bg-red-200/50"
-                        }`}
-                    role="dialog"
-                    aria-modal="true"
-                    aria-label="Edit image"
-                    onMouseDown={(event) => {
-                        if (event.target === event.currentTarget) closeEditor();
-                    }}
-                >
+            <Modal open={editingImage !== null} onClose={closeEditor} ariaLabel="Edit image" className="max-w-2xl p-0">
+                {editingImage && (
                     <div
                         className={`pointer-events-auto flex max-h-[calc(100dvh-1rem)] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border transition-all ${theme
                                 ? "border-slate-800/60 bg-slate-900 text-slate-100 shadow-[0_0_40px_rgba(0,0,0,0.5)]"
                                 : "border-slate-200/60 bg-white/95 backdrop-blur-xl text-slate-900 shadow-[0_20px_60px_rgba(0,0,0,0.1)]"
                             }`}
-                        onMouseDown={(event) => event.stopPropagation()}
                     >
                         <div className={`flex items-center justify-between border-b px-6 py-4 ${theme ? "border-slate-800/50" : "border-slate-200/50"}`}>
                             <div>
@@ -301,9 +291,8 @@ export default function ImageUploader({
                             </div>
                         </div>
                     </div>
-                </div>,
-                document.body
-            )}
+                )}
+            </Modal>
         </div>
     );
 }

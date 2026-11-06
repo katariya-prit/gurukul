@@ -5,6 +5,7 @@ import Table from "../../../components/common/Table";
 import DataCruding from "../../../components/common/DataCruding"; // path tamara DataCruding file pramane adjust karjo
 import { HiOutlineUserGroup, HiSearch, HiFilter, HiChevronDown } from "react-icons/hi";
 import { toast } from "sonner";
+import { useConfirm } from "../../../components/overlay/useConfirm";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
 
@@ -22,6 +23,7 @@ interface Student {
 
 export default function StudentListPage() {
   const { theme } = useTheme();
+  const confirm = useConfirm();
 
   const { deptId, sectionId } = useParams<{ deptId: string; sectionId: string }>();
   const currentDeptId = Number(deptId);
@@ -90,7 +92,11 @@ export default function StudentListPage() {
   })();
 
   const handleDelete = async (student: Student) => {
-    if (!window.confirm(`Delete ${student.name} (SUID ${student.suid})? Aa pachu nahi malse.`)) return;
+    if (!(await confirm({
+      title: "Delete student?",
+      message: `Delete ${student.name} (SUID ${student.suid})? Aa pachu nahi malse.`,
+      destructive: true,
+    }))) return;
 
     try {
       const token = localStorage.getItem("token");

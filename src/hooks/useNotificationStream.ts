@@ -1,33 +1,71 @@
 import { useEffect, useRef } from "react";
-import { Transmit } from "@adonisjs/transmit-client";
-import type { NotificationItem } from "../services/notificationService";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
+import { normalizeNotification, type NotificationItem } from "../services/notificationService";
+import { transmitClient } from "../lib/transmitClient";
 
 export function useNotificationStream(
-    roleCode: string | undefined,
+    userId: string | undefined,
     onNewNotification: (notification: NotificationItem) => void
 ) {
-    const transmitRef = useRef<Transmit | null>(null);
+    const callbackRef = useRef(onNewNotification);
 
     useEffect(() => {
-        if (!roleCode) return;
+        callbackRef.current = onNewNotification;
+    }, [onNewNotification]);
 
-        const transmit = new Transmit({ baseUrl: API_URL });
-        transmitRef.current = transmit;
+    useEffect(() => {
+        if (!userId) {
+            return;
+        }
 
-        const subscription = transmit.subscription(`notifications/${roleCode}`);
+        const subscription = transmitClient.subscription(`notifications/${userId}`);
+        let isActive = true;
+        let isClosed = false;
 
-        subscription.create().then(() => {
-            subscription.onMessage((data: NotificationItem) => {
-                onNewNotification(data);
+        const close = () => {
+            if (isClosed) {
+                return;
+            }
+
+            isClosed = true;
+            isActive = false;
+            const deletion = subscription.delete();
+            void deletion.catch((error: unknown) => {
+                window.dispatchEvent(
+                    new CustomEvent("gurukul:realtime-error", {
+                        detail: { source: "notifications", error },
+                    })
+                );
             });
-        });
-
-        return () => {
-            subscription.delete();
-            transmit.close();
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [roleCode]);
+
+        void subscription
+            .create()
+            .then(() => {
+                if (!isActive) {
+                    return;
+                }
+
+                subscription.onMessage((payload: unknown) => {
+                    if (!isActive) {
+                        return;
+                    }
+
+                    const notification = normalizeNotification(payload);
+                    if (notification) {
+                        callbackRef.current(notification);
+                    }
+                });
+            })
+            .catch((error: unknown) => {
+                if (isActive) {
+                    window.dispatchEvent(
+                        new CustomEvent("gurukul:realtime-error", {
+                            detail: { source: "notifications", error },
+                        })
+                    );
+                }
+            });
+
+        return close;
+    }, [userId]);
 }

@@ -100,8 +100,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     }
   }
 
+  const lessonPermission = module === "Lesson" || module === "MyLessons";
   const hasPermission =
-    user.roleCode === "SUPER_ADMIN" || permissions?.[module || ""]?.[action];
+    (user.roleCode === "SUPER_ADMIN" && !lessonPermission) ||
+    Boolean(permissions?.[module || ""]?.[action]);
 
   if (!hasPermission) {
     return <Navigate to="/dashboard/unauthorized" replace />;

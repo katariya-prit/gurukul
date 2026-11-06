@@ -165,7 +165,7 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
     const websiteItems = getWebsiteItems(hasAccess);
     const sectionItems = getSectionItems(hasAccess);
     const roleItems = getRoleItems(hasAccess);
-    const lessonItems = getLessonItems(hasAccess);
+    const lessonItems = getLessonItems(createPermissionChecker(user, true));
     const groupItems = getGroupItems(hasAccess);
 
     const isPermActive = location.pathname === "/dashboard/permissions/messages";
@@ -183,7 +183,7 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
     const showDashboardBtn = hasAccess("Dashboard", "view");
     const showPermissionsBtn = hasAccess("Permissions", "view");
     const showProgressBtn = hasAccess("Progress", "view");
-    const showMyLessonsBtn = hasAccess("MyLessons", "view");
+    const showMyLessonsBtn = createPermissionChecker(user, true)("MyLessons", "view");
 
     if (isSuperAdmin && activeDepartmentId !== null) {
         const activeDept = filteredDepartments.find((dept) => dept.departmentId === activeDepartmentId);

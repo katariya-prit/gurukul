@@ -4,6 +4,7 @@
     import { HiOutlineOfficeBuilding, HiOutlineUserGroup } from "react-icons/hi";
     import { HiSearch, HiFilter, HiChevronDown, HiChevronRight } from "react-icons/hi";
     import { toast } from "sonner";
+    import { useConfirm } from "../overlay/useConfirm";
 
     interface SectionData {
         id: number;
@@ -29,6 +30,7 @@
 
     export default function SectionListDropdown() {
         const { theme } = useTheme();
+        const confirm = useConfirm();
         const [sections, setSections] = useState<SectionData[]>([]);
         const [allStudents, setAllStudents] = useState<StudentData[]>([]);
         const [loading, setLoading] = useState<boolean>(true);
@@ -125,22 +127,25 @@
         };
 
         const handleDeleteSection = async (id: number) => {
-            if (window.confirm("Are you sure you want to delete this section?")) {
-                try {
-                    const response = await fetch(`${API_URL}/sections/${id}`, {
-                        method: "DELETE",
-                    });
-                    const result = await response.json();
-                    if (result.success) {
-                        setSections((prev) => prev.filter((sec) => sec.id !== id));
-                        toast.success("Section deleted successfully");
-                    } else {
-                        toast.error(result.message || "Could not delete section");
-                    }
-                } catch (error) {
-                    console.error(error);
-                    toast.error("Something went wrong");
+            if (!(await confirm({
+                title: "Delete section?",
+                message: "Are you sure you want to delete this section?",
+                destructive: true,
+            }))) return;
+            try {
+                const response = await fetch(`${API_URL}/sections/${id}`, {
+                    method: "DELETE",
+                });
+                const result = await response.json();
+                if (result.success) {
+                    setSections((prev) => prev.filter((sec) => sec.id !== id));
+                    toast.success("Section deleted successfully");
+                } else {
+                    toast.error(result.message || "Could not delete section");
                 }
+            } catch (error) {
+                console.error(error);
+                toast.error("Something went wrong");
             }
         };
 

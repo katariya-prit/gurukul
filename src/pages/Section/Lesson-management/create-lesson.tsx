@@ -34,6 +34,13 @@ interface LessonFormState {
     progress_points: string;
 }
 
+interface CreateLessonUser {
+    roleCode?: string;
+    role_code?: string;
+    departmentId?: number | string | null;
+    sectionId?: number | string | null;
+}
+
 const initialFormState: LessonFormState = {
     lesson_title: "",
     lesson_type: "video",
@@ -63,6 +70,11 @@ const getAvailableTabs = (roleCode: string): AssignmentTabKey[] => {
     }
 };
 
+const getUserId = (user: CreateLessonUser | null, field: "departmentId" | "sectionId") => {
+    const value = Number(user?.[field]);
+    return Number.isFinite(value) && value > 0 ? String(value) : "";
+};
+
 function SectionHeading({ icon, title, theme }: { icon: ReactNode; title: string; theme: boolean }) {
     return (
         <div className="mb-4 flex items-center gap-2">
@@ -80,6 +92,24 @@ function SectionHeading({ icon, title, theme }: { icon: ReactNode; title: string
 export default function CreateLesson() {
     const { theme } = useTheme();
     const navigate = useNavigate();
+    const user = useMemo(() => {
+        const raw = localStorage.getItem("user");
+        if (!raw) return null;
+
+        try {
+            return JSON.parse(raw) as CreateLessonUser;
+        } catch {
+            return null;
+        }
+    }, []);
+
+    const roleCode = String(user?.roleCode ?? user?.role_code ?? "").toUpperCase();
+    const isSuperAdmin = roleCode === ROLE_CODES.SUPER_ADMIN;
+    const isDepartmentHead = roleCode === ROLE_CODES.DEPARTMENT_HEAD;
+    const isSectionHead = roleCode === ROLE_CODES.SECTION_HEAD;
+    const ownDepartmentId = getUserId(user, "departmentId");
+    const ownSectionId = getUserId(user, "sectionId");
+
     const [loading, setLoading] = useState(false);
     const [departments, setDepartments] = useState<DropdownOption[]>([]);
     const [groups, setGroups] = useState<DropdownOption[]>([]);
@@ -90,8 +120,10 @@ export default function CreateLesson() {
     const [isLoadingStudents, setIsLoadingStudents] = useState(false);
     const [isLoadingGroups, setIsLoadingGroups] = useState(false);
     const [activeAssignTab, setActiveAssignTab] = useState<AssignmentTabKey>("all");
-    const [selectedDepartmentId, setSelectedDepartmentId] = useState("");
-    const [selectedSectionId, setSelectedSectionId] = useState("");
+    const [selectedDepartmentId, setSelectedDepartmentId] = useState(
+        isDepartmentHead || isSectionHead ? ownDepartmentId : ""
+    );
+    const [selectedSectionId, setSelectedSectionId] = useState(isSectionHead ? ownSectionId : "");
     const [selectedStudentId, setSelectedStudentId] = useState("");
     const [selectedGroupId, setSelectedGroupId] = useState("");
     const [assignHeadOnly, setAssignHeadOnly] = useState(false);
@@ -99,23 +131,9 @@ export default function CreateLesson() {
 
     const [formData, setFormData] = useState<LessonFormState>(initialFormState);
 
-    const user = useMemo(() => {
-        const raw = localStorage.getItem("user");
-        if (!raw) return null;
-
-        try {
-            return JSON.parse(raw);
-        } catch {
-            return null;
-        }
-    }, []);
-
-    const roleCode = String(user?.roleCode ?? user?.role_code ?? "").toUpperCase();
-    const isSuperAdmin = roleCode === ROLE_CODES.SUPER_ADMIN;
-
     const resetAssignmentSelection = () => {
-        setSelectedDepartmentId("");
-        setSelectedSectionId("");
+        setSelectedDepartmentId(isDepartmentHead || isSectionHead ? ownDepartmentId : "");
+        setSelectedSectionId(isSectionHead ? ownSectionId : "");
         setSelectedStudentId("");
         setSelectedGroupId("");
         setSectionOptions([]);
@@ -134,7 +152,11 @@ export default function CreateLesson() {
                 key: tab,
                 label:
                     tab === "all"
-                        ? "All"
+                                ? isDepartmentHead
+                                    ? "Whole Department"
+                                    : isSectionHead
+                                        ? "Whole Section"
+                                        : "All"
                         : tab === "department"
                             ? "Department wise"
                             : tab === "section"
@@ -154,7 +176,7 @@ export default function CreateLesson() {
                                     : FaUsersCog,
                 onClick: () => handleAssignTabChange(tab),
             })),
-        [roleCode]
+        [roleCode, isDepartmentHead, isSectionHead]
     );
 
     useEffect(() => {
@@ -171,7 +193,10 @@ export default function CreateLesson() {
             const mapped = list.map((item: any) => ({
                 value: String(item.department_id ?? item.departmentId ?? item.id),
                 label: item.department_name ?? item.departmentName ?? item.name ?? `Department ${item.department_id ?? item.departmentId ?? item.id}`,
-            }));
+            })).filter((item: DropdownOption) => {
+                if (!isDepartmentHead && !isSectionHead) return true;
+                return item.value === ownDepartmentId;
+            });
             setDepartments(mapped);
         } catch (error: any) {
             toast.error(error?.message || "Failed to load departments");
@@ -190,7 +215,10 @@ export default function CreateLesson() {
             setIsLoadingSections(true);
             const result = await sectionService.getSectionsByDepartment(Number(departmentId));
             const list = Array.isArray(result?.data) ? result.data : Array.isArray(result) ? result : [];
-            const mapped = list.map((item: any) => ({
+            const mapped = list.filter((item: any) => {
+                if (!isSectionHead) return true;
+                return String(item.section_id ?? item.sectionId ?? item.id) === ownSectionId;
+            }).map((item: any) => ({
                 value: String(item.section_id ?? item.sectionId ?? item.id),
                 label: item.section_name ?? item.sectionName ?? item.name ?? `Section ${item.section_id ?? item.sectionId ?? item.id}`,
             }));
@@ -212,7 +240,15 @@ export default function CreateLesson() {
             setIsLoadingStudents(true);
             const result = await userService.getUsersBySection(Number(sectionId));
             const list = Array.isArray(result?.data) ? result.data : Array.isArray(result) ? result : [];
-            const mapped = list.map((item: any) => ({
+            const mapped = list.filter((item: any) => {
+                const studentDepartmentId = String(item.department_id ?? item.departmentId ?? "");
+                const studentSectionId = String(item.section_id ?? item.sectionId ?? "");
+                const studentRole = String(item.role_code ?? item.roleCode ?? "").toUpperCase();
+                if (studentRole !== "STUDENT") return false;
+                if (isDepartmentHead && studentDepartmentId !== ownDepartmentId) return false;
+                if (isSectionHead && studentSectionId !== ownSectionId) return false;
+                return true;
+            }).map((item: any) => ({
                 value: String(item.suid ?? item.user_id ?? item.id),
                 label: item.name ?? item.full_name ?? item.username ?? `Student ${item.suid ?? item.user_id ?? item.id}`,
             }));
@@ -252,16 +288,19 @@ export default function CreateLesson() {
     }, [isSuperAdmin]);
 
     useEffect(() => {
-        if ((activeAssignTab === "section" || activeAssignTab === "student") && selectedDepartmentId) {
+        if (
+            ((activeAssignTab === "section" || activeAssignTab === "student") || isSectionHead) &&
+            selectedDepartmentId
+        ) {
             void fetchSectionsForDepartment(selectedDepartmentId);
         }
-    }, [selectedDepartmentId, activeAssignTab]);
+    }, [selectedDepartmentId, activeAssignTab, isSectionHead]);
 
     useEffect(() => {
-        if (activeAssignTab === "student" && selectedSectionId) {
+        if ((activeAssignTab === "student" || isSectionHead) && selectedSectionId) {
             void fetchStudentsForSection(selectedSectionId);
         }
-    }, [selectedSectionId, activeAssignTab]);
+    }, [selectedSectionId, activeAssignTab, isSectionHead]);
 
     const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -371,8 +410,6 @@ export default function CreateLesson() {
             description: formData.description.trim(),
             progress_points: Number.isFinite(progressPoints) ? progressPoints : 0,
             points: Number.isFinite(progressPoints) ? progressPoints : 0,
-            role_code: user?.roleCode || "USER",
-            created_by: user?.id ?? user?.suid ?? null,
             media_file: mediaFile ? mediaFile.name : null,
             file_name: mediaFile ? mediaFile.name : null,
             file: mediaFile,
@@ -429,9 +466,13 @@ export default function CreateLesson() {
 
                 <ButtonGroup buttons={assignTabs} defaultActiveKey={activeAssignTab} className="w-full flex-wrap" />
 
-                {activeAssignTab !== "all" && (
+                {(activeAssignTab !== "all" || isDepartmentHead || isSectionHead) && (
                     <div className="mt-4 grid gap-4 md:grid-cols-3">
-                        {(activeAssignTab === "department" || activeAssignTab === "section" || activeAssignTab === "student") && (
+                        {(activeAssignTab === "department" ||
+                            activeAssignTab === "section" ||
+                            activeAssignTab === "student" ||
+                            isDepartmentHead ||
+                            isSectionHead) && (
                             <SearchableDropdown
                                 label="Department"
                                 placeholder={isLoadingDepartments ? "Loading departments..." : "Select department"}
@@ -440,11 +481,18 @@ export default function CreateLesson() {
                                 selectedValue={selectedDepartmentId}
                                 onSelect={handleDepartmentSelect}
                                 required
-                                disabled={isLoadingDepartments || departments.length === 0}
+                                disabled={
+                                    isDepartmentHead ||
+                                    isSectionHead ||
+                                    isLoadingDepartments ||
+                                    departments.length === 0
+                                }
                             />
                         )}
 
-                        {(activeAssignTab === "section" || activeAssignTab === "student") && (
+                        {(activeAssignTab === "section" ||
+                            activeAssignTab === "student" ||
+                            (isSectionHead && activeAssignTab === "all")) && (
                             <SearchableDropdown
                                 label="Section *"
                                 placeholder={isLoadingSections ? "Loading sections..." : "Select section"}
@@ -453,7 +501,12 @@ export default function CreateLesson() {
                                 selectedValue={selectedSectionId}
                                 onSelect={handleSectionSelect}
                                 required
-                                disabled={!selectedDepartmentId || isLoadingSections || sectionOptions.length === 0}
+                                disabled={
+                                    isSectionHead ||
+                                    !selectedDepartmentId ||
+                                    isLoadingSections ||
+                                    sectionOptions.length === 0
+                                }
                             />
                         )}
 

@@ -1,5 +1,6 @@
-import { useMemo, useRef, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import { CheckCircle2, FileAudio, FileImage, FileText, FileVideo, UploadCloud } from "lucide-react";
+import { useTheme } from "../theme/ThemeContext";
 
 interface LessonMediaUploaderProps {
   lessonType: string;
@@ -35,6 +36,8 @@ const mediaTypeConfig: Record<string, { label: string; accept: string; icon: typ
 };
 
 export default function LessonMediaUploader({ lessonType, onFileChange, label = "Lesson Media" }: LessonMediaUploaderProps) {
+  const { theme } = useTheme();
+  const inputId = useId();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
@@ -56,33 +59,42 @@ export default function LessonMediaUploader({ lessonType, onFileChange, label = 
 
   return (
     <div className="w-full">
-      <label className="mb-1.5 block text-sm font-medium text-gray-300">{label}</label>
+      <label htmlFor={inputId} className={`mb-1.5 block text-sm font-medium ${theme ? "text-white/80" : "text-neutral-700"}`}>{label}</label>
 
       <div
+        role="button"
+        tabIndex={0}
+        aria-label={`Select ${config.label.toLowerCase()} file`}
         onClick={() => inputRef.current?.click()}
-        className="group cursor-pointer rounded-2xl border border-dashed border-blue-400/50 bg-blue-500/5 p-5 transition-all duration-200 hover:border-blue-400 hover:bg-blue-500/10"
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            inputRef.current?.click();
+          }
+        }}
+        className={`group cursor-pointer rounded-2xl border border-dashed p-5 transition-all duration-200 focus-within:ring-2 ${theme ? "border-blue-400/50 bg-blue-500/5 hover:border-blue-400 hover:bg-blue-500/10 focus-within:ring-blue-400" : "border-red-300 bg-red-50/60 hover:border-red-400 hover:bg-red-50 focus-within:ring-red-400"}`}
       >
         <div className="flex flex-col items-center justify-center gap-3 text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-300">
+          <div className={`flex h-14 w-14 items-center justify-center rounded-2xl ${theme ? "bg-blue-500/10 text-blue-300" : "bg-red-500/10 text-red-500"}`}>
             <Icon className="h-7 w-7" />
           </div>
 
           <div>
-            <p className="text-base font-semibold text-white">{config.label} upload</p>
-            <p className="mt-1 text-sm text-gray-400">{config.helper}</p>
+            <p className={`text-base font-semibold ${theme ? "text-white" : "text-neutral-900"}`}>{config.label} upload</p>
+            <p className={`mt-1 text-sm ${theme ? "text-gray-400" : "text-neutral-500"}`}>{config.helper}</p>
           </div>
 
-          <div className="flex items-center gap-2 rounded-full border border-blue-400/30 bg-blue-500/10 px-3 py-1.5 text-xs font-medium text-blue-200">
+          <div className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium ${theme ? "border-blue-400/30 bg-blue-500/10 text-blue-200" : "border-red-400/30 bg-red-500/10 text-red-700"}`}>
             <UploadCloud className="h-3.5 w-3.5" />
             Select file
           </div>
         </div>
 
-        <input ref={inputRef} type="file" accept={config.accept} onChange={handleChange} className="hidden" />
+        <input id={inputId} ref={inputRef} type="file" accept={config.accept} onChange={handleChange} className="hidden" />
       </div>
 
       {selectedFile ? (
-        <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">
+        <div className={`mt-3 flex items-center justify-between gap-3 rounded-xl border px-3 py-2 text-sm ${theme ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200" : "border-emerald-500/30 bg-emerald-50 text-emerald-700"}`}>
           <div className="flex min-w-0 items-center gap-2">
             <CheckCircle2 className="h-4 w-4 shrink-0" />
             <span className="truncate">{selectedFile.name}</span>
@@ -90,7 +102,7 @@ export default function LessonMediaUploader({ lessonType, onFileChange, label = 
           <button
             type="button"
             onClick={clearSelection}
-            className="rounded-md px-2 py-1 text-xs font-medium text-emerald-200 transition hover:bg-emerald-500/10"
+            className="rounded-md px-2 py-1 text-xs font-medium transition hover:bg-emerald-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
           >
             Remove
           </button>

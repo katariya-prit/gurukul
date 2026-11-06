@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useTheme } from "../theme/ThemeContext";
 import { HiCalendar, HiChevronLeft, HiChevronRight } from "react-icons/hi"; // અથવા 'react-icons/hi'
+import { Popover } from "../overlay/OverlayPrimitives";
 
 interface DatePickerProps {
   label: string;
@@ -34,7 +35,7 @@ export default function DatePicker({
     () => Math.floor(initialDate.getFullYear() / 12) * 12
   );
 
-  const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLDivElement>(null);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -125,17 +126,6 @@ export default function DatePicker({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
-  // બહાર ક્લિક કરવાથી કેલેન્ડર બંધ કરવા માટે
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
   // આજની તારીખ હાઇલાઇટ કરવા માટે
   const isToday = (day: number) => {
     const today = new Date();
@@ -192,7 +182,7 @@ export default function DatePicker({
     : "hover:bg-neutral-100 text-neutral-800";
 
   return (
-    <div className="relative w-full" ref={containerRef}>
+    <div className="relative w-full">
       {/* Label */}
       <label className={`block text-sm font-medium mb-1.5 ${theme ? "text-gray-300" : "text-neutral-700"}`}>
         {label} {required && <span className="text-red-500">*</span>}
@@ -200,7 +190,18 @@ export default function DatePicker({
 
       {/* Input Box (તમારા ગ્લોબલ ઇનપુટ જેવો જ લુક) */}
       <div
+        ref={triggerRef}
+        role="button"
+        tabIndex={0}
+        aria-haspopup="dialog"
+        aria-expanded={isOpen}
         onClick={() => setIsOpen(!isOpen)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            setIsOpen((open) => !open);
+          }
+        }}
         className={`w-full flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm border transition outline-none cursor-pointer ${
           theme 
             ? "bg-gray-800 border-gray-700 text-white focus-within:border-blue-200" 
@@ -222,11 +223,15 @@ export default function DatePicker({
         />
       </div>
 
-      {/* Dropdown Calendar */}
-      {isOpen && (
-        <div className={`absolute z-30 mt-1.5 w-full max-w-sm p-4 border rounded-2xl shadow-lg transition-all duration-200 ${
-          theme ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-neutral-200 text-neutral-900"
-        }`}>
+      <Popover
+        open={isOpen}
+        onClose={() => setIsOpen(false)}
+        anchorRef={triggerRef}
+        placement="bottom-start"
+        role="dialog"
+        ariaLabel={`Choose ${label}`}
+        className="w-[min(24rem,calc(100vw-2rem))] p-4"
+      >
 
           {/* ===== DAYS VIEW ===== */}
           {view === "days" && (
@@ -413,8 +418,7 @@ export default function DatePicker({
               </div>
             </>
           )}
-        </div>
-      )}
+      </Popover>
     </div>
   );
 }

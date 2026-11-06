@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
 import { HiX } from "react-icons/hi";
 import { useTheme } from "../../../../components/theme/ThemeContext";
+import { Modal } from "../../../../components/overlay/OverlayPrimitives";
 
 export interface EditUserModalData {
   suid: number;
@@ -45,23 +45,13 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
     setNewPassword("");
   }, [user]);
 
-  useEffect(() => {
-    const handleEsc = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-
-    document.addEventListener("keydown", handleEsc);
-    return () => document.removeEventListener("keydown", handleEsc);
-  }, [onClose]);
-
-  if (!user || !formData) return null;
-
   const handleChange = (field: keyof EditUserModalData, value: string) => {
     setFormData((prev) => (prev ? { ...prev, [field]: value } : prev));
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!formData || !user) return;
     setSaving(true);
     try {
       const payload: EditUserModalData = { ...formData };
@@ -84,8 +74,9 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
     }
   };
 
-  return createPortal(
-    <div className="fixed inset-0 z-10000 flex items-center justify-center bg-black/50 px-4">
+  return (
+    <Modal open={Boolean(user && formData)} onClose={onClose} ariaLabel="Edit user" className="max-w-xl p-0">
+      {user && formData && (
       <div className={`w-full max-w-xl rounded-2xl border shadow-2xl ${theme ? "bg-gray-900 border-gray-700 text-white" : "bg-white border-neutral-200 text-neutral-900"}`}>
         <div className={`flex items-center justify-between border-b px-5 py-4 ${theme ? "border-gray-700" : "border-neutral-200"}`}>
           <div>
@@ -198,7 +189,7 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
           </div>
         </form>
       </div>
-    </div>,
-    document.body
+      )}
+    </Modal>
   );
 }

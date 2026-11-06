@@ -4,6 +4,7 @@ import { AiOutlineFileProtect } from "react-icons/ai";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import Table from "../../../components/common/Table";
+import { useConfirm } from "../../../components/overlay/useConfirm";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
 
@@ -26,6 +27,7 @@ const getAuthHeaders = (): HeadersInit => ({
 
 export default function Permission() {
     const { theme } = useTheme();
+    const confirm = useConfirm();
     const [filterType, setFilterType] = useState("all");
     const [searchQuery, setSearchQuery] = useState("");
     const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -82,8 +84,11 @@ export default function Permission() {
     };
 
     const handleDeny = async (suid: number) => {
-        const confirmed = window.confirm("Are you sure you want to deny and remove this user?");
-        if (!confirmed) return;
+        if (!(await confirm({
+            title: "Remove user?",
+            message: "Are you sure you want to deny and remove this user?",
+            destructive: true,
+        }))) return;
 
         try {
             const res = await fetch(`${API_URL}/users/delete/${suid}`, {

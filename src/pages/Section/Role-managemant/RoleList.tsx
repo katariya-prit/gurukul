@@ -5,6 +5,7 @@ import Table from "../../../components/common/Table";
 import DataCruding from "../../../components/common/DataCruding";
 import { roleDelete } from "../../../action/Role/Delete";
 import { toast } from "sonner";
+import { useConfirm } from "../../../components/overlay/useConfirm";
 
 interface RoleData {
     roleCode: string;
@@ -29,6 +30,7 @@ const getAuthHeaders = () => ({
 export default function RoleList() {
     const { theme } = useTheme();
     const navigate = useNavigate();
+    const confirm = useConfirm();
 
     const [roles, setRoles] = useState<RoleData[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
@@ -132,9 +134,11 @@ export default function RoleList() {
                     <DataCruding
                         onEdit={() => navigate(`/dashboard/permissions/role/edit/${encodeURIComponent(role.roleCode)}`)}
                         onDelete={async () => {
-                            if (!window.confirm("Are you sure you want to delete this role?")) {
-                                return;
-                            }
+                            if (!(await confirm({
+                                title: "Delete role?",
+                                message: "Are you sure you want to delete this role?",
+                                destructive: true,
+                            }))) return;
                             const success = await roleDelete(role.roleCode);
                             if (success) {
                                 setRoles((prev) =>

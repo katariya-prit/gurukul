@@ -1,7 +1,6 @@
-import { useEffect } from "react";
-import { createPortal } from "react-dom";
 import { HiX } from "react-icons/hi";
 import { useTheme } from "../../../../components/theme/ThemeContext";
+import { Modal } from "../../../../components/overlay/OverlayPrimitives";
 
 interface UserDetailsModalProps {
     user: {
@@ -21,19 +20,9 @@ interface UserDetailsModalProps {
 export default function UserDetailsModal({ user, onClose }: UserDetailsModalProps) {
     const { theme } = useTheme();
 
-    useEffect(() => {
-        const handleEsc = (event: KeyboardEvent) => {
-            if (event.key === "Escape") onClose();
-        };
-
-        document.addEventListener("keydown", handleEsc);
-        return () => document.removeEventListener("keydown", handleEsc);
-    }, [onClose]);
-
-    if (!user) return null;
-
-    return createPortal(
-        <div className="fixed inset-0 z-10000 flex items-center justify-center bg-black/50 px-4">
+    return (
+        <Modal open={user !== null} onClose={onClose} ariaLabel="User details" className="max-w-2xl p-0">
+            {user && (
             <div className={`w-full max-w-2xl rounded-2xl border shadow-2xl ${theme ? "bg-gray-900 border-gray-700 text-white" : "bg-white border-neutral-200 text-neutral-900"}`}>
                 <div className={`flex items-center justify-between border-b px-5 py-4 ${theme ? "border-gray-700" : "border-neutral-200"}`}>
                     <div>
@@ -96,7 +85,7 @@ export default function UserDetailsModal({ user, onClose }: UserDetailsModalProp
                     </div>
                 </div>
             </div>
-        </div>,
-        document.body
+            )}
+        </Modal>
     );
 }

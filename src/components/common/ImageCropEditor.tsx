@@ -1,9 +1,9 @@
 import { useEffect, useState, useRef } from "react";
-import { createPortal } from "react-dom";
 import ReactCrop, { type Crop, centerCrop, makeAspectCrop, type PixelCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
-import { Check, X } from "lucide-react";
+import { Check } from "lucide-react";
 import { toast } from "sonner";
+import { Modal } from "../overlay/OverlayPrimitives";
 
 interface ImageCropEditorProps {
   file: File | null;
@@ -78,13 +78,7 @@ export default function ImageCropEditor({
   const imgRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
-    if (!isOpen || !file) {
-      setEditingImage(null);
-      setCrop(undefined);
-      setCompletedCrop(null);
-      setZoom(1);
-      return;
-    }
+    if (!isOpen || !file) return;
 
     const objectUrl = URL.createObjectURL(file);
     setEditingImage(objectUrl);
@@ -149,18 +143,8 @@ export default function ImageCropEditor({
 
   if (!isOpen || !file || !editingImage) return null;
 
-  return createPortal(
-    <div
-      className={`fixed inset-0 z-9999 flex items-center justify-center p-4 backdrop-blur-sm transition-all duration-300 ${
-        theme ? "bg-slate-950/60" : "bg-red-200/50"
-      }`}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Edit image"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) closeEditor();
-      }}
-    >
+  return (
+    <Modal open onClose={closeEditor} title={title} description={subtitle} className="max-w-2xl p-0">
       {/* CSS Injection for 3x3 Grid inside the Crop Area */}
       <style>{`
         .custom-crop-grid .ReactCrop__crop-selection::before,
@@ -186,23 +170,12 @@ export default function ImageCropEditor({
       `}</style>
 
       <div
-        className={`pointer-events-auto flex max-h-[calc(100dvh-1rem)] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border transition-all ${
+        className={`pointer-events-auto flex max-h-[calc(100dvh-1rem)] w-full flex-col overflow-hidden ${
           theme
-            ? "border-slate-800/60 bg-slate-900 text-slate-100 shadow-[0_0_40px_rgba(0,0,0,0.5)]"
-            : "border-slate-200/60 bg-white/95 backdrop-blur-xl text-slate-900 shadow-[0_20px_60px_rgba(0,0,0,0.1)]"
+            ? "bg-slate-900 text-slate-100"
+            : "bg-white/95 text-slate-900"
         }`}
-        onMouseDown={(event) => event.stopPropagation()}
       >
-        <div className={`flex items-center justify-between border-b px-6 py-4 ${theme ? "border-slate-800/50" : "border-slate-200/50"}`}>
-          <div>
-            <h2 className="text-base font-semibold tracking-wide">{title}</h2>
-            <p className={`text-xs mt-0.5 ${theme ? "text-slate-400" : "text-slate-500"}`}>{subtitle}</p>
-          </div>
-          <button type="button" onClick={closeEditor} className={`rounded-full p-2.5 transition-colors ${theme ? "hover:bg-slate-800/80" : "hover:bg-slate-100"}`} aria-label="Close image editor">
-            <X size={18} strokeWidth={2} />
-          </button>
-        </div>
-
         <div className={`relative flex items-center justify-center h-[min(28rem,60dvh)] min-h-64 w-full shrink-0 overflow-hidden p-4 ${theme ? "bg-slate-950/50" : "bg-slate-50"}`}>
           <div
             style={{
@@ -241,7 +214,6 @@ export default function ImageCropEditor({
           </div>
         </div>
       </div>
-    </div>,
-    document.body,
+    </Modal>
   );
 }

@@ -8,4 +8,5 @@ export interface LessonCardData {
     endDate: string;
     points: number | null;
     description: string;
+    createdBy?: string | null;
 }

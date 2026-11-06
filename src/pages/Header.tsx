@@ -1,9 +1,8 @@
-import { useState, useEffect } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { HiOutlineMenuAlt2, HiOutlineBell } from "react-icons/hi";
 import { useTheme } from "../components/theme/ThemeContext";
 import ThemeToggle from "../components/theme/ThemeToggle";
-import NotificationBox from "../components/Notification/NotificationBox";
 import EventCalendarPopup from "../components/Event-Calendar/Event-Calendar";
 import { eventsData } from "../components/Event-Calendar/event-constants";
 import ProfilePopup, { type ProfileUser } from "../components/Profile-Popup/Profile-Popup";
@@ -11,6 +10,7 @@ import { CgAlbum } from "react-icons/cg";
 import Application from "../components/applocation/Application";
 import type { AuthUser } from "../Types/Role-create";
 import { useSidebarView } from "../context/SidebarViewContext";
+import { useNotifications } from "../context/NotificationContext";
 
 interface HeaderProps {
     toggleSidebar: () => void;
@@ -18,22 +18,33 @@ interface HeaderProps {
 
 export default function Header({ toggleSidebar }: HeaderProps) {
     const { theme } = useTheme();
+    const {
+        isCenterOpen,
+        setBellAnchor,
+        toggleCenter,
+        unreadCount,
+        closeCenter,
+    } = useNotifications();
     const navigate = useNavigate();
     const { activeDepartmentName, setActiveDepartment } = useSidebarView();
-    const [user, setUser] = useState<AuthUser | null>(null);
-    useEffect(() => {
+    const [user] = useState<AuthUser | null>(() => {
         const data = localStorage.getItem("user");
-        if (data) {
-            try {
-                setUser(JSON.parse(data));
-            } catch (e) {
-                console.error("Error parsing user data:", e);
-            }
+        if (!data) {
+            return null;
         }
-    }, []);
+
+        try {
+            const parsed: unknown = JSON.parse(data);
+            return typeof parsed === "object" && parsed !== null ? (parsed as AuthUser) : null;
+        } catch (error: unknown) {
+            console.error("Error parsing user data:", error);
+            return null;
+        }
+    });
     const [applicationData, setApplicationData] = useState(false);
-    const [isNotifOpen, setIsNotifOpen] = useState<boolean>(false);
     const [isEventCalendarOpen, setIsEventCalendarOpen] = useState<boolean>(false);
+    const calendarTriggerRef = useRef<HTMLButtonElement>(null);
+    const applicationTriggerRef = useRef<HTMLButtonElement>(null);
     const profileUser: ProfileUser = {
         suid: user?.id ? String(user.id) : "-",
         fullName: user?.username ?? "Admin",
@@ -42,15 +53,13 @@ export default function Header({ toggleSidebar }: HeaderProps) {
         birthDate: "-",
         roleLabel: user?.roleName ?? user?.roleCode ?? "USER",
     };
-    const userDepartmentName = user?.departmentName ?? (user as any)?.department_name ?? null;
+    const userDepartmentName = user?.departmentName ?? user?.department_name ?? null;
     const headerTitle = activeDepartmentName || (user && user.roleCode !== "SUPER_ADMIN" ? userDepartmentName || "GURUKUL" : "GURUKUL");
     const handleLogout = () => {
         setActiveDepartment(null, null);
         localStorage.removeItem("user");
-        localStorage.removeItem("token");
         navigate("/login");
     };
-
     const currentDate = new Date();
     const dayNumber = currentDate.getDate().toString().padStart(2, '0');
     const monthShort = currentDate.toLocaleString('en-US', { month: 'short' }).toUpperCase();
@@ -63,9 +72,11 @@ export default function Header({ toggleSidebar }: HeaderProps) {
     return (
         <header className={`h-18 border-b flex items-center justify-between px-4 sm:px-6 sticky top-0 z-20 shadow-sm transition-colors duration-300 ${theme ? "bg-[#0f172a]/95 backdrop-blur-xl border-slate-800 text-white" : "bg-white border-slate-200 text-slate-800"
             }`}>
-            {applicationData && (
-                <Application onClose={() => setApplicationData(false)} />
-            )}
+            <Application
+                open={applicationData}
+                onClose={() => setApplicationData(false)}
+                triggerRef={applicationTriggerRef}
+            />
             <div className="flex items-center gap-4">
                 <button
                     onClick={toggleSidebar}
@@ -82,7 +93,14 @@ export default function Header({ toggleSidebar }: HeaderProps) {
             <div className="flex items-center gap-3 sm:gap-5 h-full">
                 <div className="relative flex items-center">
                     <button
-                        onClick={() => { setIsEventCalendarOpen(!isEventCalendarOpen); setIsNotifOpen(false); }}
+                        ref={calendarTriggerRef}
+                        onClick={() => {
+                            setIsEventCalendarOpen(!isEventCalendarOpen);
+                            if (isCenterOpen) closeCenter();
+                            if (applicationData) setApplicationData(false);
+                        }}
+                        aria-haspopup="dialog"
+                        aria-expanded={isEventCalendarOpen}
                         className={`group relative flex items-center justify-center h-9.5 px-3.5 rounded-xl border transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md hover:scale-[1.03] ${theme
                             ? "bg-slate-800/90 border-slate-700/80 hover:border-slate-500 hover:bg-slate-800"
                             : "bg-slate-50 border-slate-200 hover:border-slate-300 hover:bg-white"
@@ -113,11 +131,17 @@ export default function Header({ toggleSidebar }: HeaderProps) {
                     <EventCalendarPopup
                         isOpen={isEventCalendarOpen}
                         onClose={() => setIsEventCalendarOpen(false)}
+                        anchorRef={calendarTriggerRef}
                     />
                 </div>
                 <div className="relative flex items-center">
                     <button
-                        onClick={() => setApplicationData(prev => !prev)}
+                        ref={applicationTriggerRef}
+                        onClick={() => {
+                            setApplicationData(prev => !prev);
+                            if (isEventCalendarOpen) setIsEventCalendarOpen(false);
+                            if (isCenterOpen) closeCenter();
+                        }}
                         className={`p-2.5 duration-300 cursor-pointer border-r rounded-xl transition-colors relative shadow-sm ${theme
                             ? "bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-blue-200"
                             : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-white hover:text-red-500"
@@ -127,20 +151,33 @@ export default function Header({ toggleSidebar }: HeaderProps) {
                         <CgAlbum className="text-[20px]" />
                     </button>
                     <button
-                        onClick={() => { setIsNotifOpen(!isNotifOpen); setIsEventCalendarOpen(false); }}
+                        ref={setBellAnchor}
+                        onClick={() => {
+                            toggleCenter();
+                            setIsEventCalendarOpen(false);
+                            if (applicationData) setApplicationData(false);
+                        }}
+                        aria-label={
+                            unreadCount > 0
+                                ? `${unreadCount} unread notification${unreadCount === 1 ? "" : "s"}`
+                                : "Notifications"
+                        }
+                        aria-expanded={isCenterOpen}
                         className={`p-2.5 duration-300 cursor-pointer rounded-xl border-l transition-colors relative shadow-sm ${theme
-                            ? "bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-blue-200"
-                            : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-white hover:text-red-500"
+                                ? "bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-blue-200"
+                                : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-white hover:text-red-500"
                             }`}
                     >
                         <HiOutlineBell className="text-[20px]" />
-                        <span className={`absolute top-2 right-2.5 w-2 h-2 rounded-full border ${theme ? "bg-blue-400 border-slate-800" : "bg-red-500 border-white"
-                            }`}></span>
+                        {unreadCount > 0 && (
+                            <span aria-hidden="true" className="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center">
+                                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-50" />
+                                <span className="relative inline-flex h-5 min-w-5 items-center justify-center rounded-full border border-white bg-red-600 px-1 text-[10px] font-bold leading-none text-white">
+                                    {unreadCount > 99 ? "99+" : unreadCount}
+                                </span>
+                            </span>
+                        )}
                     </button>
-                    <NotificationBox
-                        isOpen={isNotifOpen}
-                        onClose={() => setIsNotifOpen(false)}
-                    />
                 </div>
                 <ThemeToggle />
                 <div className={`h-7 w-px hidden sm:block ${theme ? "bg-slate-700" : "bg-slate-200"}`} />

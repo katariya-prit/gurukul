@@ -1,4 +1,4 @@
-import axios from "axios"
+import api from "./apiClient"
 export interface UserData {
     user_id: number;
     name: string;
@@ -8,21 +8,10 @@ export interface UserData {
     section_id?: number | null;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
-
-
 export const userService = {
     getAllUsers: async () => {
         try {
-            const token = localStorage.getItem("token");
-
-            const res = await axios.get(`${API_URL}/users`, {
-                method: "GET",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`,
-                },
-            });
+            const res = await api.get("/users");
             return { success: true, data: res.data?.data ?? res.data };
         } catch (error: any) {
             return { success: false, message: error?.response?.data?.message || "Error fetching users" };
@@ -31,7 +20,7 @@ export const userService = {
 
     getUserById: async (userId: number) => {
         try {
-            const res = await axios.get(`${API_URL}/users/${userId}`);
+            const res = await api.get(`/users/${userId}`);
             return { success: true, data: res.data?.data ?? res.data };
         } catch (error: any) {
             return { success: false, message: error?.response?.data?.message || "Error fetching user" };
@@ -40,7 +29,7 @@ export const userService = {
 
     getUsersBySection: async (sectionId: number) => {
         try {
-            const res = await axios.get(`${API_URL}/users/section/${sectionId}`);
+            const res = await api.get(`/users/section/${sectionId}`);
             return { success: true, data: res.data?.data ?? res.data?.users ?? res.data };
         } catch (error: any) {
             return { success: false, message: error?.response?.data?.message || "Error fetching users for section" };

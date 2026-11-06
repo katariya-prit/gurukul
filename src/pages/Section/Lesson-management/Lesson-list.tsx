@@ -5,47 +5,73 @@ import { useTheme } from "../../../components/theme/ThemeContext";
 import Button from "../../../components/common/Button";
 import AudioLessonCard from "../../../components/material/AudioLessonCard";
 import BasicLessonCard from "../../../components/material/BasicLessonCard";
+import LessonSubmissionsPanel from "../../../components/material/LessonSubmissionsPanel";
 import {
   extractLessonList,
   normalizeLesson,
   type LessonCardData,
 } from "../../../components/material/lessonCard.utils";
+import type { AuthUser } from "../../../Types/Role-create";
+import { hasAccess } from "../../../components/sidebar/core/PermitionValidetor";
 import { lessonService } from "../../../services/lessonService";
+import { useConfirm } from "../../../components/overlay/useConfirm";
 
 export default function LessonList() {
   const { theme } = useTheme();
+  const confirm = useConfirm();
   const navigate = useNavigate();
   const [lessons, setLessons] = useState<LessonCardData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const storedUser = localStorage.getItem("user");
+  let currentUser: AuthUser | null = null;
+  if (storedUser) {
+    try {
+      currentUser = JSON.parse(storedUser) as AuthUser;
+    } catch {
+      currentUser = null;
+    }
+  }
+  const currentUserId = String(currentUser?.suid ?? currentUser?.id ?? "");
+
+  const canDeleteLesson = (lesson: LessonCardData) =>
+    currentUser?.roleCode === "SUPER_ADMIN" || lesson.createdBy === currentUserId;
+  const canCreateLesson = hasAccess(currentUser, "Lesson", "create", true);
 
   const loadLessons = useCallback(async () => {
     try {
       setIsLoading(true);
       const result = await lessonService.getCreatedLessons();
       setLessons(extractLessonList(result).map(normalizeLesson));
-    } catch (error: any) {
+    } catch (error: unknown) {
       setLessons([]);
-      toast.error(error?.message || "Failed to load lessons");
+      toast.error(error instanceof Error ? error.message : "Failed to load lessons");
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    void loadLessons();
+    const timer = window.setTimeout(() => {
+      void loadLessons();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [loadLessons]);
 
   const handleDelete = async (lesson: LessonCardData) => {
-    if (!window.confirm(`Delete "${lesson.title}"?`)) return;
+    if (!(await confirm({
+      title: "Delete lesson?",
+      message: `Delete "${lesson.title}"?`,
+      destructive: true,
+    }))) return;
 
     try {
       setDeletingId(lesson.id);
       await lessonService.deleteLesson(lesson.id);
       toast.success("Lesson deleted");
       setLessons((prev) => prev.filter((item) => item.id !== lesson.id));
-    } catch (error: any) {
-      toast.error(error?.message || "Failed to delete lesson");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete lesson");
     } finally {
       setDeletingId(null);
     }
@@ -66,9 +92,11 @@ export default function LessonList() {
           )}
         </div>
 
-        <Button onClick={() => navigate("/dashboard/lessons/create")} className="!px-5">
-          Create Lesson
-        </Button>
+        {canCreateLesson && (
+          <Button onClick={() => navigate("/dashboard/lessons/create")} className="px-5!">
+            Create Lesson
+          </Button>
+        )}
       </div>
 
       {isLoading ? (
@@ -91,15 +119,17 @@ export default function LessonList() {
               <AudioLessonCard
                 key={lesson.id}
                 lesson={lesson}
-                onDelete={(item) => void handleDelete(item)}
+                onDelete={canDeleteLesson(lesson) ? (item) => void handleDelete(item) : undefined}
                 isDeleting={deletingId === lesson.id}
+                actions={<LessonSubmissionsPanel lesson={lesson} />}
               />
             ) : (
               <BasicLessonCard
                 key={lesson.id}
                 lesson={lesson}
-                onDelete={(item) => void handleDelete(item)}
+                onDelete={canDeleteLesson(lesson) ? (item) => void handleDelete(item) : undefined}
                 isDeleting={deletingId === lesson.id}
+                actions={<LessonSubmissionsPanel lesson={lesson} />}
               />
             )
           )}

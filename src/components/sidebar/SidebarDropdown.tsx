@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTheme } from "../theme/ThemeContext";
 import { HiChevronDown } from "react-icons/hi";
+import { AnimatePresence } from "motion/react";
 import SidebarHoverMenu from "./SidebarHoverMenu";
 
 interface SubItem {
@@ -152,13 +153,17 @@ export default function SidebarDropdown({ title, icon, items, setSidebarOpen, is
                 </div>
             </div>
 
-            {isMiniSidebar && isHovered && (
-                <SidebarHoverMenu
-                    title={title}
-                    items={items}
-                    setIsOpen={setSidebarOpen}
-                    parentTop={menuTop}
-                />
+            {isMiniSidebar && (
+                <AnimatePresence>
+                    {isHovered && (
+                        <SidebarHoverMenu
+                            title={title}
+                            items={items}
+                            setIsOpen={setSidebarOpen}
+                            parentTop={menuTop}
+                        />
+                    )}
+                </AnimatePresence>
             )}
         </div>
     );

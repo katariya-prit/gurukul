@@ -6,20 +6,23 @@ import Header from "../Header";
 import { useTheme } from "../../components/theme/ThemeContext";
 import SkeletonLoader from "../../components/loader/Skeleton";
 import { SidebarViewProvider } from "../../context/SidebarViewContext";
+import { NotificationProvider } from "../../context/NotificationContext";
+import NotificationCenter from "../../components/notifications/NotificationCenter";
+import NotificationToast from "../../components/notifications/NotificationToast";
 
 export default function Layout() {
     const { theme } = useTheme();
     const navigate = useNavigate();
     const location = useLocation();
-    const [isRouteLoading, setIsRouteLoading] = useState(false);
+    const isDashboard = location.pathname === "/dashboard";
+    const [loadingPath, setLoadingPath] = useState(location.pathname);
+    const isRouteLoading = loadingPath !== location.pathname;
 
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
 
     useEffect(() => {
-        setIsRouteLoading(true);
-
         const timer = window.setTimeout(() => {
-            setIsRouteLoading(false);
+            setLoadingPath(location.pathname);
         }, 200);
 
         return () => window.clearTimeout(timer);
@@ -30,33 +33,42 @@ export default function Layout() {
     };
 
     return (
+        <NotificationProvider>
         <SidebarViewProvider>
-            <div className={`h-screen w-screen flex font-sans overflow-hidden transition-colors duration-300 ${theme ? 'bg-gray-900 text-gray-50' : 'bg-gray-50 text-gray-800'
+            <div className={`h-screen w-screen flex font-sans overflow-hidden transition-colors duration-300 ${theme ? 'bg-[#0b1118] text-gray-50' : 'bg-[#f6f7f9] text-gray-800'
                 }`}>
 
                 <Sidebar isOpen={isMobileSidebarOpen} setIsOpen={setIsMobileSidebarOpen} />
 
-                <div className={`flex-1 flex flex-col min-w-0 h-full overflow-hidden transition-colors duration-300 ${theme ? 'bg-gray-900 text-gray-50' : 'bg-gray-50 text-gray-800'
+                <div className={`relative flex-1 flex flex-col min-w-0 h-full overflow-hidden transition-colors duration-300 ${theme ? 'bg-[#0b1118] text-gray-50' : 'bg-[#f6f7f9] text-gray-800'
                     }`}>
 
                     <Header toggleSidebar={toggleSidebar} />
+                    <NotificationToast />
+                    <NotificationCenter />
 
-                    <main className="flex-1 p-6 md:p-3 w-full mx-auto overflow-y-auto no-scrollbar">
-                        <div className={`w-full min-h-full rounded-2xl p-6 border transition-colors duration-300 ${theme
-                                ? 'bg-gray-900 text-gray-50 border-gray-800'
-                                : 'bg-white text-gray-800 border-gray-100'
-                            }`}>
-                            <button
-                                type="button"
-                                onClick={() => navigate(-1)}
-                                className={`inline-flex items-center gap-2 mb-5 px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors cursor-pointer ${theme
-                                        ? "text-gray-300 hover:bg-gray-800 hover:text-white"
-                                        : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                                    }`}
-                            >
-                                <HiOutlineArrowLeft className="text-base" />
-                                Back
-                            </button>
+                    <main className="flex-1 w-full overflow-y-auto p-3 no-scrollbar sm:p-5 lg:p-7">
+                        <div className={`mx-auto w-full max-w-[1600px] min-h-full transition-colors duration-300 ${
+                            isDashboard
+                                ? ""
+                                : `rounded-2xl border p-4 sm:p-6 ${theme
+                                    ? "bg-gray-900 text-gray-50 border-gray-800"
+                                    : "bg-white text-gray-800 border-gray-100"
+                                }`
+                        }`}>
+                            {!isDashboard && (
+                                <button
+                                    type="button"
+                                    onClick={() => navigate(-1)}
+                                    className={`inline-flex items-center gap-2 mb-5 px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors cursor-pointer ${theme
+                                            ? "text-gray-300 hover:bg-gray-800 hover:text-white"
+                                            : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                                        }`}
+                                >
+                                    <HiOutlineArrowLeft className="text-base" />
+                                    Back
+                                </button>
+                            )}
 
                             {isRouteLoading ? (
                                 <div className="space-y-4">
@@ -75,5 +87,6 @@ export default function Layout() {
                 </div>
             </div>
         </SidebarViewProvider>
+        </NotificationProvider>
     );
 }

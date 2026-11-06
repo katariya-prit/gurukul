@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
 import { HiX } from "react-icons/hi";
 import { useTheme } from "../theme/ThemeContext";
+import { Modal } from "../overlay/OverlayPrimitives";
 
 interface EditUserModalProps {
   user: {
@@ -30,17 +30,6 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
     setFormData(user ? { ...user } : null);
   }, [user]);
 
-  useEffect(() => {
-    const handleEsc = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-
-    document.addEventListener("keydown", handleEsc);
-    return () => document.removeEventListener("keydown", handleEsc);
-  }, [onClose]);
-
-  if (!user || !formData) return null;
-
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => (prev ? { ...prev, [field]: value } : prev));
   };
@@ -53,8 +42,9 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
     onClose();
   };
 
-  return createPortal(
-    <div className="fixed inset-0 z-10000 flex items-center justify-center bg-black/50 px-4">
+  return (
+    <Modal open={Boolean(user && formData)} onClose={onClose} ariaLabel="Edit user" className="max-w-xl p-0">
+      {user && formData && (
       <div className={`w-full max-w-xl rounded-2xl border shadow-2xl ${theme ? "bg-gray-900 border-gray-700 text-white" : "bg-white border-neutral-200 text-neutral-900"}`}>
         <div className={`flex items-center justify-between border-b px-5 py-4 ${theme ? "border-gray-700" : "border-neutral-200"}`}>
           <div>
@@ -100,7 +90,7 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
           </div>
         </form>
       </div>
-    </div>,
-    document.body
+      )}
+    </Modal>
   );
 }

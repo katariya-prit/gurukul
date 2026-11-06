@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent, PointerEvent } from "react";
 import { FaMusic, FaPause, FaPlay } from "react-icons/fa";
+import type { ReactNode } from "react";
 import { useTheme } from "../theme/ThemeContext";
 import type { LessonCardData } from "./lessonCard.types";
 
@@ -20,9 +21,10 @@ interface AudioLessonCardProps {
   lesson: LessonCardData;
   onDelete?: (lesson: LessonCardData) => void;
   isDeleting?: boolean;
+  actions?: ReactNode;
 }
 
-export default function AudioLessonCard({ lesson, onDelete, isDeleting = false }: AudioLessonCardProps) {
+export default function AudioLessonCard({ lesson, onDelete, isDeleting = false, actions }: AudioLessonCardProps) {
   const { theme } = useTheme();
   const audioRef = useRef<HTMLAudioElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -238,16 +240,21 @@ export default function AudioLessonCard({ lesson, onDelete, isDeleting = false }
           </div>
         </dl>
 
-        {onDelete && (
+        {(actions || onDelete) && (
           <div className="mt-auto flex justify-end pt-4">
-            <button
-              type="button"
-              disabled={isDeleting}
-              onClick={() => onDelete(lesson)}
-              className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-50 ${theme ? "border-red-500/40 text-red-300 hover:bg-red-500/10" : "border-red-300 text-red-600 hover:bg-red-50"}`}
-            >
-              {isDeleting ? "Deleting..." : "Delete"}
-            </button>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              {actions}
+              {onDelete && (
+                <button
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={() => onDelete(lesson)}
+                  className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-50 ${theme ? "border-red-500/40 text-red-300 hover:bg-red-500/10" : "border-red-300 text-red-600 hover:bg-red-50"}`}
+                >
+                  {isDeleting ? "Deleting..." : "Delete"}
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>

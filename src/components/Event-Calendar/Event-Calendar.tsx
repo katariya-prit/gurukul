@@ -1,5 +1,6 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useTheme } from "../theme/ThemeContext";
+import { Popover } from "../overlay/OverlayPrimitives";
 import { eventsData } from "./event-constants";
 import {
     HiChevronLeft,
@@ -13,6 +14,7 @@ import {
 interface EventCalendarProps {
     isOpen: boolean;
     onClose: () => void;
+    anchorRef: React.RefObject<HTMLElement | null>;
     selectedDate?: Date;
     onSelectDate?: (date: Date) => void;
 }
@@ -25,14 +27,12 @@ type EventDetail = {
     type: 'event' | 'holiday' | 'tithi' | 'none';
 };
 
-export default function EventCalendarPopup({ isOpen, onClose }: EventCalendarProps) {
+export default function EventCalendarPopup({ isOpen, onClose, anchorRef }: EventCalendarProps) {
     const { theme } = useTheme();
     const [view, setView] = useState<CalendarView>("days");
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedEventInfo, setSelectedEventInfo] = useState<EventDetail | null>(null);
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
-
-    const containerRef = useRef<HTMLDivElement>(null);
 
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -50,18 +50,6 @@ export default function EventCalendarPopup({ isOpen, onClose }: EventCalendarPro
     const daysInMonth = new Date(year, month + 1, 0).getDate();
 
     useEffect(() => {
-        function handleClickOutside(event: MouseEvent) {
-            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-                onClose();
-            }
-        }
-        if (isOpen) {
-            document.addEventListener("mousedown", handleClickOutside);
-        }
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, [isOpen, onClose]);
-
-    useEffect(() => {
         if (isOpen) {
             // eslint-disable-next-line react-hooks/set-state-in-effect
             setView("days");
@@ -70,7 +58,6 @@ export default function EventCalendarPopup({ isOpen, onClose }: EventCalendarPro
         }
     }, [isOpen]);
 
-    if (!isOpen) return null;
 
     const handlePrevMonth = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -121,13 +108,15 @@ export default function EventCalendarPopup({ isOpen, onClose }: EventCalendarPro
         : "hover:bg-white hover:shadow-lg hover:shadow-slate-200/50 text-slate-700";
 
     return (
-        <div
-            ref={containerRef}
-            className={`fixed sm:absolute left-1/2 sm:left-auto right-auto sm:right-0 top-16 sm:top-14 z-50 -translate-x-1/2 sm:translate-x-0 w-[92vw] sm:w-95 max-w-100 p-4 sm:p-6 border rounded-2xl sm:rounded-3xl transition-all duration-300 ${theme
-                ? "bg-[#0f172a]/95 backdrop-blur-xl border-slate-800 shadow-[0_20px_50px_rgba(0,0,0,0.5)] ring-1 ring-white/5"
-                : "bg-slate-50/95 backdrop-blur-xl border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] ring-1 ring-slate-200/50"
-                }`}
+        <Popover
+            open={isOpen}
+            onClose={onClose}
+            anchorRef={anchorRef}
+            placement="bottom-end"
+            ariaLabel="Event calendar"
+            className="w-[min(92vw,25rem)]"
         >
+            <div className="p-4 sm:p-6">
             {/* Header */}
             <div className="flex items-center justify-between mb-4 sm:mb-6 px-1">
                 <h4 className="text-[15px] sm:text-[17px] font-extrabold flex items-center gap-1 sm:gap-1.5 tracking-wide">
@@ -298,6 +287,7 @@ export default function EventCalendarPopup({ isOpen, onClose }: EventCalendarPro
                     ))}
                 </div>
             )}
-        </div>
+            </div>
+        </Popover>
     );
 }

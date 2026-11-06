@@ -6,10 +6,12 @@ import { useTheme } from "../../../components/theme/ThemeContext";
 import { groupService, type GroupData } from "../../../services/groupService";
 import { IoCreateOutline } from "react-icons/io5";
 import DataCruding from "../../../components/common/DataCruding";
+import { useConfirm } from "../../../components/overlay/useConfirm";
 
 export default function GroupList() {
     const { theme } = useTheme();
     const navigate = useNavigate();
+    const confirm = useConfirm();
 
     const [groups, setGroups] = useState<GroupData[]>([]);
     const [loading, setLoading] = useState(true);
@@ -42,7 +44,11 @@ export default function GroupList() {
     };
 
     const handleDelete = async (groupId: number) => {
-        if (!window.confirm("Are you sure you want to delete this group?")) return;
+        if (!(await confirm({
+            title: "Delete group?",
+            message: "Are you sure you want to delete this group?",
+            destructive: true,
+        }))) return;
         setDeletingId(groupId);
         try {
             const result = await groupService.deleteGroup(groupId);

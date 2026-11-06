@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useTheme } from "../theme/ThemeContext";
 import Input from "./Input";
+import { Popover } from "../overlay/OverlayPrimitives";
 
 export interface DropdownOption {
     value: string | number;
@@ -34,7 +35,7 @@ export default function SearchableDropdown({
     const [searchQuery, setSearchQuery] = useState("");
     const [highlightedIndex, setHighlightedIndex] = useState(0);
 
-    const dropdownRef = useRef<HTMLDivElement>(null);
+    const triggerRef = useRef<HTMLDivElement>(null);
     const listRef = useRef<HTMLDivElement>(null);
 
     const selectedOption = options.find(
@@ -60,16 +61,6 @@ export default function SearchableDropdown({
         }
     }, [highlightedIndex, isOpen]);
 
-    useEffect(() => {
-        function handleClickOutside(event: MouseEvent) {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
-            }
-        }
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
-
     const handleSelect = (val: string | number) => {
         onSelect(val);
         setSearchQuery("");
@@ -77,13 +68,18 @@ export default function SearchableDropdown({
     };
 
     return (
-        <div className="relative w-full" ref={dropdownRef}>
+        <div className="relative w-full">
             <label className={`block text-sm font-medium mb-1.5 ${theme ? "text-gray-300" : "text-neutral-700"} ${disabled ? "opacity-60" : ""}`}>
                 {label} {required && !disabled && <span className="text-red-500">*</span>}
             </label>
 
             <div
+                ref={triggerRef}
                 tabIndex={disabled ? -1 : 0}
+                role="combobox"
+                aria-haspopup="listbox"
+                aria-expanded={isOpen}
+                aria-label={label || placeholder || "Select an option"}
                 onClick={() => {
                     if (!disabled) setIsOpen(!isOpen);
                 }}
@@ -114,10 +110,18 @@ export default function SearchableDropdown({
                 )}
             </div>
 
-            {isOpen && !disabled && (
+            <Popover
+                open={isOpen && !disabled}
+                onClose={() => setIsOpen(false)}
+                anchorRef={triggerRef}
+                placement="bottom-start"
+                role="listbox"
+                ariaLabel={label || "Options"}
+                matchAnchorWidth
+                className="overflow-hidden rounded-xl p-0"
+            >
                 <div
-                    className={`absolute z-20 w-full mt-1 border rounded-xl shadow-lg max-h-60 overflow-hidden flex flex-col ${theme ? "bg-gray-800 border-gray-700" : "bg-white border-neutral-200"
-                        }`}
+                    className="flex max-h-60 flex-col overflow-hidden"
                     onKeyDown={(e) => {
                         if (e.key === "ArrowDown") {
                             e.preventDefault();
@@ -159,6 +163,9 @@ export default function SearchableDropdown({
                                 return (
                                     <div
                                         key={uniqueKey} // સાચી અને સેફ કી
+                                        role="option"
+                                        aria-selected={isSelected}
+                                        tabIndex={-1}
                                         onMouseEnter={() => setHighlightedIndex(index)}
                                         onClick={(e) => {
                                             e.preventDefault();
@@ -183,7 +190,7 @@ export default function SearchableDropdown({
                         )}
                     </div>
                 </div>
-            )}
+            </Popover>
         </div>
     );
 }

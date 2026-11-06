@@ -1,7 +1,7 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useRef, useState } from "react";
 import { HiDotsVertical, HiEye, HiPencil, HiTrash } from "react-icons/hi";
 import { useTheme } from "../theme/ThemeContext";
+import { Menu } from "../overlay/OverlayPrimitives";
 
 interface UserActionMenuProps {
   onView: () => void;
@@ -12,56 +12,7 @@ interface UserActionMenuProps {
 export default function UserActionMenu({ onView, onEdit, onDelete }: UserActionMenuProps) {
   const { theme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
-  const [coords, setCoords] = useState({ top: 0, left: 0 });
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  const MENU_WIDTH = 140;
-
-  const updatePosition = () => {
-    if (!buttonRef.current) return;
-    const rect = buttonRef.current.getBoundingClientRect();
-    setCoords({
-      top: rect.bottom + 4,
-      left: rect.right - MENU_WIDTH,
-    });
-  };
-
-  useLayoutEffect(() => {
-    if (isOpen) updatePosition();
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (!buttonRef.current?.contains(target) && !menuRef.current?.contains(target)) {
-        setIsOpen(false);
-      }
-    };
-
-    const handleScrollOrResize = () => updatePosition();
-
-    document.addEventListener("mousedown", handleClickOutside);
-    window.addEventListener("scroll", handleScrollOrResize, true);
-    window.addEventListener("resize", handleScrollOrResize);
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      window.removeEventListener("scroll", handleScrollOrResize, true);
-      window.removeEventListener("resize", handleScrollOrResize);
-    };
-  }, [isOpen]);
-
-  useEffect(() => {
-    const handleEsc = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setIsOpen(false);
-    };
-
-    document.addEventListener("keydown", handleEsc);
-    return () => document.removeEventListener("keydown", handleEsc);
-  }, []);
 
   const handleAction = (callback: () => void) => {
     callback();
@@ -73,6 +24,7 @@ export default function UserActionMenu({ onView, onEdit, onDelete }: UserActionM
       <button
         ref={buttonRef}
         type="button"
+        aria-label="Open user actions"
         onClick={(e) => {
           e.stopPropagation();
           setIsOpen((prev) => !prev);
@@ -88,13 +40,13 @@ export default function UserActionMenu({ onView, onEdit, onDelete }: UserActionM
         <HiDotsVertical className="text-sm" />
       </button>
 
-      {isOpen &&
-        createPortal(
-          <div
-            ref={menuRef}
-            role="menu"
-            style={{ top: coords.top, left: coords.left, width: MENU_WIDTH }}
-            className={`fixed z-9999 rounded-xl shadow-xl border p-1 origin-top-right ${
+      <Menu
+            open={isOpen}
+            onClose={() => setIsOpen(false)}
+            anchorRef={buttonRef}
+            placement="bottom-end"
+            ariaLabel="User actions"
+            className={`min-w-36 p-1 ${
               theme
                 ? "bg-gray-800 border-gray-700 text-white"
                 : "bg-white border-neutral-100 text-neutral-700"
@@ -144,9 +96,7 @@ export default function UserActionMenu({ onView, onEdit, onDelete }: UserActionM
               <HiTrash className="text-sm" />
               Delete
             </button>
-          </div>,
-          document.body
-        )}
+      </Menu>
       
     </>
   );

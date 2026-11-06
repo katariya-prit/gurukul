@@ -1,11 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import axios from "axios";
+import api from "./apiClient";
 
 export interface GroupMember {
     suid: number;
     name: string;
     role_code?: string;
     avatar?: string
+}
+
+export interface AvailableGroupMember {
+    suid: number;
+    name: string;
+    role_code: string;
 }
 
 export interface GroupData {
@@ -44,23 +50,22 @@ export interface GroupDetail {
     members: GroupMemberDetailItem[];
 }
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
-
-// 🎯 NAVU: har API call mate Authorization header banavva mate helper
-const getAuthHeaders = () => {
-    const token = localStorage.getItem("token");
-    return {
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-        },
-    };
-};
-
 export const groupService = {
+    getAvailableMembers: async (): Promise<
+        | { success: true; data: AvailableGroupMember[] }
+        | { success: false; message: string }
+    > => {
+        try {
+            const res = await api.get("/groups/members");
+            return { success: true, data: res.data?.data ?? [] };
+        } catch (error: any) {
+            return { success: false, message: error?.response?.data?.message || "Error fetching group members" };
+        }
+    },
+
     createGroup: async (payload: CreateGroupPayload) => {
         try {
-            const res = await axios.post(`${API_URL}/groups/create`, payload, getAuthHeaders());
+            const res = await api.post("/groups/create", payload);
             return { success: true, data: res.data?.data ?? res.data };
         } catch (error: any) {
             return { success: false, message: error?.response?.data?.message || "Error creating group" };
@@ -69,7 +74,7 @@ export const groupService = {
 
     getAllGroups: async () => {
         try {
-            const res = await axios.get(`${API_URL}/groups/list`, getAuthHeaders());
+            const res = await api.get("/groups/list");
             return { success: true, data: res.data?.data ?? res.data };
         } catch (error: any) {
             return { success: false, message: error?.response?.data?.message || "Error fetching groups" };
@@ -78,7 +83,7 @@ export const groupService = {
 
     getGroupsByMember: async (suid: number) => {
         try {
-            const res = await axios.get(`${API_URL}/groups/member/${suid}`, getAuthHeaders());
+            const res = await api.get(`/groups/member/${suid}`);
             return { success: true, data: res.data?.data ?? res.data };
         } catch (error: any) {
             return { success: false, message: error?.response?.data?.message || "Error fetching your groups" };
@@ -87,7 +92,7 @@ export const groupService = {
 
     getGroupById: async (groupId: number) => {
         try {
-            const res = await axios.get(`${API_URL}/groups/${groupId}`, getAuthHeaders());
+            const res = await api.get(`/groups/${groupId}`);
             return { success: true, data: res.data?.data ?? res.data };
         } catch (error: any) {
             return { success: false, message: error?.response?.data?.message || "Error fetching group" };
@@ -96,7 +101,7 @@ export const groupService = {
 
     getGroupMembers: async (groupId: number) => {
         try {
-            const res = await axios.get(`${API_URL}/groups/${groupId}`, getAuthHeaders());
+            const res = await api.get(`/groups/${groupId}`);
             const raw = res.data?.data ?? res.data;
 
             const mapped: GroupDetail = {
@@ -120,7 +125,7 @@ export const groupService = {
 
     updateGroup: async (groupId: number, payload: Partial<CreateGroupPayload>) => {
         try {
-            const res = await axios.put(`${API_URL}/groups/${groupId}`, payload, getAuthHeaders());
+            const res = await api.put(`/groups/${groupId}`, payload);
             return { success: true, data: res.data?.data ?? res.data };
         } catch (error: any) {
             return { success: false, message: error?.response?.data?.message || "Error updating group" };
@@ -129,7 +134,7 @@ export const groupService = {
 
     deleteGroup: async (groupId: number) => {
         try {
-            const res = await axios.delete(`${API_URL}/groups/${groupId}`, getAuthHeaders());
+            const res = await api.delete(`/groups/${groupId}`);
             return { success: true, data: res.data };
         } catch (error: any) {
             return { success: false, message: error?.response?.data?.message || "Error deleting group" };

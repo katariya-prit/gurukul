@@ -4,7 +4,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useTheme } from "../../../components/theme/ThemeContext";
 import SearchableDropdown from "../../../components/common/SearchableDropdown";
-import { userService } from "../../../services/userService";
 import { groupService } from "../../../services/groupService";
 import { IoClose } from "react-icons/io5";
 
@@ -42,7 +41,7 @@ export default function CreateGroup() {
         const fetchUsers = async () => {
             setLoadingUsers(true);
             try {
-                const result = await userService.getAllUsers();
+                const result = await groupService.getAvailableMembers();
                 if (result.success && Array.isArray(result.data)) {
                     const mapped: UserOption[] = result.data.map((u: any) => ({
                         suid: u.suid,
@@ -51,7 +50,7 @@ export default function CreateGroup() {
                     }));
                     setAllUsers(mapped);
                 } else {
-                    toast.error(result.message || "Error fetching users");
+                    toast.error(result.success ? "Error fetching users" : result.message);
                 }
             } catch (error: any) {
                 toast.error(error.message || "Error fetching users");

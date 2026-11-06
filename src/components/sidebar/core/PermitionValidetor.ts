@@ -9,9 +9,10 @@ export type PermissionAction = "view" | "create" | "edit" | "delete";
 export function hasAccess(
     user: AuthUser | null,
     module: string,
-    action: PermissionAction
+    action: PermissionAction,
+    respectSuperAdminPermissions = false
 ): boolean {
-    if (user?.roleCode === "SUPER_ADMIN") return true;
+    if (user?.roleCode === "SUPER_ADMIN" && !respectSuperAdminPermissions) return true;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userPerms: any = user?.permissions;
@@ -25,6 +26,7 @@ export function hasAccess(
  * Navbar ma bar-bar "hasAccess(user, ...)" na lakhvu pade mate —
  * ek vaar user bind karine curried function pacho male chhe.
  */
-export function createPermissionChecker(user: AuthUser | null) {
-    return (module: string, action: PermissionAction) => hasAccess(user, module, action);
+export function createPermissionChecker(user: AuthUser | null, respectSuperAdminPermissions = false) {
+    return (module: string, action: PermissionAction) =>
+        hasAccess(user, module, action, respectSuperAdminPermissions);
 }

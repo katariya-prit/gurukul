@@ -82,18 +82,14 @@ export default function SparklineStatCard({ label, value, subLabel, icon, data, 
         [animationKey, data]
     );
 
-    useEffect(() => {
-        console.log(`[dashboard] ${label} trend (${animationKey})`, chartData);
-    }, [animationKey, chartData, label]);
-
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, delay: index * 0.08, ease: "easeOut" }}
-            whileHover={{ scale: 1.02 }}
-            className={`rounded-2xl border p-5 transition-colors ${theme ? "bg-gray-900 border-gray-800" : "bg-white border-gray-100"}`}
-        >
+    <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, delay: index * 0.08, ease: "easeOut" }}
+        whileHover={{ y: -3 }}
+        className={`rounded-2xl border p-5 shadow-sm transition-[background-color,border-color,box-shadow] duration-300 hover:shadow-lg ${theme ? "bg-gray-900 border-gray-800 hover:border-gray-700 hover:shadow-black/20" : "bg-white border-gray-100 hover:border-gray-200 hover:shadow-gray-200/60"}`}
+    >
             <div className="flex items-start justify-between gap-3">
                 <div>
                     <p className={`text-xs font-bold tracking-wide uppercase ${theme ? "text-gray-500" : "text-gray-400"}`}>{label}</p>
@@ -109,7 +105,13 @@ export default function SparklineStatCard({ label, value, subLabel, icon, data, 
                 ) : (
                     <AnimatePresence mode="wait" initial={false}>
                         <motion.div key={animationKey} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="h-full w-full">
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer
+                                width="100%"
+                                height="100%"
+                                minWidth={0}
+                                minHeight={80}
+                                initialDimension={{ width: 320, height: 80 }}
+                            >
                                 <AreaChart data={chartData} margin={{ top: 6, right: 2, left: 2, bottom: 0 }}>
                                         <defs>
                                             <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">

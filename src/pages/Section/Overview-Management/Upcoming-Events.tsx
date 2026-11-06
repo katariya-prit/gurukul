@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, type DragEvent } from 'react';
-import { createPortal } from 'react-dom';
 import { Upload, Save, X, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTheme } from '../../../components/theme/ThemeContext';
@@ -9,6 +8,8 @@ import ImageCropEditor from '../../../components/common/ImageCropEditor';
 import { quoteService, type QuoteData } from '../../../services/Quoteservice';
 import UserActionMenu from '../../../components/user-actions/UserActionMenu';
 import SearchableDropdown from '../../../components/common/SearchableDropdown';
+import { useConfirm } from '../../../components/overlay/useConfirm';
+import { Modal } from '../../../components/overlay/OverlayPrimitives';
 
 const DateField = PremiumDateField;
 
@@ -70,6 +71,7 @@ function mapQuoteToEvent(q: QuoteData): UpcomingEvent {
 }
 
 const UpcomingEvents: React.FC = () => {
+    const confirm = useConfirm();
     const { theme } = useTheme();
 
     // State Management
@@ -321,7 +323,11 @@ const UpcomingEvents: React.FC = () => {
     };
 
     const deleteEvent = async (id: number) => {
-        if (!window.confirm("Are you sure you want to delete this event?")) return;
+        if (!(await confirm({
+            title: "Delete event?",
+            message: "Are you sure you want to delete this event?",
+            destructive: true,
+        }))) return;
         setDeletingId(id);
         try {
             const result = await quoteService.deleteQuote(id);
@@ -647,8 +653,13 @@ const UpcomingEvents: React.FC = () => {
                 onCropped={handleCroppedFile}
             />
 
-            {activeEvent && modalMode && createPortal(
-                <div className="fixed inset-0 z-10000 flex items-center justify-center bg-black/70 p-4" onMouseDown={(event) => event.target === event.currentTarget && closeModal()}>
+            <Modal
+                open={Boolean(activeEvent && modalMode)}
+                onClose={closeModal}
+                ariaLabel="Event details"
+                className="max-w-3xl p-0"
+            >
+                {activeEvent && modalMode && (
                     <div className={`max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border shadow-2xl ${theme ? "border-slate-700 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-900"}`} onMouseDown={(event) => event.stopPropagation()}>
                         <div className={`flex items-center justify-between border-b px-6 py-4 ${theme ? "border-slate-800" : "border-slate-200"}`}>
                             <div>
@@ -776,10 +787,8 @@ const UpcomingEvents: React.FC = () => {
                             </form>
                         )}
                     </div>
-                </div>,
-                document.body
-            )
-            }
+                )}
+            </Modal>
         </div >
     );
 };

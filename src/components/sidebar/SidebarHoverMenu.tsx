@@ -1,5 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTheme } from "../theme/ThemeContext";
+import { motion, useReducedMotion } from "motion/react";
 
 interface SubItem {
     name: string;
@@ -16,16 +17,21 @@ interface SidebarHoverMenuProps {
 
 export default function SidebarHoverMenu({ title, items, setIsOpen, parentTop }: SidebarHoverMenuProps) {
     const { theme } = useTheme();
+    const shouldReduceMotion = useReducedMotion();
     const navigate = useNavigate();
     const location = useLocation();
 
     return (
-        <div
+        <motion.div
             style={{ top: parentTop }}
-            className={`fixed left-18 z-50 w-56 rounded-2xl border shadow-2xl p-2 ${
+            initial={{ opacity: 0, x: shouldReduceMotion ? 0 : 7, scale: shouldReduceMotion ? 1 : 0.98 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: shouldReduceMotion ? 0 : 5, scale: shouldReduceMotion ? 1 : 0.99 }}
+            transition={{ duration: shouldReduceMotion ? 0 : 0.18, ease: "easeOut" }}
+            className={`fixed left-18 z-50 w-56 rounded-2xl border p-2 shadow-2xl backdrop-blur-xl ${
                 theme
-                    ? "bg-gray-900 border-gray-800"
-                    : "bg-white border-neutral-100"
+                    ? "border-gray-700/80 bg-gray-900/95 shadow-black/30"
+                    : "border-gray-200/90 bg-white/95 shadow-gray-900/10"
             }`}
         >
             <p className={`px-3 py-2 text-xs font-bold uppercase tracking-wider ${
@@ -35,23 +41,25 @@ export default function SidebarHoverMenu({ title, items, setIsOpen, parentTop }:
             </p>
 
             <div className="flex flex-col gap-1">
-                {items.map((sub, index) => {
+                {items.map((sub) => {
                     const isActive = location.pathname === sub.path;
                     return (
-                        <button
-                            key={index}
+                        <motion.button
+                            key={sub.path}
                             onClick={() => {
                                 navigate(sub.path);
                                 setIsOpen(false);
                             }}
-                            className={`w-full flex items-center gap-2.5 text-left px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all cursor-pointer ${
+                            whileHover={shouldReduceMotion ? undefined : { x: 2 }}
+                            whileTap={shouldReduceMotion ? undefined : { scale: 0.99 }}
+                            className={`w-full flex items-center gap-2.5 text-left px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-colors duration-150 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 ${
                                 isActive
                                     ? theme
-                                        ? "bg-linear-to-r from-blue-500 to-blue-200/10 text-blue-200 font-bold"
-                                        : "bg-red-50 text-red-600 font-bold"
+                                        ? "bg-blue-500/15 text-blue-200 font-bold focus-visible:outline-blue-300"
+                                        : "bg-red-50 text-red-700 font-bold focus-visible:outline-red-600"
                                     : theme
-                                        ? "text-gray-400 hover:bg-gray-800 hover:text-blue-200"
-                                        : "text-gray-600 hover:bg-gray-50 hover:text-red-600"
+                                        ? "text-gray-300 hover:bg-gray-800 hover:text-blue-200 focus-visible:outline-blue-300"
+                                        : "text-gray-600 hover:bg-gray-50 hover:text-red-700 focus-visible:outline-red-600"
                             }`}
                         >
                             <span className={`text-lg transition-colors ${
@@ -62,10 +70,10 @@ export default function SidebarHoverMenu({ title, items, setIsOpen, parentTop }:
                                 {sub.icon}
                             </span>
                             {sub.name}
-                        </button>
+                        </motion.button>
                     );
                 })}
             </div>
-        </div>
+        </motion.div>
     );
 }

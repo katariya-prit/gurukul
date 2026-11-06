@@ -56,7 +56,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
         <>
             <aside
                 onClick={(e) => e.stopPropagation()}
-                className={`fixed inset-y-0 left-0 z-50 flex flex-col transition-all duration-300 md:translate-x-0 md:relative 
+                className={`fixed inset-y-0 left-0 z-50 flex flex-col transition-[width,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] md:translate-x-0 md:relative
                     ${isOpen ? "translate-x-0" : "-translate-x-full"} 
                     ${isMiniSidebar ? "w-22" : "w-65"} 
                     ${theme

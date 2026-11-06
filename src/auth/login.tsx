@@ -51,6 +51,11 @@ export default function Login() {
       if (result.user) {
         const userData = result.user;
 
+        if (!result.token) {
+          toast.error("Login did not return an access token");
+          return;
+        }
+
         const loggedInUserData = {
           id: userData.suid,
           username: userData.username,
@@ -64,6 +69,7 @@ export default function Login() {
         };
 
         localStorage.setItem("user", JSON.stringify(loggedInUserData));
+        localStorage.setItem("token", result.token);
 
         toast.success("Login Successfully");
 

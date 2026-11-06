@@ -1,3 +1,53 @@
 
 
 @import "tailwindcss";
+.dashboard-canvas {
+  min-height: 100%;
+  padding: clamp(1rem, 2.2vw, 2rem);
+  border-radius: 1.5rem;
+  transition: background-color 240ms ease, color 240ms ease;
+}
+
+.dashboard-canvas--light {
+  background-image:
+    radial-gradient(ellipse at 92% 0%, rgba(155, 0, 28, 0.055), transparent 36%),
+    radial-gradient(ellipse at 0% 54%, rgba(174, 147, 101, 0.045), transparent 38%);
+}
+
+.dashboard-canvas--dark {
+  background-image:
+    radial-gradient(ellipse at 92% 0%, rgba(96, 165, 250, 0.075), transparent 36%),
+    radial-gradient(ellipse at 0% 54%, rgba(148, 87, 105, 0.07), transparent 38%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-canvas {
+    transition: none;
+  }
+}
+
+#overlay-root {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.overlay-layer,
+.overlay-scrim {
+  pointer-events: auto;
+  overscroll-behavior: contain;
+}
+
+.overlay-surface {
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay-layer,
+  .overlay-scrim,
+  .overlay-surface {
+    scroll-behavior: auto;
+  }
+}
