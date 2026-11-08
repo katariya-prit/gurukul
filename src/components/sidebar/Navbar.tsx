@@ -12,6 +12,7 @@ import {
     HiOutlineBookOpen,
     HiOutlineClipboardCheck,
     HiOutlineUserGroup,
+    HiOutlineChatAlt2,
     HiStar,
     HiOutlineArrowLeft
 } from "react-icons/hi";
@@ -59,6 +60,16 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
     const { theme } = useTheme();
     const navigate = useNavigate();
     const location = useLocation();
+
+    // Inactive + hover style - identical for EVERY sidebar button
+    const inactiveBtn = theme
+        ? "text-white hover:bg-gray-800 hover:text-blue-200"
+        : "text-gray-500 hover:bg-red-50 hover:text-red-600";
+
+    // Active button style - same red gradient look as the Department dropdown
+    const activeBtn = theme
+        ? "text-white bg-linear-to-r from-blue-600 to-indigo-500 shadow-lg shadow-blue-900/40"
+        : "text-white bg-linear-to-r from-[#e60023] to-[#ff7a8a] shadow-lg shadow-red-500/25";
     const [departments, setDepartment] = useState<DepartmentData[]>([]);
     const [sectionsByDept, setSectionsByDept] = useState<Record<number, SectionData[]>>({});
     const [sectionsLoading, setSectionsLoading] = useState<boolean>(false);
@@ -171,6 +182,7 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
     const isPermActive = location.pathname === "/dashboard/permissions/messages";
     const isProgressActive = location.pathname === "/dashboard/progress";
     const isMyLessonsActive = location.pathname === "/dashboard/lessons/my-lessons";
+    const isCommunityActive = location.pathname === "/dashboard/community";
 
     const filteredDepartments = (user?.roleCode === "SUPER_ADMIN"
         ? departments
@@ -195,7 +207,7 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
                     type="button"
                     onClick={() => setActiveDepartment(null, null)}
                     className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl font-semibold text-[15px] transition-all duration-200 group cursor-pointer ${isMiniSidebar ? "justify-center px-2" : ""
-                        } ${theme ? "text-white hover:bg-gray-800 hover:text-blue-200" : "text-gray-500 hover:bg-red-50 hover:text-red-600"}`}
+                        } ${inactiveBtn}`}
                 >
                     <span className={`transition-colors ${theme ? "text-gray-300 group-hover:text-blue-200" : "text-gray-400 group-hover:text-red-600"}`}>
                         <HiOutlineArrowLeft className="text-xl" />
@@ -251,11 +263,11 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
                     className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl font-semibold text-[15px] transition-all duration-200 group cursor-pointer 
                         ${isMiniSidebar ? "justify-center px-2" : ""}
                         ${isActive
-                            ? theme ? "text-blue-200 bg-gray-800" : "text-red-600 bg-red-50"
-                            : theme ? "text-white bg-gray-900 hover:bg-gray-800 hover:text-blue-200" : "text-gray-500 hover:bg-red-50 hover:text-red-600"
+                            ? activeBtn
+                            : inactiveBtn
                         }`}
                 >
-                    <span className={`transition-colors ${isActive ? (theme ? "text-blue-200" : "text-red-600") : (theme ? "text-gray-300 group-hover:text-blue-200" : "text-gray-400 group-hover:text-red-600")}`}>
+                    <span className={`transition-colors ${isActive ? "text-white" : (theme ? "text-gray-300 group-hover:text-blue-200" : "text-gray-400 group-hover:text-red-600")}`}>
                         <HiOutlineHome className="text-xl" />
                     </span>
                     {!isMiniSidebar && "Dashboard"}
@@ -269,11 +281,11 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
                     className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl font-semibold text-[15px] transition-all duration-200 group cursor-pointer 
                         ${isMiniSidebar ? "justify-center px-2" : ""}
                         ${isPermActive
-                            ? theme ? "text-blue-200 bg-gray-800" : "text-red-600 bg-red-50"
-                            : theme ? "text-white hover:bg-gray-800" : "text-gray-500 hover:bg-red-50"
+                            ? activeBtn
+                            : inactiveBtn
                         }`}
                 >
-                    <span className={`transition-colors ${isPermActive ? (theme ? "text-blue-200" : "text-red-600") : (theme ? "text-gray-300 group-hover:text-blue-200" : "text-gray-400 group-hover:text-red-600")}`}>
+                    <span className={`transition-colors ${isPermActive ? "text-white" : (theme ? "text-gray-300 group-hover:text-blue-200" : "text-gray-400 group-hover:text-red-600")}`}>
                         <AiOutlineFileProtect className="text-xl" />
                     </span>
                     {!isMiniSidebar && "Permissions"}
@@ -287,11 +299,11 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
                     className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl font-semibold text-[15px] transition-all duration-200 group cursor-pointer 
                         ${isMiniSidebar ? "justify-center px-2" : ""}
                         ${isProgressActive
-                            ? theme ? "text-blue-200 bg-gray-800" : "text-red-600 bg-red-50"
-                            : theme ? "text-white hover:bg-gray-800" : "text-gray-500 hover:bg-red-50"
+                            ? activeBtn
+                            : inactiveBtn
                         }`}
                 >
-                    <span className={`transition-colors ${isProgressActive ? (theme ? "text-blue-200" : "text-red-600") : (theme ? "text-gray-300 group-hover:text-blue-200" : "text-gray-400 group-hover:text-red-600")}`}>
+                    <span className={`transition-colors ${isProgressActive ? "text-white" : (theme ? "text-gray-300 group-hover:text-blue-200" : "text-gray-400 group-hover:text-red-600")}`}>
                         <HiOutlineChartBar className="text-xl" />
                     </span>
                     {!isMiniSidebar && "Progress"}
@@ -305,16 +317,33 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
                     className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl font-semibold text-[15px] transition-all duration-200 group cursor-pointer 
                         ${isMiniSidebar ? "justify-center px-2" : ""}
                         ${isMyLessonsActive
-                            ? theme ? "text-blue-200 bg-gray-800" : "text-red-600 bg-red-50"
-                            : theme ? "text-white hover:bg-gray-800" : "text-gray-500 hover:bg-red-50"
+                            ? activeBtn
+                            : inactiveBtn
                         }`}
                 >
-                    <span className={`transition-colors ${isMyLessonsActive ? (theme ? "text-blue-200" : "text-red-600") : (theme ? "text-gray-300 group-hover:text-blue-200" : "text-gray-400 group-hover:text-red-600")}`}>
+                    <span className={`transition-colors ${isMyLessonsActive ? "text-white" : (theme ? "text-gray-300 group-hover:text-blue-200" : "text-gray-400 group-hover:text-red-600")}`}>
                         <HiOutlineClipboardCheck className="text-xl" />
                     </span>
                     {!isMiniSidebar && "My Lessons"}
                 </button>
             )}
+
+            {/* Gurukul Community (groups + chat) */}
+            <button
+                onClick={() => { navigate("/dashboard/community"); setSidebarOpen(false); }}
+                title={isMiniSidebar ? "Gurukul Community" : ""}
+                className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl font-semibold text-[15px] transition-all duration-200 group cursor-pointer 
+                    ${isMiniSidebar ? "justify-center px-2" : ""}
+                    ${isCommunityActive
+                        ? activeBtn
+                        : inactiveBtn
+                    }`}
+            >
+                <span className={`transition-colors ${isCommunityActive ? "text-white" : (theme ? "text-gray-300 group-hover:text-blue-200" : "text-gray-400 group-hover:text-red-600")}`}>
+                    <HiOutlineChatAlt2 className="text-xl" />
+                </span>
+                {!isMiniSidebar && "Gurukul Community"}
+            </button>
 
             {myGroups.length > 0 && (
                 <div className="space-y-1">
@@ -334,8 +363,8 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
                                 className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-200 group cursor-pointer
                                     ${isMiniSidebar ? "justify-center px-2" : ""}
                                     ${isGroupActive
-                                        ? theme ? "text-blue-200 bg-gray-800" : "text-red-600 bg-red-50"
-                                        : theme ? "text-gray-300 hover:bg-gray-800" : "text-gray-500 hover:bg-red-50"
+                                        ? activeBtn
+                                        : inactiveBtn
                                     }`}
                             >
                                 <HiOutlineUserGroup className="text-lg shrink-0" />
@@ -417,7 +446,7 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
                             type="button"
                             onClick={() => setActiveDepartment(dept.departmentId, dept.departmentName)}
                             className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl font-semibold text-[15px] transition-all duration-200 group cursor-pointer ${isMiniSidebar ? "justify-center px-2" : ""
-                                } ${theme ? "text-white hover:bg-gray-800 hover:text-blue-200" : "text-gray-500 hover:bg-red-50 hover:text-red-600"}`}
+                                } ${inactiveBtn}`}
                         >
                             <span className={`transition-colors ${theme ? "text-gray-300 group-hover:text-blue-200" : "text-gray-400 group-hover:text-red-600"}`}>
                                 <HiOutlineAcademicCap className="text-xl" />

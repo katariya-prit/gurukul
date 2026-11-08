@@ -9,4 +9,8 @@ export interface LessonCardData {
     points: number | null;
     description: string;
     createdBy?: string | null;
+    fileName?: string;
+    fileSize?: number | null;
+    mimeType?: string;
+    duration?: number | null;
 }
