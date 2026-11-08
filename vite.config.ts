@@ -28,7 +28,7 @@ export default defineConfig({
           { src: '/pwa-maskable-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
         screenshots: [
-          { src: '/screenshots/mobile-login.png', sizes: '412x915', type: 'image/png', form_factor: 'narrow', label: 'Login' },
+          { src: '/screenshots/mobile-login.png', sizes: '384x858', type: 'image/png', form_factor: 'narrow', label: 'Login' },
           { src: '/screenshots/mobile-dashboard.png', sizes: '412x915', type: 'image/png', form_factor: 'narrow', label: 'Dashboard' },
           { src: '/screenshots/mobile-progress.png', sizes: '412x915', type: 'image/png', form_factor: 'narrow', label: 'Progress' },
           { src: '/screenshots/desktop-dashboard.png', sizes: '1920x1080', type: 'image/png', form_factor: 'wide', label: 'Dashboard' },
