@@ -4,6 +4,7 @@ import {
     useLayoutEffect,
     useRef,
     useState,
+    useSyncExternalStore,
     type PointerEvent as ReactPointerEvent,
     type ReactNode,
 } from "react";
@@ -44,6 +45,17 @@ interface PanelPosition {
 }
 
 const SPRING = { type: "spring" as const, stiffness: 220, damping: 28, mass: 1.2 };
+const DESKTOP_QUERY = "(min-width: 768px)";
+
+const subscribeDesktop = (onChange: () => void) => {
+    const media = window.matchMedia(DESKTOP_QUERY);
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+};
+
+const getDesktopSnapshot = () => window.matchMedia(DESKTOP_QUERY).matches;
+
+const getDesktopServerSnapshot = () => true;
 
 export default function MorphPopover({
     id,
@@ -76,10 +88,17 @@ export default function MorphPopover({
     const hasOpenedRef = useRef(false);
     const hoverTimerRef = useRef<number | null>(null);
     const reduceMotion = useReducedMotion();
-    const layoutId = `morph-${id}`;
-    const transition = reduceMotion ? { duration: 0.01 } : SPRING;
-    const triggerFadeDelay = reduceMotion ? 0 : 0.12;
-    const panelFadeDelay = reduceMotion ? 0 : 0.14;
+    const isDesktop = useSyncExternalStore(
+        subscribeDesktop,
+        getDesktopSnapshot,
+        getDesktopServerSnapshot
+    );
+    const skipMorph = reduceMotion === true || !isDesktop;
+    const activeLayoutId = skipMorph ? undefined : `morph-${id}`;
+    const transition = skipMorph ? { duration: 0.01 } : SPRING;
+    const triggerFadeDelay = skipMorph ? 0 : 0.12;
+    const panelFadeDelay = skipMorph ? 0 : 0.14;
+    const contentFadeDuration = skipMorph ? 0.01 : 0.2;
     const [position, setPosition] = useState<PanelPosition | null>(null);
     const [panelHeight, setPanelHeight] = useState(0);
     const hasPosition = position !== null;
@@ -269,7 +288,7 @@ export default function MorphPopover({
                 {!isOpen ? (
                     <motion.button
                         ref={triggerRef}
-                        layoutId={layoutId}
+                        layoutId={activeLayoutId}
                         type="button"
                         onClick={() => {
                             measure();
@@ -285,9 +304,9 @@ export default function MorphPopover({
                     >
                         <motion.span
                             className={triggerContentClassName}
-                            initial={hasOpenedRef.current && !keepTriggerVisible ? { opacity: 0 } : false}
+                            initial={hasOpenedRef.current && !keepTriggerVisible && !skipMorph ? { opacity: 0 } : false}
                             animate={{ opacity: 1 }}
-                            transition={{ delay: triggerFadeDelay, duration: 0.18 }}
+                            transition={{ delay: triggerFadeDelay, duration: contentFadeDuration }}
                         >
                             {renderTrigger({ isOpen: false })}
                         </motion.span>
@@ -308,7 +327,7 @@ export default function MorphPopover({
                 createPortal(
                     <motion.div
                         ref={panelRef}
-                        layoutId={layoutId}
+                        layoutId={activeLayoutId}
                         role="dialog"
                         aria-modal="false"
                         aria-label={ariaLabel}
@@ -332,7 +351,7 @@ export default function MorphPopover({
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
-                            transition={{ delay: panelFadeDelay, duration: 0.2 }}
+                            transition={{ delay: panelFadeDelay, duration: contentFadeDuration }}
                             className="max-h-full overflow-y-auto"
                         >
                             {children}

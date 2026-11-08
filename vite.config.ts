@@ -1,27 +1,57 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { VitePWA } from 'vite-plugin-pwa'
 
-// https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
+      manifest: {
+        name: 'Gurukul',
+        short_name: 'Gurukul',
+        description: 'Gurukul management system',
+        theme_color: '#9b001c',
+        background_color: '#0f172a',
+        display: 'standalone',
+        start_url: '/',
+        scope: '/',
+        icons: [
+          {
+            src: 'pwa-192x192.png',
+            sizes: '192x192',
+            type: 'image/png',
+          },
+          {
+            src: 'pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+          },
+          {
+            src: 'pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
+          },
+        ],
+      },
+    }),
+  ],
   build: {
-    // Limit ne standard size par set kari chhe
-    chunkSizeWarningLimit: 5500, 
-    
+    chunkSizeWarningLimit: 5500,
     rollupOptions: {
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            // 1. React ane React-DOM mate alag file
             if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
               return 'react-vendor';
             }
-            // 2. Cloudinary mate alag file (kem ke te heavy hoy chhe)
             if (id.includes('cloudinary')) {
               return 'cloudinary-vendor';
             }
-            // 3. Baki na badha packages mate common file
             return 'vendor';
           }
         },
