@@ -1,5 +1,16 @@
 {
   "rewrites": [
-    { "source": "/((?!\\.well-known/).*)", "destination": "/index.html" }
+    {
+      "source": "/manifest.webmanifest",
+      "destination": "/manifest.webmanifest"
+    },
+    {
+      "source": "/sw.js",
+      "destination": "/sw.js"
+    },
+    {
+      "source": "/((?!\\.well-known/|manifest\\.webmanifest|sw\\.js|assets/|.*\\.(?:png|jpg|jpeg|svg|ico|json|js|css)).*)",
+      "destination": "/index.html"
+    }
   ]
 }
