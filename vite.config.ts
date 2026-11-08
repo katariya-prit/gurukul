@@ -17,7 +17,7 @@ export default defineConfig({
         description: 'Gurukul management system',
         theme_color: '#9b001c',
         background_color: '#0f172a',
-        display: 'standalone',
+        display: 'fullscreen',
         display_override: ['window-controls-overlay', 'standalone', 'minimal-ui'],
         orientation: 'portrait',
         start_url: '/',
