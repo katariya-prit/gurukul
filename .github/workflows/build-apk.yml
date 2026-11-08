@@ -21,7 +21,10 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 'lts/*'
+
+      - name: Verify Node Version
+        run: node -v
 
       - name: Install Dependencies & Build Web
         run: |
@@ -30,7 +33,7 @@ jobs:
 
       - name: Sync Capacitor Android
         run: |
-          npx cap sync android
+          npx --yes @capacitor/cli sync android
 
       - name: Build Android APK
         run: |
