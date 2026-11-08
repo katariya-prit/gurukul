@@ -46,6 +46,7 @@ import MyLessons from "../pages/Section/Lesson-management/My-Lessons";
 
 import CreateGroup from "../pages/Section/Group-Managemant/Create-Group";
 import GroupList from "../pages/Section/Group-Managemant/Group-List";
+import GurukulCommunity from "../pages/Section/Group-Managemant/GurukulCommunity";
 
 import GroupMemberDetail from "../pages/Section/Group-Managemant/Groupmemberdetail";
 
@@ -221,6 +222,9 @@ export default function Routers() {
 
           <Route element={<ProtectedRoute requireLoginOnly />}>
             <Route path="groups/member/:groupId" element={<GroupMemberDetail />} />
+          </Route>
+          <Route element={<ProtectedRoute requireLoginOnly />}>
+            <Route path="community" element={<GurukulCommunity />} />
           </Route>
 
           <Route element={<ProtectedRoute requireLoginOnly />}>

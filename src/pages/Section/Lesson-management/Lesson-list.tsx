@@ -5,7 +5,10 @@ import { useTheme } from "../../../components/theme/ThemeContext";
 import Button from "../../../components/common/Button";
 import AudioLessonCard from "../../../components/material/AudioLessonCard";
 import BasicLessonCard from "../../../components/material/BasicLessonCard";
+import DocumentLessonCard from "../../../components/material/DocumentLessonCard";
+import ImageLessonCard from "../../../components/material/ImageLessonCard";
 import LessonSubmissionsPanel from "../../../components/material/LessonSubmissionsPanel";
+import VideoLessonCard from "../../../components/material/Videolessoncard";
 import {
   extractLessonList,
   normalizeLesson,
@@ -77,6 +80,28 @@ export default function LessonList() {
     }
   };
 
+  const renderLessonCard = (lesson: LessonCardData) => {
+    const cardProps = {
+      lesson,
+      onDelete: canDeleteLesson(lesson) ? (item: LessonCardData) => void handleDelete(item) : undefined,
+      isDeleting: deletingId === lesson.id,
+      actions: <LessonSubmissionsPanel lesson={lesson} />,
+    };
+
+    switch (lesson.type) {
+      case "audio":
+        return <AudioLessonCard key={lesson.id} {...cardProps} />;
+      case "image":
+        return <ImageLessonCard key={lesson.id} {...cardProps} />;
+      case "video":
+        return <VideoLessonCard key={lesson.id} {...cardProps} />;
+      case "document":
+        return <DocumentLessonCard key={lesson.id} {...cardProps} />;
+      default:
+        return <BasicLessonCard key={lesson.id} {...cardProps} />;
+    }
+  };
+
   return (
     <div className={`max-w-full mx-auto p-6 sm:p-8 rounded-2xl shadow-sm mt-6 border transition-all duration-200 ${theme ? "bg-gray-900 border-gray-800 text-white" : "bg-white border-neutral-200 text-neutral-900"}`}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -100,8 +125,25 @@ export default function LessonList() {
       </div>
 
       {isLoading ? (
-        <div className={`mt-8 rounded-2xl border p-8 text-center text-sm ${theme ? "border-gray-800 bg-gray-800/40 text-gray-400" : "border-neutral-200 bg-neutral-50 text-neutral-500"}`}>
-          Loading lessons...
+        <div className="mt-8 grid gap-5 sm:grid-cols-2 xl:grid-cols-3" aria-label="Loading lessons">
+          {Array.from({ length: 6 }, (_, index) => (
+            <div
+              key={index}
+              className={`animate-pulse overflow-hidden rounded-3xl border ${theme ? "border-white/10 bg-white/5" : "border-neutral-200 bg-white"}`}
+            >
+              <div className={`aspect-video ${theme ? "bg-white/10" : "bg-neutral-100"}`} />
+              <div className="space-y-3 p-5">
+                <div className={`h-5 w-3/4 rounded ${theme ? "bg-white/10" : "bg-neutral-200"}`} />
+                <div className={`h-3 w-full rounded ${theme ? "bg-white/10" : "bg-neutral-100"}`} />
+                <div className={`h-3 w-2/3 rounded ${theme ? "bg-white/10" : "bg-neutral-100"}`} />
+                <div className="grid grid-cols-3 gap-3 pt-2">
+                  {["start", "end", "points"].map((item) => (
+                    <div key={item} className={`h-8 rounded ${theme ? "bg-white/10" : "bg-neutral-100"}`} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : lessons.length === 0 ? (
         <div className={`mt-8 rounded-2xl border p-8 text-center ${theme ? "border-gray-800 bg-gray-800/40" : "border-neutral-200 bg-neutral-50"}`}>
@@ -114,25 +156,7 @@ export default function LessonList() {
         </div>
       ) : (
         <div className="mt-8 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-          {lessons.map((lesson) =>
-            lesson.type === "audio" ? (
-              <AudioLessonCard
-                key={lesson.id}
-                lesson={lesson}
-                onDelete={canDeleteLesson(lesson) ? (item) => void handleDelete(item) : undefined}
-                isDeleting={deletingId === lesson.id}
-                actions={<LessonSubmissionsPanel lesson={lesson} />}
-              />
-            ) : (
-              <BasicLessonCard
-                key={lesson.id}
-                lesson={lesson}
-                onDelete={canDeleteLesson(lesson) ? (item) => void handleDelete(item) : undefined}
-                isDeleting={deletingId === lesson.id}
-                actions={<LessonSubmissionsPanel lesson={lesson} />}
-              />
-            )
-          )}
+          {lessons.map(renderLessonCard)}
         </div>
       )}
     </div>

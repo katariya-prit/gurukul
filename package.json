@@ -19,7 +19,9 @@
     "@types/three": "^0.185.4",
     "@vidstack/react": "^1.12.13",
     "axios": "^1.19.0",
+    "jszip": "^3.10.2",
     "lucide-react": "^1.21.0",
+    "mammoth": "^1.13.0",
     "motion": "^12.40.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
@@ -32,7 +34,8 @@
     "remark-gfm": "^4.0.1",
     "sonner": "^2.0.7",
     "tailwindcss": "^4.3.1",
-    "three": "^0.185.1"
+    "three": "^0.185.1",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
