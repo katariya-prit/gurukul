@@ -171,7 +171,7 @@ export default function CreateGroup() {
 
     if (loadingGroup) {
         return (
-            <div className={`w-full max-w-6xl mx-auto p-8 flex items-center justify-center min-h-[60vh] rounded-4xl transition-colors duration-500 ${theme ? "bg-[#0f172a] text-slate-200" : "bg-white text-slate-800"}`}>
+            <div className={`w-full max-w-full mx-auto p-8 flex items-center justify-center min-h-[60vh] rounded-4xl transition-colors duration-500 ${theme ? "bg-[#0f172a] text-slate-200" : "bg-white text-slate-800"}`}>
                 <div className="flex flex-col items-center gap-4">
                     <div className={`w-12 h-12 border-4 rounded-full animate-spin ${theme ? "border-slate-700 border-t-blue-500" : "border-slate-200 border-t-red-500"}`}></div>
                     <p className="opacity-70 text-sm font-medium tracking-wide">Loading group data...</p>
@@ -192,7 +192,7 @@ export default function CreateGroup() {
                 }
             `}</style>
 
-            <div className={`w-full max-w-6xl mx-auto p-8 md:p-10 rounded-4xl transition-all duration-500 animate-fade-up ${
+            <div className={`w-full max-w-full mx-auto p-8 md:p-10 rounded-4xl transition-all duration-500 animate-fade-up ${
                 theme 
                 ? "bg-[#0f172a] text-slate-100 shadow-[0_0_40px_rgba(0,0,0,0.3)] border border-slate-800/60" 
                 : "bg-white text-slate-800 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.08)] border border-slate-50"

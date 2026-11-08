@@ -199,17 +199,24 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
     return (
         <>
             {isDesktop ? (
-                <aside
+                <motion.aside
                     onClick={(e) => e.stopPropagation()}
-                    className={`relative z-50 flex flex-col transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]
-                        ${isMiniSidebar ? "w-22" : "w-65"} 
+                    initial={false}
+                    animate={{ width: isMiniSidebar ? 88 : 260 }}
+                    transition={
+                        reduceMotion
+                            ? { duration: 0.12 }
+                            : { type: "spring", stiffness: 260, damping: 32, mass: 1 }
+                    }
+                    style={{ willChange: "width" }}
+                    className={`relative z-50 flex flex-col overflow-hidden
                         ${theme
                             ? "bg-gray-900 text-white border-r border-gray-800 shadow-[4px_0_24px_rgba(0,0,0,0.5)]"
                             : "bg-white text-gray-800 border-r border-gray-200 shadow-[4px_0_24px_rgba(0,0,0,0.02)]"
                         }`}
                 >
                     {panelContent}
-                </aside>
+                </motion.aside>
             ) : (
                 <AnimatePresence>
                     {isOpen && (

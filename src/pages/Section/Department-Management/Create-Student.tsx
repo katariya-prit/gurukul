@@ -202,7 +202,7 @@ const CreateStudent = () => {
     }
 
     return (
-        <div className={`group/maincard max-w-7xl mx-auto p-6 sm:p-8 rounded-3xl mt-6 mb-8 border transition-all duration-700 relative overflow-hidden font-sans backdrop-blur-xl ${theme
+        <div className={`group/maincard max-w-full mx-auto p-6 sm:p-8 rounded-3xl mt-6 mb-8 border transition-all duration-700 relative overflow-hidden font-sans backdrop-blur-xl ${theme
             ? "bg-[#111827]/90 border-gray-800 shadow-[0_8px_30px_rgb(0,0,0,0.5)] text-gray-200"
             : "bg-white/90 border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.03)] text-slate-800"
             }`}>

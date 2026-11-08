@@ -516,7 +516,7 @@ export default function OverviewManagement() {
                 </div>
             </Reveal>
 
-            <div className="max-w-7xl mx-auto flex justify-end mb-6">
+            <div className="max-w-full mx-auto flex justify-end mb-6">
                 <button
                     type="button"
                     onClick={addNewSlot}
@@ -538,7 +538,7 @@ export default function OverviewManagement() {
                     />
                 </div>
             ) : (
-                <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="max-w-full mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                     <AnimatePresence>
                         {images.map((item, index) => (
                             <motion.div

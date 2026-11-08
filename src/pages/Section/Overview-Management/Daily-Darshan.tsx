@@ -127,7 +127,7 @@ export default function AdminDailyDarshan() {
     };
 
     return (
-        <div className="p-6 space-y-6 max-w-6xl mx-auto">
+        <div className="p-6 space-y-6 max-w-full mx-auto">
             <div className="flex items-center gap-3">
                 <span className={`flex items-center justify-center w-11 h-11 rounded-xl ${theme ? "bg-blue-500/10 text-blue-300" : "bg-[#9b001c]/10 text-[#9b001c]"}`}>
                     <HiOutlineSun size={21} />
