@@ -11,11 +11,6 @@
   },
   "dependencies": {
     "@adonisjs/transmit-client": "^1.1.0",
-    "@capacitor/android": "^8.6.0",
-    "@capacitor/cli": "^8.6.0",
-    "@capacitor/core": "^8.6.0",
-    "@capacitor/screen-orientation": "^8.0.2",
-    "@capacitor/status-bar": "^8.0.4",
     "@floating-ui/react-dom": "^2.1.9",
     "@tailwindcss/vite": "^4.3.1",
     "@types/three": "^0.185.4",
