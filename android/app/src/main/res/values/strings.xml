@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">gurukul</string>
-    <string name="title_activity_main">gurukul</string>
-    <string name="package_name">com.gurukul.app</string>
-    <string name="custom_url_scheme">com.gurukul.app</string>
-</resources>
