@@ -5,7 +5,8 @@ const config: CapacitorConfig = {
   appName: 'gurukul',
   webDir: 'dist',
   server: {
-    androidScheme: 'https' // 👈 આ લાઈન એન્ડ્રોઇડ પર વાઈટ સ્ક્રીન અટકાવવા માટે ફરજિયાત છે
+    androidScheme: 'https',
+    cleartext: true
   }
 };
 
