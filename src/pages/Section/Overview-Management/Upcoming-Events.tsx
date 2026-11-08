@@ -364,7 +364,7 @@ const UpcomingEvents: React.FC = () => {
                 </div>
             </div>
 
-            <div className="relative z-10 max-w-6xl mx-auto space-y-8">
+            <div className="relative z-10 max-w-full mx-auto space-y-8">
 
                 {/* LOADING STATE */}
                 {loading ? (

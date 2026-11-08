@@ -440,7 +440,7 @@ export default function CreateLesson() {
     };
 
     return (
-        <div className={`mx-auto max-w-7xl rounded-2xl border p-6 shadow-sm transition-all duration-200 sm:p-8 ${theme ? "border-gray-800 bg-gray-900 text-white" : "border-neutral-200 bg-white text-neutral-900"}`}>
+        <div className={`mx-autfull rounded-2xl border p-6 shadow-sm transition-all duration-200 sm:p-8 ${theme ? "border-gray-800 bg-gray-900 text-white" : "border-neutral-200 bg-white text-neutral-900"}`}>
             <div className="mb-8 border-b border-neutral-200 pb-6 text-center dark:border-gray-800">
                 <div className={`mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full text-white shadow-lg ${theme ? "bg-linear-to-br from-blue-300 to-blue-900 shadow-blue-950/40" : "bg-linear-to-br from-red-300 to-red-900 shadow-red-950/20"}`}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-7 w-7" aria-hidden="true">

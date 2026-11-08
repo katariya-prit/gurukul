@@ -77,7 +77,7 @@ export default function AmrutNuAachaman() {
                 ? 'bg-slate-950 text-slate-100 selection:bg-blue-500/30'
                 : 'bg-white text-slate-900 selection:bg-red-500/20'
             }`}>
-            <div className="max-w-7xl mx-auto">
+            <div className="max-w-full mx-auto">
 
                 {/* --- બેક બટન --- */}
                 <div className="mb-6 flex justify-start">

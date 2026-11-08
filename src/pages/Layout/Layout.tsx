@@ -7,7 +7,6 @@ import { useTheme } from "../../components/theme/ThemeContext";
 import SkeletonLoader from "../../components/loader/Skeleton";
 import { SidebarViewProvider } from "../../context/SidebarViewContext";
 import { NotificationProvider } from "../../context/NotificationContext";
-import NotificationCenter from "../../components/notifications/NotificationCenter";
 import NotificationToast from "../../components/notifications/NotificationToast";
 
 export default function Layout() {
@@ -34,58 +33,85 @@ export default function Layout() {
 
     return (
         <NotificationProvider>
-        <SidebarViewProvider>
-            <div className={`h-screen w-screen flex font-sans overflow-hidden transition-colors duration-300 ${theme ? 'bg-[#0b1118] text-gray-50' : 'bg-[#f6f7f9] text-gray-800'
-                }`}>
+            <SidebarViewProvider>
+                {/* Outer Frame matches Sidebar & Header base color so there is zero seam */}
+                <div
+                    className={`h-screen w-screen flex font-sans overflow-hidden transition-colors duration-500 ${theme ? "bg-[#0b1118] text-gray-50" : "bg-white text-gray-800"
+                        }`}
+                >
+                    <Sidebar isOpen={isMobileSidebarOpen} setIsOpen={setIsMobileSidebarOpen} />
 
-                <Sidebar isOpen={isMobileSidebarOpen} setIsOpen={setIsMobileSidebarOpen} />
+                    <div className="relative flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+                        <Header toggleSidebar={toggleSidebar} />
+                        <NotificationToast />
 
-                <div className={`relative flex-1 flex flex-col min-w-0 h-full overflow-hidden transition-colors duration-300 ${theme ? 'bg-[#0b1118] text-gray-50' : 'bg-[#f6f7f9] text-gray-800'
-                    }`}>
+                        {/* Inset Rounded Main Canvas — fixes the sharp 90° top-left corner */}
+                        <main
+                            className={`relative flex-1 w-full overflow-y-auto no-scrollbar p-4 sm:p-6 lg:p-7 lg:rounded-tl-[32px] border-t border-l transition-all duration-500 ${theme
+                                    ? "bg-[#060a12] border-white/[0.08] shadow-[inset_0_4px_24px_rgba(0,0,0,0.5)]"
+                                    : "bg-[#f4f7fb] border-slate-200/80 shadow-[inset_0_2px_12px_rgba(15,23,42,0.03)]"
+                                }`}
+                        >
+                            {/* Natural Blue & Pink Ambient Mesh Inside the Curved Canvas */}
+                            <div
+                                aria-hidden="true"
+                                style={{
+                                    background: theme
+                                        ? `
+                                            radial-gradient(ellipse 75% 65% at 18% 18%, rgba(56, 189, 248, 0.15) 0%, rgba(59, 130, 246, 0.07) 45%, transparent 80%),
+                                            radial-gradient(ellipse 70% 65% at 85% 25%, rgba(236, 72, 153, 0.14) 0%, rgba(168, 85, 247, 0.06) 50%, transparent 80%),
+                                            radial-gradient(ellipse 80% 60% at 50% 90%, rgba(99, 102, 241, 0.13) 0%, rgba(236, 72, 153, 0.05) 50%, transparent 85%)
+                                          `
+                                        : `
+                                            radial-gradient(ellipse 75% 65% at 18% 18%, rgba(56, 189, 248, 0.16) 0%, rgba(147, 197, 253, 0.08) 45%, transparent 80%),
+                                            radial-gradient(ellipse 70% 65% at 85% 25%, rgba(244, 114, 182, 0.15) 0%, rgba(251, 207, 232, 0.08) 50%, transparent 80%),
+                                            radial-gradient(ellipse 80% 60% at 50% 90%, rgba(167, 139, 250, 0.12) 0%, rgba(186, 230, 253, 0.06) 50%, transparent 85%)
+                                          `,
+                                }}
+                                className="pointer-events-none absolute inset-0 z-0 lg:rounded-tl-[32px]"
+                            />
 
-                    <Header toggleSidebar={toggleSidebar} />
-                    <NotificationToast />
+                            {/* Content Wrapper */}
+                            <div
+                                className={`relative z-10 w-full min-h-full transition-all duration-300 ${isDashboard
+                                        ? "max-w-none"
+                                        : `rounded-3xl border p-5 sm:p-6 backdrop-blur-2xl ${theme
+                                            ? "bg-slate-900/40 text-gray-50 border-white/[0.08] shadow-[0_20px_60px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.08)]"
+                                            : "bg-white/65 text-gray-800 border-white/90 shadow-[0_20px_60px_rgba(59,130,246,0.06),inset_0_1px_2px_rgba(255,255,255,0.95)]"
+                                        }`
+                                    }`}
+                            >
+                                {!isDashboard && (
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate(-1)}
+                                        className={`inline-flex items-center gap-2 mb-6 px-4 py-2 rounded-xl text-sm font-semibold border backdrop-blur-xl transition-all cursor-pointer ${theme
+                                                ? "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 hover:text-white"
+                                                : "border-white bg-white/80 text-gray-700 hover:bg-white hover:text-gray-900 shadow-xs"
+                                            }`}
+                                    >
+                                        <HiOutlineArrowLeft className="text-base" />
+                                        Back
+                                    </button>
+                                )}
 
-                    <main className="flex-1 w-full overflow-y-auto p-3 no-scrollbar sm:p-5 lg:p-7">
-                        <div className={`mx-auto w-full max-w-[1600px] min-h-full transition-colors duration-300 ${
-                            isDashboard
-                                ? ""
-                                : `rounded-2xl border p-4 sm:p-6 ${theme
-                                    ? "bg-gray-900 text-gray-50 border-gray-800"
-                                    : "bg-white text-gray-800 border-gray-100"
-                                }`
-                        }`}>
-                            {!isDashboard && (
-                                <button
-                                    type="button"
-                                    onClick={() => navigate(-1)}
-                                    className={`inline-flex items-center gap-2 mb-5 px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors cursor-pointer ${theme
-                                            ? "text-gray-300 hover:bg-gray-800 hover:text-white"
-                                            : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                                        }`}
-                                >
-                                    <HiOutlineArrowLeft className="text-base" />
-                                    Back
-                                </button>
-                            )}
-
-                            {isRouteLoading ? (
-                                <div className="space-y-4">
-                                    <SkeletonLoader variant="text" rows={3} />
-                                    <div className="grid gap-4 md:grid-cols-2">
-                                        <SkeletonLoader variant="card" rows={1} />
-                                        <SkeletonLoader variant="card" rows={1} />
+                                {isRouteLoading ? (
+                                    <div className="space-y-4">
+                                        <SkeletonLoader variant="text" rows={3} />
+                                        <div className="grid gap-4 md:grid-cols-2">
+                                            <SkeletonLoader variant="card" rows={1} />
+                                            <SkeletonLoader variant="card" rows={1} />
+                                        </div>
+                                        <SkeletonLoader variant="table" rows={4} />
                                     </div>
-                                    <SkeletonLoader variant="table" rows={4} />
-                                </div>
-                            ) : (
-                                <Outlet />
-                            )}
-                        </div>
-                    </main>
+                                ) : (
+                                    <Outlet />
+                                )}
+                            </div>
+                        </main>
+                    </div>
                 </div>
-            </div>
-        </SidebarViewProvider>
+            </SidebarViewProvider>
         </NotificationProvider>
     );
 }

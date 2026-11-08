@@ -1,148 +1,272 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { AnimatePresence, motion } from "motion/react";
-import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import type { ReactNode } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import { useTheme } from "../theme/ThemeContext";
 
 export interface SparklinePoint {
-    label: string;
+    date?: string;
     value: number;
 }
 
-export type SparklineColorScheme = "red" | "blue" | "green" | "purple" | "amber";
-
 interface SparklineStatCardProps {
     label: string;
-    value: number;
+    value: number | string;
     subLabel: string;
-    icon: ReactNode;
     data?: SparklinePoint[];
-    colorScheme: SparklineColorScheme;
+    icon?: ReactNode;
+    colorScheme?: "red" | "blue" | "green" | "purple" | "amber";
     loading?: boolean;
     index?: number;
     animationKey?: string;
 }
 
-const COLOR_MAP: Record<SparklineColorScheme, { accent: string; iconDark: string; iconLight: string; subDark: string; subLight: string }> = {
-    red: { accent: "#f87171", iconDark: "bg-red-500/10 text-red-400", iconLight: "bg-[#9b001c]/10 text-[#9b001c]", subDark: "text-emerald-400", subLight: "text-emerald-600" },
-    blue: { accent: "#60a5fa", iconDark: "bg-blue-500/10 text-blue-300", iconLight: "bg-blue-500/10 text-blue-600", subDark: "text-emerald-400", subLight: "text-emerald-600" },
-    green: { accent: "#34d399", iconDark: "bg-emerald-500/10 text-emerald-400", iconLight: "bg-emerald-500/10 text-emerald-600", subDark: "text-emerald-400", subLight: "text-emerald-600" },
-    purple: { accent: "#c084fc", iconDark: "bg-purple-500/10 text-purple-400", iconLight: "bg-purple-500/10 text-purple-600", subDark: "text-emerald-400", subLight: "text-emerald-600" },
-    amber: { accent: "#fbbf24", iconDark: "bg-amber-500/10 text-amber-400", iconLight: "bg-amber-500/10 text-amber-600", subDark: "text-emerald-400", subLight: "text-emerald-600" },
-};
+function normalizeWaveValues(data: SparklinePoint[]): number[] {
+    const raw = data.map((d) => Number(d.value) || 0);
 
-export function useCountUp(target: number, duration: number): number {
-    const [count, setCount] = useState(target);
-    const currentValue = useRef(target);
+    if (raw.length === 0) {
+        return [0, 0];
+    }
 
-    useEffect(() => {
-        const startValue = currentValue.current;
-        const startTime = performance.now();
-        let animationFrame = 0;
+    if (raw.length === 1) {
+        const flat = raw[0] > 0 ? 0.5 : 0;
+        return [flat, flat];
+    }
 
-        const updateCount = (time: number) => {
-            const progress = Math.min((time - startTime) / duration, 1);
-            const easedProgress = 1 - Math.pow(1 - progress, 3);
-            const nextValue = Math.round(startValue + (target - startValue) * easedProgress);
-            currentValue.current = nextValue;
-            setCount(nextValue);
-            if (progress < 1) animationFrame = requestAnimationFrame(updateCount);
-        };
+    const min = Math.min(...raw);
+    const max = Math.max(...raw);
 
-        animationFrame = requestAnimationFrame(updateCount);
-        return () => cancelAnimationFrame(animationFrame);
-    }, [target, duration]);
+    if (max === min) {
+        const flat = max > 0 ? 0.5 : 0;
+        return raw.map(() => flat);
+    }
 
-    return count;
+    const targetCount = Math.min(7, raw.length);
+    const sampled: number[] = [];
+    for (let i = 0; i < targetCount; i++) {
+        const position = (i / (targetCount - 1)) * (raw.length - 1);
+        const lowerIdx = Math.floor(position);
+        const upperIdx = Math.ceil(position);
+        const fraction = position - lowerIdx;
+        const interpolated = raw[lowerIdx] + (raw[upperIdx] - raw[lowerIdx]) * fraction;
+        const norm = (interpolated - min) / (max - min);
+        sampled.push(0.05 + norm * 0.9);
+    }
+    return sampled;
 }
 
-function TooltipContent({ active, payload, theme }: { active?: boolean; payload?: Array<{ payload: SparklinePoint }>; theme: boolean }) {
-    if (!active || !payload?.[0]) return null;
-    const point = payload[0].payload;
-    return (
-        <div className={`rounded-lg border px-2.5 py-1.5 text-xs shadow-lg ${theme ? "border-gray-700 bg-gray-800 text-gray-100" : "border-gray-200 bg-white text-gray-900"}`}>
-            <p className={theme ? "text-gray-400" : "text-gray-500"}>{point.label}</p>
-            <p className="font-bold">{point.value}</p>
-        </div>
-    );
+// Smooth cubic bezier curve with wide horizontal tangents
+function buildSmoothPath(coords: { x: number; y: number }[]): string {
+    if (coords.length === 0) return "";
+    if (coords.length === 1) return `M ${coords[0].x},${coords[0].y}`;
+
+    let path = `M ${coords[0].x.toFixed(2)},${coords[0].y.toFixed(2)}`;
+    for (let i = 0; i < coords.length - 1; i++) {
+        const curr = coords[i];
+        const next = coords[i + 1];
+        const dx = next.x - curr.x;
+        const cp1x = curr.x + dx * 0.5;
+        const cp1y = curr.y;
+        const cp2x = curr.x + dx * 0.5;
+        const cp2y = next.y;
+        path += ` C ${cp1x.toFixed(2)},${cp1y.toFixed(2)} ${cp2x.toFixed(2)},${cp2y.toFixed(2)} ${next.x.toFixed(2)},${next.y.toFixed(2)}`;
+    }
+    return path;
 }
 
-export default function SparklineStatCard({ label, value, subLabel, icon, data, colorScheme, loading = false, index = 0, animationKey = "default" }: SparklineStatCardProps) {
+export default function SparklineStatCard({
+    label,
+    value,
+    subLabel,
+    data = [],
+    icon,
+    colorScheme = "blue",
+    index = 0,
+    animationKey,
+}: SparklineStatCardProps) {
     const { theme } = useTheme();
-    const colors = COLOR_MAP[colorScheme];
-    const displayValue = useCountUp(value, 800);
-    const gradientId = `sparkline-${colorScheme}-${index}`;
-    const chartData = useMemo(
-        () =>
-            data?.length
-                ? data
-                : Array.from({ length: animationKey === "week" ? 7 : 30 }, (_, pointIndex) => ({
-                      label: `Day ${pointIndex + 1}`,
-                      value: 0,
-                  })),
-        [animationKey, data]
-    );
+    const reduceMotion = useReducedMotion();
+
+    const palette = {
+        red: {
+            start: "#fb7185",
+            mid: "#f43f5e",
+            end: "#ec4899",
+            dot: "#f43f5e",
+            badgeText: theme ? "text-emerald-400" : "text-rose-600",
+        },
+        blue: {
+            start: "#38bdf8",
+            mid: "#3b82f6",
+            end: "#6366f1",
+            dot: "#38bdf8",
+            badgeText: theme ? "text-emerald-400" : "text-blue-600",
+        },
+        green: {
+            start: "#34d399",
+            mid: "#10b981",
+            end: "#06b6d4",
+            dot: "#10b981",
+            badgeText: theme ? "text-emerald-400" : "text-emerald-600",
+        },
+        purple: {
+            start: "#a855f7",
+            mid: "#8b5cf6",
+            end: "#ec4899",
+            dot: "#ec4899",
+            badgeText: theme ? "text-purple-300" : "text-purple-600",
+        },
+        amber: {
+            start: "#fbbf24",
+            mid: "#f59e0b",
+            end: "#ec4899",
+            dot: "#f59e0b",
+            badgeText: theme ? "text-amber-300" : "text-amber-600",
+        },
+    }[colorScheme];
+
+    const width = 400;
+    const height = 72;
+    const padLeft = 4;
+    const padRight = 4;
+    const padTop = 12;
+    const padBottom = 10;
+
+    const usableWidth = width - padLeft - padRight;
+    const usableHeight = height - padTop - padBottom;
+
+    const waveValues = normalizeWaveValues(data);
+    const hasActivity = data.some((d) => Number(d.value) > 0);
+
+    const coords = waveValues.map((normVal, i) => {
+        const x = padLeft + (i / (waveValues.length - 1)) * usableWidth;
+        const y = padTop + usableHeight * (1 - normVal);
+        return { x, y };
+    });
+
+    const smoothLinePath = buildSmoothPath(coords);
+    const firstX = coords[0].x;
+    const lastPoint = coords[coords.length - 1];
+    const areaPath = `${smoothLinePath} L ${lastPoint.x.toFixed(2)},${height} L ${firstX.toFixed(2)},${height} Z`;
+
+    const lineGradId = `sparkLineGrad-${index}-${colorScheme}`;
+    const areaGradId = `sparkAreaGrad-${index}-${colorScheme}`;
+
+    const muted = theme ? "text-slate-300/80" : "text-slate-500";
+    const strong = theme ? "text-white" : "text-slate-900";
 
     return (
-    <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, delay: index * 0.08, ease: "easeOut" }}
-        whileHover={{ y: -3 }}
-        className={`rounded-2xl border p-5 shadow-sm transition-[background-color,border-color,box-shadow] duration-300 hover:shadow-lg ${theme ? "bg-gray-900 border-gray-800 hover:border-gray-700 hover:shadow-black/20" : "bg-white border-gray-100 hover:border-gray-200 hover:shadow-gray-200/60"}`}
-    >
-            <div className="flex items-start justify-between gap-3">
+        <motion.div
+            key={animationKey}
+            initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: index * 0.06 }}
+            className={`relative flex h-full flex-col justify-between overflow-hidden rounded-[28px] border p-5 sm:p-6 backdrop-blur-2xl ${theme
+                    ? "border-white/15 bg-slate-900/65 shadow-[0_20px_50px_rgba(0,0,0,0.45),inset_0_1px_1px_rgba(255,255,255,0.15)]"
+                    : "border-white/90 bg-white/80 shadow-[0_20px_50px_rgba(59,130,246,0.12),inset_0_1px_2px_rgba(255,255,255,1)]"
+                }`}
+        >
+            <div
+                aria-hidden="true"
+                style={{
+                    background:
+                        "radial-gradient(circle, rgba(59, 130, 246, 0.55) 0%, rgba(236, 72, 153, 0.55) 60%, transparent 100%)",
+                    filter: "blur(55px)",
+                }}
+                className={`pointer-events-none absolute -bottom-10 right-6 h-52 w-52 rounded-full ${theme ? "opacity-60" : "opacity-40"
+                    }`}
+            />
+
+            <div className="relative z-10 flex items-start justify-between gap-4">
                 <div>
-                    <p className={`text-xs font-bold tracking-wide uppercase ${theme ? "text-gray-500" : "text-gray-400"}`}>{label}</p>
-                    <p className={`mt-2 text-4xl font-black leading-none ${theme ? "text-white" : "text-gray-900"}`}>{displayValue}</p>
-                    <p className={`mt-2 text-xs font-semibold ${theme ? colors.subDark : colors.subLight}`}>{subLabel}</p>
+                    <p className={`text-[11px] font-extrabold uppercase tracking-[0.16em] ${muted}`}>
+                        {label}
+                    </p>
+                    <h3 className={`mt-1.5 text-3xl font-black tabular-nums sm:text-4xl ${strong}`}>
+                        {value}
+                    </h3>
+                    <p className={`mt-1 text-xs font-semibold ${palette.badgeText}`}>
+                        {subLabel}
+                    </p>
                 </div>
-                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${theme ? colors.iconDark : colors.iconLight}`}>{icon}</span>
+
+                {icon && (
+                    <div
+                        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border backdrop-blur-xl ${theme
+                                ? "border-white/15 bg-white/10 text-pink-300"
+                                : "border-white bg-white/80 text-pink-600 shadow-sm"
+                            }`}
+                    >
+                        {icon}
+                    </div>
+                )}
             </div>
 
-            <div className="mt-5 h-20 w-full" aria-label={`${label} trend chart`}>
-                {loading ? (
-                    <div className={`h-full w-full animate-pulse rounded-lg ${theme ? "bg-gray-800" : "bg-gray-100"}`} />
-                ) : (
-                    <AnimatePresence mode="wait" initial={false}>
-                        <motion.div key={animationKey} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="h-full w-full">
-                            <ResponsiveContainer
-                                width="100%"
-                                height="100%"
-                                minWidth={0}
-                                minHeight={80}
-                                initialDimension={{ width: 320, height: 80 }}
-                            >
-                                <AreaChart data={chartData} margin={{ top: 6, right: 2, left: 2, bottom: 0 }}>
-                                        <defs>
-                                            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="0%" stopColor={colors.accent} stopOpacity={0.35} />
-                                                <stop offset="100%" stopColor={colors.accent} stopOpacity={0} />
-                                            </linearGradient>
-                                        </defs>
-                                        <XAxis dataKey="label" hide />
-                                        <YAxis hide domain={["dataMin - 1", "dataMax + 1"]} />
-                                        <Tooltip content={<TooltipContent theme={theme} />} cursor={{ stroke: colors.accent, strokeOpacity: 0.2 }} />
-                                        <Area
-                                            type="monotone"
-                                            dataKey="value"
-                                            stroke={colors.accent}
-                                            strokeWidth={2.5}
-                                            fill={`url(#${gradientId})`}
-                                            dot={({ cx, cy, index: pointIndex }) =>
-                                                pointIndex === chartData.length - 1 ? (
-                                                    <circle cx={cx} cy={cy} r={3.5} fill={colors.accent} className="animate-pulse" />
-                                                ) : null
-                                            }
-                                            activeDot={{ r: 3, fill: colors.accent }}
-                                            isAnimationActive
-                                            animationDuration={1000}
-                                            animationEasing="ease-out"
-                                        />
-                                </AreaChart>
-                            </ResponsiveContainer>
-                        </motion.div>
-                    </AnimatePresence>
-                )}
+            <div className="relative z-10 mt-4 w-full pt-2">
+                <svg
+                    viewBox={`0 0 ${width} ${height}`}
+                    preserveAspectRatio="xMidYMid meet"
+                    className="w-full h-auto aspect-[400/72] overflow-visible block"
+                >
+                    <defs>
+                        <linearGradient id={lineGradId} x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stopColor={palette.start} />
+                            <stop offset="50%" stopColor={palette.mid} />
+                            <stop offset="100%" stopColor={palette.end} />
+                        </linearGradient>
+
+                        <linearGradient id={areaGradId} x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stopColor={palette.mid} stopOpacity={theme ? "0.28" : "0.2"} />
+                            <stop offset="100%" stopColor={palette.start} stopOpacity="0.0" />
+                        </linearGradient>
+                    </defs>
+
+                    <motion.path
+                        d={areaPath}
+                        fill={`url(#${areaGradId})`}
+                        initial={reduceMotion ? false : { opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.6, delay: 0.1 + index * 0.06 }}
+                    />
+
+                    <motion.path
+                        d={smoothLinePath}
+                        fill="none"
+                        stroke={`url(#${lineGradId})`}
+                        strokeWidth="2.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        vectorEffect="non-scaling-stroke"
+                        style={{
+                            filter: `drop-shadow(0 0 6px ${palette.dot}66)`,
+                        }}
+                        initial={reduceMotion ? false : { pathLength: 0, opacity: 0 }}
+                        animate={{ pathLength: 1, opacity: 1 }}
+                        transition={{ duration: 0.9, delay: 0.08 + index * 0.06, ease: "easeOut" }}
+                    />
+
+                    {hasActivity && (
+                        <motion.circle
+                            cx={lastPoint.x}
+                            cy={lastPoint.y}
+                            r="7"
+                            fill={palette.dot}
+                            opacity="0.25"
+                            initial={reduceMotion ? false : { scale: 0 }}
+                            animate={{ scale: [1, 1.4, 1] }}
+                            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                        />
+                    )}
+                    <motion.circle
+                        cx={lastPoint.x}
+                        cy={lastPoint.y}
+                        r="3.5"
+                        fill="#ffffff"
+                        stroke={palette.dot}
+                        strokeWidth="2.2"
+                        initial={reduceMotion ? false : { scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ duration: 0.4, delay: 0.7 + index * 0.06 }}
+                    />
+                </svg>
             </div>
         </motion.div>
     );

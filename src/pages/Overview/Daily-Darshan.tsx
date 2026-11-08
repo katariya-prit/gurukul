@@ -143,7 +143,7 @@ const DailyDarshan: React.FC = () => {
 
       {/* 4. DYNAMIC IMAGES & DESCRIPTION BOXES */}
       {!loading && !error && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10 max-w-full mx-auto">
           {darshanItems.length > 0 ? (
             darshanItems.map((item) => (
               <div

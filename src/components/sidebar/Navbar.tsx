@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTheme } from "../theme/ThemeContext";
-import SidebarDropdown from "./SidebarDropdown";
+import SidebarDropdown from "./SidebarGroup";
 import {
     HiOutlineHome,
     HiOutlineLibrary,

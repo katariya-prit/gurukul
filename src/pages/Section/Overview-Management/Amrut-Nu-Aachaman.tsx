@@ -304,7 +304,7 @@ const AmrutNuAachaman: React.FC = () => {
                 >
                     <div 
                         onClick={(e) => e.stopPropagation()}
-                        className={`w-full max-w-7xl rounded-2xl overflow-hidden border cursor-default shadow-2xl ${
+                        className={`w-full max-w-full rounded-2xl overflow-hidden border cursor-default shadow-2xl ${
                             theme ? "bg-[#151D2F] border-white/10" : "bg-white border-slate-200"
                         }`}
                     >
