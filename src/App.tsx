@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Toaster } from 'sonner'
 import './App.css'
 import { ThemeProvider } from './components/theme/ThemeContext'
@@ -7,6 +8,22 @@ import { BackgroundTasksProvider } from './components/background/BackgroundTasks
 import OverlayRoot from './components/overlay/OverlayRoot'
 
 function App() {
+  useEffect(() => {
+    const handleFirstClick = () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch((err) => {
+          console.log("Error attempting to enable fullscreen:", err);
+        });
+      }
+    };
+
+    window.addEventListener('click', handleFirstClick, { once: true });
+
+    return () => {
+      window.removeEventListener('click', handleFirstClick);
+    };
+  }, []);
+
   return (
     <ThemeProvider>
       <BackgroundTasksProvider>
@@ -24,4 +41,5 @@ function App() {
     </ThemeProvider>
   )
 }
+
 export default App
