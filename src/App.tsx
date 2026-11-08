@@ -9,18 +9,23 @@ import OverlayRoot from './components/overlay/OverlayRoot'
 
 function App() {
   useEffect(() => {
-    const handleFirstClick = () => {
+    const triggerFullscreen = () => {
       if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch((err) => {
-          console.log("Error attempting to enable fullscreen:", err);
+        document.documentElement.requestFullscreen().catch(() => {
+          // Browser may block if not triggered by direct user gesture
         });
       }
     };
 
-    window.addEventListener('click', handleFirstClick, { once: true });
+    // Listen to multiple events to catch the very first user interaction immediately
+    window.addEventListener('click', triggerFullscreen, { once: true });
+    window.addEventListener('touchstart', triggerFullscreen, { once: true });
+    window.addEventListener('keydown', triggerFullscreen, { once: true });
 
     return () => {
-      window.removeEventListener('click', handleFirstClick);
+      window.removeEventListener('click', triggerFullscreen);
+      window.removeEventListener('touchstart', triggerFullscreen);
+      window.removeEventListener('keydown', triggerFullscreen);
     };
   }, []);
 
