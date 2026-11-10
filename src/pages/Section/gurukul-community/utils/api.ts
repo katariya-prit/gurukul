@@ -124,16 +124,18 @@ export const fetchRemoteMessages = async (convKey: string): Promise<ChatMessage[
     }
 };
 
-export const postRemoteMessage = async (convKey: string, text: string): Promise<boolean> => {
+export const postRemoteMessage = async (convKey: string, text: string, clientId?: string): Promise<any | null> => {
     if (!CHAT_API_BASE) return true;
     try {
         const res = await fetch(`${CHAT_API_BASE}/chat/${encodeURIComponent(convKey)}/messages`, {
             method: "POST",
             headers: { "Content-Type": "application/json", ...authHeaders() },
-            body: JSON.stringify({ text }),
+            body: JSON.stringify({ text, client_id: clientId }),
         });
-        return res.ok;
+        if (!res.ok) return null;
+        const json = await res.json();
+        return json.success ? (json.data ?? json) : null;
     } catch {
-        return false;
+        return null;
     }
 };

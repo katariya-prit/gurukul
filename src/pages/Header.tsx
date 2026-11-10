@@ -79,17 +79,17 @@ export default function Header({ toggleSidebar }: HeaderProps) {
     const todayStr = `${yearStr}-${monthStr}-${dateStr}`;
     const todayEvent = eventsData ? eventsData[todayStr] : null;
 
-    const calendarTriggerClass = `group relative flex h-9.5 cursor-pointer items-center justify-center border px-3.5 shadow-sm transition-colors duration-300 ${theme
+    const calendarTriggerClass = `group relative flex h-8.5 sm:h-9.5 cursor-pointer items-center justify-center border px-2 sm:px-3.5 rounded-xl shadow-sm transition-colors duration-200 ${theme
         ? "bg-slate-800/90 border-slate-700/80 hover:border-slate-500 hover:bg-slate-800"
         : "bg-slate-50 border-slate-200 hover:border-slate-300 hover:bg-white"
         }`;
 
-    const calendarPanelClass = `border shadow-2xl backdrop-blur-md ${theme
-        ? "bg-slate-900/90 border-white/10 text-slate-100"
-        : "bg-white/95 border-slate-200 text-slate-800"
+    const calendarPanelClass = `border shadow-2xl ${theme
+        ? "bg-slate-900 border-white/10 text-slate-100"
+        : "bg-white border-slate-200 text-slate-800"
         }`;
 
-    const notificationTriggerClass = `p-2.5 duration-300 cursor-pointer rounded-xl border-l transition-colors relative shadow-sm ${theme
+    const notificationTriggerClass = `p-2 sm:p-2.5 duration-200 cursor-pointer rounded-xl border-l transition-colors relative shadow-sm ${theme
         ? "bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-blue-200"
         : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-white hover:text-red-500"
         }`;
@@ -119,24 +119,23 @@ export default function Header({ toggleSidebar }: HeaderProps) {
     };
 
     return (
-        <header className={`h-18 border-b flex items-center justify-between px-4 sm:px-6 sticky top-0 z-20 shadow-sm transition-colors duration-300 ${theme ? "bg-[#0f172a]/95 backdrop-blur-xl border-slate-800 text-white" : "bg-white border-slate-200 text-slate-800"
+        <header className={`h-16 sm:h-18 border-b flex items-center justify-between px-3 sm:px-6 sticky top-0 z-20 shadow-sm transition-colors duration-200 ${theme ? "bg-[#0f172a] border-slate-800 text-white" : "bg-white border-slate-200 text-slate-800"
             }`}>
             <Application
                 open={applicationData}
                 onClose={() => setApplicationData(false)}
                 triggerRef={applicationTriggerRef}
             />
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4 min-w-0">
                 <button
                     onClick={toggleSidebar}
-                    className={`p-2 rounded-lg md:hidden transition-colors cursor-pointer ${theme ? "bg-slate-800 text-slate-300 hover:bg-slate-700" : "bg-slate-50 text-slate-600 hover:bg-slate-100"
+                    className={`p-2 rounded-lg md:hidden transition-colors cursor-pointer shrink-0 ${theme ? "bg-slate-800 text-slate-300 hover:bg-slate-700" : "bg-slate-50 text-slate-600 hover:bg-slate-100"
                         }`}
                 >
-                    <HiOutlineMenuAlt2 className="text-2xl" />
+                    <HiOutlineMenuAlt2 className="text-xl sm:text-2xl" />
                 </button>
 
-                {/* Gradient Red Back and Forward Buttons with Soft Red Shadow */}
-                <div className="flex items-center gap-2">
+                <div className="hidden sm:flex items-center gap-2 shrink-0">
                     <button
                         type="button"
                         onClick={() => handleNavigation(-1)}
@@ -155,12 +154,12 @@ export default function Header({ toggleSidebar }: HeaderProps) {
                     </button>
                 </div>
 
-                <h1 className={`text-lg sm:text-2xl font-black hidden sm:block tracking-wide ${theme ? "text-white" : "text-slate-800"
+                <h1 className={`text-base sm:text-2xl font-black tracking-wide truncate max-w-[120px] xs:max-w-[170px] sm:max-w-none ${theme ? "text-white" : "text-slate-800"
                     }`}>
                     {headerTitle}
                 </h1>
             </div>
-            <div className="flex items-center gap-3 sm:gap-5 h-full">
+            <div className="flex items-center gap-1.5 xs:gap-2 sm:gap-4 md:gap-5 h-full shrink-0">
                 <MorphPopover
                     id="calendar"
                     isOpen={isEventCalendarOpen}
@@ -169,20 +168,20 @@ export default function Header({ toggleSidebar }: HeaderProps) {
                     triggerTitle="Calendar"
                     triggerClassName={calendarTriggerClass}
                     panelClassName={calendarPanelClass}
-                    closedRadius={12}
-                    openRadius={28}
-                    panelWidth={400}
+                    closedRadius={10}
+                    openRadius={24}
+                    panelWidth={380}
                     renderTrigger={() => (
                         <>
-                            <span className={`text-[17px] font-black leading-none tracking-tight transition-colors ${theme ? "text-blue-500" : "text-red-500"
+                            <span className={`text-[15px] sm:text-[17px] font-black leading-none tracking-tight transition-colors ${theme ? "text-blue-500" : "text-red-500"
                                 }`}>
                                 {dayNumber}
                             </span>
-                            <span className={`text-[12px] font-light mx-2 ${theme ? "text-slate-600 group-hover:text-slate-500" : "text-slate-300 group-hover:text-slate-400"
+                            <span className={`text-[11px] sm:text-[12px] font-light mx-1 sm:mx-2 ${theme ? "text-slate-600 group-hover:text-slate-500" : "text-slate-300 group-hover:text-slate-400"
                                 }`}>
                                 |
                             </span>
-                            <span className={`text-[11px] font-extrabold tracking-widest leading-none mt-0.5 ${theme ? "text-slate-300 group-hover:text-white" : "text-slate-600 group-hover:text-slate-900"
+                            <span className={`text-[10px] sm:text-[11px] font-extrabold tracking-widest leading-none mt-0.5 ${theme ? "text-slate-300 group-hover:text-white" : "text-slate-600 group-hover:text-slate-900"
                                 }`}>
                                 {monthShort}
                             </span>
@@ -206,13 +205,13 @@ export default function Header({ toggleSidebar }: HeaderProps) {
                             if (isEventCalendarOpen) setIsEventCalendarOpen(false);
                             if (isCenterOpen) closeCenter();
                         }}
-                        className={`p-2.5 duration-300 cursor-pointer border-r rounded-xl transition-colors relative shadow-sm ${theme
+                        className={`p-2 sm:p-2.5 duration-200 cursor-pointer border-r rounded-xl transition-colors relative shadow-sm ${theme
                             ? "bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-blue-200"
                             : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-white hover:text-red-500"
                             }`}
                         title="Application"
                     >
-                        <CgAlbum className="text-[20px]" />
+                        <CgAlbum className="text-[18px] sm:text-[20px]" />
                     </button>
                     <div ref={setBellAnchor} className="relative flex items-center">
                         <MorphPopover
@@ -223,12 +222,12 @@ export default function Header({ toggleSidebar }: HeaderProps) {
                             triggerTitle="Notifications"
                             triggerClassName={notificationTriggerClass}
                             panelClassName={notificationPanelClass}
-                            closedRadius={12}
+                            closedRadius={10}
                             openRadius={20}
                             panelWidth={360}
                             renderTrigger={() => (
                                 <>
-                                    <HiOutlineBell className="text-[20px]" />
+                                    <HiOutlineBell className="text-[18px] sm:text-[20px]" />
                                     {unreadCount > 0 && (
                                         <span aria-hidden="true" className="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center">
                                             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-50" />

@@ -4,51 +4,17 @@ import { useTheme } from "../../../components/theme/ThemeContext";
 import Input from "../../../components/common/Input";
 import Button from "../../../components/common/Button";
 import DescriptionInput from "../../../components/common/DescriptionInput";
-
 import {
     HiOutlineOfficeBuilding,
-    HiOutlineDocumentText,
+    HiOutlineArrowLeft,
+    HiOutlineSparkles,
+    HiOutlineInformationCircle,
+    HiOutlineCheck,
 } from "react-icons/hi";
-import { FaBuilding } from "react-icons/fa";
+import { FaBuilding, FaLayerGroup, FaUsers } from "react-icons/fa";
 import { toast } from "sonner";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
-
-const authHeaders = (): HeadersInit => {
-    const token = localStorage.getItem("token");
-    return {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    };
-};
-
-function SectionHeading({
-    icon,
-    title,
-    theme,
-}: {
-    icon: React.ReactNode;
-    title: string;
-    theme: boolean;
-}) {
-    return (
-        <div className="flex items-center gap-2 mb-4">
-            <span
-                className={`flex items-center justify-center w-7 h-7 rounded-lg shrink-0 ${theme ? "bg-blue-500/10 text-blue-300" : "bg-red-500/10 text-red-600"
-                    }`}
-            >
-                {icon}
-            </span>
-            <h3
-                className={`text-xs font-semibold uppercase tracking-wider ${theme ? "text-gray-400" : "text-neutral-500"
-                    }`}
-            >
-                {title}
-            </h3>
-            <div className={`flex-1 h-px ${theme ? "bg-gray-800" : "bg-neutral-200"}`} />
-        </div>
-    );
-}
 
 export interface DepartmentCreate {
     departmentName: string;
@@ -72,10 +38,12 @@ export default function CreateDepartment() {
         const loadDepartment = async () => {
             try {
                 const response = await fetch(`${API_URL}/departments/${departmentId}`, {
-                    headers: authHeaders(),
+                    credentials: "include",
                 });
                 const result = await response.json();
-                if (!response.ok || !result.success) throw new Error(result.message || "Department not found");
+                if (!response.ok || !result.success) {
+                    throw new Error(result.message || "Department not found");
+                }
                 setFormData({
                     departmentName: result.data.departmentName || "",
                     description: result.data.description || "",
@@ -105,26 +73,25 @@ export default function CreateDepartment() {
                 isEditMode ? `${API_URL}/departments/${departmentId}` : `${API_URL}/departments/create`,
                 {
                     method: isEditMode ? "PUT" : "POST",
-                    headers: authHeaders(),
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    credentials: "include",
                     body: JSON.stringify(formData),
                 }
             );
 
             const result = await response.json();
 
-            console.log("Backend Department Response:", result);
-
             if (result.success) {
                 toast.success(isEditMode ? "Department updated successfully!" : "Department created successfully!");
-
-                // ફોર્મ ક્લિયર કરવું
                 setFormData({
                     departmentName: "",
                     description: "",
                 });
-                if (isEditMode) navigate("/dashboard/departments/list");
+                navigate("/dashboard/departments/list");
             } else {
-                toast.error(result.message || "Failed to create department");
+                toast.error(result.message || "Failed to save department");
             }
         } catch {
             toast.error("Something went wrong with the server.");
@@ -134,82 +101,255 @@ export default function CreateDepartment() {
     };
 
     return (
-        <div
-            className={`max-w-full mx-auto p-6 sm:p-8 rounded-2xl shadow-sm mt-6 border transition-all duration-200 ${theme ? "bg-gray-900 border-gray-800 text-white" : "bg-white border-neutral-200 text-neutral-900"
-                }`}
-        >
-            {/* ===== Header ===== */}
-            <div className="mb-8 pb-6 border-b flex flex-col items-center text-center gap-2 border-neutral-200 dark:border-gray-800">
-                <div
-                    className={`w-16 h-16 text-white rounded-full shadow-lg ${theme
-                        ? "bg-linear-to-bl from-blue-300 to-blue-900 shadow-blue-950/40"
-                        : "bg-linear-to-bl from-red-300 to-red-900 shadow-red-950/20"
-                        } flex items-center justify-center mb-1`}
-                >
-                    <FaBuilding size={24} />
-                </div>
-                <h2 className={`text-3xl sm:text-4xl font-bold tracking-tight ${theme ? "text-blue-200" : "text-red-600"}`}>
-                    { isEditMode ? "Update Department" : "Create Department"}
-                </h2>
-                <p className={`text-sm max-w-md ${theme ? "text-gray-400" : "text-neutral-500"}`}>
-                    Fill in the details below to register a new department.
-                </p>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-8">
-
-                {/* ===== Department Identity section ===== */}
-                <div>
-                    <SectionHeading icon={<HiOutlineOfficeBuilding size={15} />} title="Department Identity" theme={theme} />
+        <div className="w-full space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/[0.08] dark:border-white/[0.08]">
+                <div className="flex items-center gap-3.5">
+                    <button
+                        type="button"
+                        onClick={() => navigate("/dashboard/departments/list")}
+                        className={`p-2.5 rounded-xl border transition-colors ${
+                            theme
+                                ? "bg-white/[0.04] hover:bg-white/[0.08] border-white/10 text-gray-300"
+                                : "bg-white hover:bg-slate-100 border-slate-200 text-slate-700 shadow-sm"
+                        }`}
+                        title="Back to departments"
+                    >
+                        <HiOutlineArrowLeft size={18} />
+                    </button>
+                    <div
+                        className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-md ${
+                            theme
+                                ? "bg-linear-to-br from-blue-500 to-indigo-700 text-white shadow-blue-500/20"
+                                : "bg-linear-to-br from-red-600 to-rose-700 text-white shadow-red-500/20"
+                        }`}
+                    >
+                        <FaBuilding size={20} />
+                    </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1.5">Department Name *</label>
-                        <Input
-                            type="text"
-                            name="departmentName"
-                            value={formData.departmentName}
-                            onChange={handleInputChange}
-                            icon={<HiOutlineOfficeBuilding className="text-lg" />}
-                            placeholder="Enter department name"
-                            required
-                        />
+                        <div className="flex items-center gap-2">
+                            <h1 className={`text-xl sm:text-2xl font-bold tracking-tight ${theme ? "text-white" : "text-slate-900"}`}>
+                                {isEditMode ? "Update Department" : "Create Department"}
+                            </h1>
+                            <span
+                                className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${
+                                    theme ? "bg-blue-500/10 text-blue-300 border border-blue-500/20" : "bg-red-50 text-red-700 border border-red-200"
+                                }`}
+                            >
+                                {isEditMode ? `ID #${departmentId}` : "New Department"}
+                            </span>
+                        </div>
+                        <p className={`text-xs sm:text-sm mt-0.5 ${theme ? "text-gray-400" : "text-slate-500"}`}>
+                            Configure academic or operational department details for your institution.
+                        </p>
                     </div>
                 </div>
+            </div>
 
-                {/* ===== Description section ===== */}
-                <div>
-                    <SectionHeading icon={<HiOutlineDocumentText size={15} />} title="Description" theme={theme} />
-                    <DescriptionInput
-                        name="description"
-                        value={formData.description}
-                        onChange={handleInputChange}
-                        maxLength={300}
-                        placeholder="Enter department description or core details..."
-                        label="Description"
-                        required={false}
-                    />
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                <div className="lg:col-span-7 space-y-6">
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        <div
+                            className={`rounded-2xl border p-5 sm:p-7 transition-all ${
+                                theme ? "bg-white/[0.02] border-white/[0.08]" : "bg-white border-slate-200 shadow-sm"
+                            }`}
+                        >
+                            <div className="flex items-center gap-2.5 mb-5 pb-3 border-b border-white/[0.06] dark:border-white/[0.06]">
+                                <span
+                                    className={`w-7 h-7 rounded-lg flex items-center justify-center ${
+                                        theme ? "bg-blue-500/10 text-blue-400" : "bg-red-500/10 text-red-600"
+                                    }`}
+                                >
+                                    <HiOutlineOfficeBuilding size={16} />
+                                </span>
+                                <h2 className={`text-sm font-bold uppercase tracking-wider ${theme ? "text-gray-300" : "text-slate-800"}`}>
+                                    Department Information
+                                </h2>
+                            </div>
+
+                            <div className="space-y-5">
+                                <div>
+                                    <label className={`block text-xs font-semibold mb-1.5 ${theme ? "text-gray-300" : "text-slate-700"}`}>
+                                        Department Name *
+                                    </label>
+                                    <Input
+                                        type="text"
+                                        name="departmentName"
+                                        value={formData.departmentName}
+                                        onChange={handleInputChange}
+                                        icon={<HiOutlineOfficeBuilding className="text-lg" />}
+                                        placeholder="e.g. Science, Mathematics, Sanskrit"
+                                        required
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className={`block text-xs font-semibold mb-1.5 ${theme ? "text-gray-300" : "text-slate-700"}`}>
+                                        Description & Details
+                                    </label>
+                                    <DescriptionInput
+                                        name="description"
+                                        value={formData.description}
+                                        onChange={handleInputChange}
+                                        maxLength={300}
+                                        placeholder="Enter core details, educational vision or scope for this department..."
+                                        label="Description"
+                                        required={false}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div
+                            className={`flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl border ${
+                                theme ? "bg-white/[0.02] border-white/[0.08]" : "bg-white border-slate-200 shadow-sm"
+                            }`}
+                        >
+                            <p className={`text-xs ${theme ? "text-gray-400" : "text-slate-500"}`}>
+                                Fields marked with <strong className="text-red-500">*</strong> are required.
+                            </p>
+
+                            <div className="flex items-center gap-3 w-full sm:w-auto">
+                                <button
+                                    type="button"
+                                    onClick={() => navigate("/dashboard/departments/list")}
+                                    disabled={loading}
+                                    className={`flex-1 sm:flex-none px-4 py-2.5 rounded-xl text-xs font-semibold border transition-colors ${
+                                        theme
+                                            ? "bg-white/[0.04] hover:bg-white/[0.08] text-gray-300 border-white/10"
+                                            : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
+                                    }`}
+                                >
+                                    Cancel
+                                </button>
+                                <Button
+                                    type="submit"
+                                    disabled={loading}
+                                    className={`flex-1 sm:flex-none min-w-40 text-xs font-semibold ${
+                                        theme ? "bg-blue-600 hover:bg-blue-700" : "bg-red-600 hover:bg-red-700"
+                                    }`}
+                                >
+                                    {loading ? (
+                                        <span className="flex items-center justify-center gap-2">
+                                            <span className="w-3.5 h-3.5 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                                            Saving...
+                                        </span>
+                                    ) : isEditMode ? (
+                                        "Update Department"
+                                    ) : (
+                                        "Create Department"
+                                    )}
+                                </Button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
 
-                {/* ===== Submit Button ===== */}
-                <div className="flex justify-end items-center gap-3 pt-6 border-t border-neutral-200 dark:border-gray-800">
-                    <p className={`text-xs mr-auto hidden sm:block ${theme ? "text-gray-500" : "text-neutral-400"}`}>
-                        Fields marked * are required.
-                    </p>
-                    <Button
-                        type="submit"
-                        disabled={loading}
-                        className={`${theme ? "bg-blue-600 hover:bg-blue-700" : "bg-red-600 hover:bg-red-700"} min-w-45 transition-colors duration-150 disabled:opacity-60 disabled:cursor-not-allowed`}
+                <div className="lg:col-span-5 space-y-6">
+                    <div
+                        className={`rounded-2xl border p-5 sm:p-6 transition-all ${
+                            theme ? "bg-white/[0.02] border-white/[0.08]" : "bg-white border-slate-200 shadow-sm"
+                        }`}
                     >
-                        {loading ? (
-                            <span className="flex items-center justify-center gap-2">
-                                <span className="w-3.5 h-3.5 rounded-full border-2 border-white/40 border-t-white animate-spin" />
-                                Processing...
-                            </span>
-                        ) : (
-                            "Create Department"
-                        )}
-                    </Button>
+                        <div className="flex items-center gap-2 mb-4 pb-3 border-b border-white/[0.06] dark:border-white/[0.06]">
+                            <HiOutlineSparkles className={theme ? "text-blue-400" : "text-red-600"} size={16} />
+                            <h3 className={`text-xs font-bold uppercase tracking-wider ${theme ? "text-gray-300" : "text-slate-800"}`}>
+                                Live Preview
+                            </h3>
+                        </div>
+
+                        <div
+                            className={`p-5 rounded-xl border transition-all ${
+                                theme ? "bg-black/30 border-white/10" : "bg-slate-50 border-slate-200"
+                            }`}
+                        >
+                            <div className="flex items-start gap-3.5">
+                                <div
+                                    className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-md ${
+                                        theme
+                                            ? "bg-linear-to-br from-blue-500 to-indigo-700 text-white shadow-blue-500/20"
+                                            : "bg-linear-to-br from-red-600 to-rose-700 text-white shadow-red-500/20"
+                                    }`}
+                                >
+                                    <FaBuilding size={20} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <h4 className={`text-base font-bold truncate ${theme ? "text-white" : "text-slate-900"}`}>
+                                        {formData.departmentName.trim() || "Department Name Preview"}
+                                    </h4>
+                                    <span
+                                        className={`inline-block mt-0.5 text-[10px] font-mono font-medium px-2 py-0.5 rounded ${
+                                            theme ? "bg-white/[0.06] text-gray-400" : "bg-slate-200 text-slate-600"
+                                        }`}
+                                    >
+                                        {isEditMode ? `ID #${departmentId}` : "ID: Auto-generated"}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <p
+                                className={`text-xs mt-3.5 line-clamp-3 leading-relaxed ${
+                                    theme ? "text-gray-400" : "text-slate-600"
+                                }`}
+                            >
+                                {formData.description.trim() ||
+                                    "Provide a description to explain the courses, scope and vision of this department."}
+                            </p>
+
+                            <div className="mt-4 pt-3 border-t border-white/[0.06] flex items-center justify-between text-[11px]">
+                                <span className="flex items-center gap-1.5 opacity-70">
+                                    <FaLayerGroup size={11} /> 0 Sections
+                                </span>
+                                <span className="flex items-center gap-1.5 opacity-70">
+                                    <FaUsers size={11} /> 0 Students
+                                </span>
+                                <span className={`font-semibold ${theme ? "text-blue-400" : "text-red-600"}`}>
+                                    Active
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        className={`rounded-2xl border p-5 sm:p-6 transition-all ${
+                            theme ? "bg-white/[0.02] border-white/[0.08]" : "bg-white border-slate-200 shadow-sm"
+                        }`}
+                    >
+                        <div className="flex items-center gap-2 mb-3 pb-2 border-b border-white/[0.06] dark:border-white/[0.06]">
+                            <HiOutlineInformationCircle className={theme ? "text-blue-400" : "text-red-600"} size={16} />
+                            <h3 className={`text-xs font-bold uppercase tracking-wider ${theme ? "text-gray-300" : "text-slate-800"}`}>
+                                Setup Guidelines
+                            </h3>
+                        </div>
+
+                        <ul className="space-y-2.5 text-xs">
+                            <li className="flex items-start gap-2">
+                                <span className={`p-0.5 rounded-full mt-0.5 ${theme ? "bg-blue-500/20 text-blue-400" : "bg-red-100 text-red-600"}`}>
+                                    <HiOutlineCheck size={12} />
+                                </span>
+                                <span className={theme ? "text-gray-400" : "text-slate-600"}>
+                                    Use clear, unique names like <strong>Mathematics</strong> or <strong>Primary Wing</strong>.
+                                </span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                                <span className={`p-0.5 rounded-full mt-0.5 ${theme ? "bg-blue-500/20 text-blue-400" : "bg-red-100 text-red-600"}`}>
+                                    <HiOutlineCheck size={12} />
+                                </span>
+                                <span className={theme ? "text-gray-400" : "text-slate-600"}>
+                                    Sections can be created under this department once registered.
+                                </span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                                <span className={`p-0.5 rounded-full mt-0.5 ${theme ? "bg-blue-500/20 text-blue-400" : "bg-red-100 text-red-600"}`}>
+                                    <HiOutlineCheck size={12} />
+                                </span>
+                                <span className={theme ? "text-gray-400" : "text-slate-600"}>
+                                    Department Head can be assigned from the User Management pipeline.
+                                </span>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
-            </form>
+            </div>
         </div>
     );
 }

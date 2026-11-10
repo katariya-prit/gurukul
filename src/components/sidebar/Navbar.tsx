@@ -482,7 +482,14 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
                     );
                 })
             ) : (
-                (singleDepartment ? (sectionsByDept[singleDepartment.departmentId] || []).map((section) => {
+                (singleDepartment ? (sectionsByDept[singleDepartment.departmentId] || [])
+                    .filter((section) => {
+                        if (user?.roleCode === "SECHEAD101" && user?.sectionId) {
+                            return Number(section.sectionId) === Number(user.sectionId);
+                        }
+                        return true;
+                    })
+                    .map((section) => {
                     const studentItems = getStudentSectionItems(hasAccess, singleDepartment.departmentId, section.sectionId);
 
                     if (studentItems.length === 0) {

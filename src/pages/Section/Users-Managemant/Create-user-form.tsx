@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTheme } from "../../../components/theme/ThemeContext";
@@ -14,14 +13,14 @@ import {
     HiOutlineOfficeBuilding,
     HiOutlineCalendar,
     HiOutlineShieldCheck,
+    HiOutlineArrowLeft,
+    HiOutlineSparkles,
 } from "react-icons/hi";
 import type { UserCreate } from "../../../Types/User-create";
 import { FaUserCircle } from "react-icons/fa";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
 
-// 🎯 FIX: role_id, role_name, role_code (snake_case) hatavi ne
-// backend (Adonis) camelCase format mujab banavyu — roleName, roleCode
 interface RoleOption {
     roleName: string;
     roleCode: string;
@@ -48,14 +47,16 @@ function SectionHeading({
     return (
         <div className="flex items-center gap-2 mb-4">
             <span
-                className={`flex items-center justify-center w-7 h-7 rounded-lg shrink-0 ${theme ? "bg-blue-500/10 text-blue-300" : "bg-red-500/10 text-red-600"
-                    }`}
+                className={`flex items-center justify-center w-7 h-7 rounded-lg shrink-0 ${
+                    theme ? "bg-blue-500/10 text-blue-300" : "bg-red-500/10 text-red-600"
+                }`}
             >
                 {icon}
             </span>
             <h3
-                className={`text-xs font-semibold uppercase tracking-wider ${theme ? "text-gray-400" : "text-neutral-500"
-                    }`}
+                className={`text-xs font-semibold uppercase tracking-wider ${
+                    theme ? "text-gray-400" : "text-neutral-500"
+                }`}
             >
                 {title}
             </h3>
@@ -75,7 +76,12 @@ export default function CreateUserForm() {
     const [roles, setRoles] = useState<RoleOption[]>([]);
     const [departments, setDepartments] = useState<DepartmentOption[]>([]);
 
-    const incomingData = location.state as { id: number; applicantName: string; requestedRole: string; departmentId: number } | null;
+    const incomingData = location.state as {
+        id: number;
+        applicantName: string;
+        requestedRole: string;
+        departmentId: number;
+    } | null;
 
     const isUserRole = incomingData?.requestedRole === "USER";
 
@@ -87,7 +93,7 @@ export default function CreateUserForm() {
         password: "",
         bod: new Date().toISOString().split("T")[0],
         roleCode: "",
-        departmentId: incomingData?.departmentId || (null as any),
+        departmentId: incomingData?.departmentId || null,
         sectionId: 0,
         standardId: 0,
         joiningDate: new Date().toISOString().split("T")[0],
@@ -100,30 +106,18 @@ export default function CreateUserForm() {
     useEffect(() => {
         const fetchInitialData = async () => {
             try {
-                const token = localStorage.getItem("token");
-
                 const [rolesRes, deptsRes] = await Promise.all([
                     fetch(`${API_URL}/roles`, {
-                        method: "GET",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "Authorization": `Bearer ${token}`
-                        }
+                        credentials: "include",
                     }),
                     fetch(`${API_URL}/departments`, {
-                        method: "GET",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "Authorization": `Bearer ${token}`
-                        }
-                    })
+                        credentials: "include",
+                    }),
                 ]);
 
                 const rolesResult = await rolesRes.json();
                 const deptsResult = await deptsRes.json();
 
-                // 🎯 FIX: backend already camelCase (roleName, roleCode) pathave chhe,
-                // etle direct set karyu — mapping ni jarur nathi
                 if (rolesRes.ok && rolesResult.success) {
                     setRoles(rolesResult.data);
 
@@ -132,7 +126,7 @@ export default function CreateUserForm() {
                             (r: RoleOption) => r.roleCode === incomingData.requestedRole
                         );
                         if (matched) {
-                            setFormData(prev => ({
+                            setFormData((prev) => ({
                                 ...prev,
                                 roleCode: matched.roleCode,
                             }));
@@ -140,20 +134,15 @@ export default function CreateUserForm() {
                     }
                 }
 
-                // 🎯 FIX: department_id/department_name (snake_case) mapping hatavi,
-                // backend already camelCase pathave chhe
                 if (deptsRes.ok && deptsResult.success) {
                     setDepartments(deptsResult.data);
-                } else {
-                    console.error(deptsResult.message);
                 }
-
             } catch (error) {
                 console.error("Error fetching initial data:", error);
             }
         };
 
-        fetchInitialData();
+        void fetchInitialData();
     }, [incomingData]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -177,271 +166,374 @@ export default function CreateUserForm() {
                 standardId: formData.standardId ? formData.standardId : null,
             };
 
-            const token = localStorage.getItem("token"); // 👈 ઉમેરવાનું
-
             const response = await fetch(`${API_URL}/users/register`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`, // 👈 ઉમેરવાનું
                 },
+                credentials: "include",
                 body: JSON.stringify(finalPayload),
             });
 
             const result = await response.json();
-            console.log("Backend Response:", result);
-            console.log("Validation Errors:", result.errors);
 
-            if (!response.ok) {
-                throw new Error(result.message || "Failed to create user From server.");
+            if (!response.ok || !result.success) {
+                throw new Error(result.message || "Failed to create user from server.");
             }
 
             if (isFromPipeline && incomingData) {
                 const allReqs = localStorage.getItem("admission_requests");
                 if (allReqs) {
                     const parsedReqs = JSON.parse(allReqs);
-                    const filteredReqs = parsedReqs.filter((r: any) => r.id !== incomingData.id);
+                    const filteredReqs = parsedReqs.filter(
+                        (r: { id: number }) => r.id !== incomingData.id
+                    );
                     localStorage.setItem("admission_requests", JSON.stringify(filteredReqs));
                 }
                 navigate(`/dashboard/departments/${formData.departmentId}/student-list`);
             } else {
                 navigate("/dashboard/users/list");
             }
-
         } catch (error) {
-            setErrorMessage((error as any).message || "An error occurred while creating the user.");
+            setErrorMessage(error instanceof Error ? error.message : "An error occurred while creating the user.");
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div
-            className={`max-w-full mx-auto p-6 sm:p-8 rounded-2xl shadow-sm mt-6 border transition-all duration-200 ${theme ? "bg-gray-900 border-gray-800 text-white" : "bg-white border-neutral-200 text-neutral-900"
-                }`}
-        >
-            {/* ===== Header ===== */}
-            <div className="mb-8 pb-6 border-b flex flex-col items-center text-center gap-2 border-neutral-200 dark:border-gray-800">
-                <div
-                    className={`w-16 h-16 text-white rounded-full shadow-lg ${theme
-                        ? "bg-linear-to-bl from-blue-300 to-blue-900 shadow-blue-950/40"
-                        : "bg-linear-to-bl from-red-300 to-red-900 shadow-red-950/20"
-                        } flex items-center justify-center mb-1`}
-                >
-                    <FaUserCircle size={24} />
-                </div>
-                <h2 className={`text-3xl sm:text-4xl font-bold tracking-tight ${theme ? "text-blue-200" : "text-red-600"}`}>
-                    {isFromPipeline ? "Onboard Approved Applicant" : "Create User & Allocate Head"}
-                </h2>
-                <p className={`text-sm max-w-md ${theme ? "text-gray-400" : "text-neutral-500"}`}>
-                    {isFromPipeline
-                        ? "Review the applicant's details below, then confirm to generate their account."
-                        : "Fill in the details below to add a new user to the system."}
-                </p>
-                {isFromPipeline && incomingData && (
-                    <span
-                        className={`inline-flex items-center gap-1.5 mt-1 px-3 py-1 rounded-full text-xs font-medium ${theme ? "bg-amber-500/10 text-amber-400" : "bg-amber-50 text-amber-700"
-                            }`}
+        <div className="w-full space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/[0.08] dark:border-white/[0.08]">
+                <div className="flex items-center gap-3.5">
+                    <button
+                        type="button"
+                        onClick={() => navigate("/dashboard/users/list")}
+                        className={`p-2.5 rounded-xl border transition-colors ${
+                            theme
+                                ? "bg-white/[0.04] hover:bg-white/[0.08] border-white/10 text-gray-300"
+                                : "bg-white hover:bg-slate-100 border-slate-200 text-slate-700 shadow-sm"
+                        }`}
+                        title="Back to users"
                     >
-                        Processing Request <span className="font-bold">#{incomingData.id}</span>
-                    </span>
-                )}
+                        <HiOutlineArrowLeft size={18} />
+                    </button>
+                    <div
+                        className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-md ${
+                            theme
+                                ? "bg-linear-to-br from-blue-500 to-indigo-700 text-white shadow-blue-500/20"
+                                : "bg-linear-to-br from-red-600 to-rose-700 text-white shadow-red-500/20"
+                        }`}
+                    >
+                        <FaUserCircle size={20} />
+                    </div>
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <h1 className={`text-xl sm:text-2xl font-bold tracking-tight ${theme ? "text-white" : "text-slate-900"}`}>
+                                {isFromPipeline ? "Onboard Approved Applicant" : "Create User Profile"}
+                            </h1>
+                            <span
+                                className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${
+                                    theme ? "bg-blue-500/10 text-blue-300 border border-blue-500/20" : "bg-red-50 text-red-700 border border-red-200"
+                                }`}
+                            >
+                                {isFromPipeline ? `Applicant #${incomingData?.id}` : "New Account"}
+                            </span>
+                        </div>
+                        <p className={`text-xs sm:text-sm mt-0.5 ${theme ? "text-gray-400" : "text-slate-500"}`}>
+                            Configure credentials, role privileges, and department allocation.
+                        </p>
+                    </div>
+                </div>
             </div>
 
-            {/* ===== Error banner ===== */}
             {errorMessage && (
                 <div
                     role="alert"
-                    className={`mb-6 flex items-start gap-2.5 p-3.5 rounded-xl text-sm font-medium border ${theme
-                        ? "bg-red-500/10 text-red-300 border-red-500/20"
-                        : "bg-red-50 text-red-700 border-red-100"
-                        }`}
+                    className={`flex items-start gap-2.5 p-3.5 rounded-xl text-xs font-medium border ${
+                        theme
+                            ? "bg-red-500/10 text-red-300 border-red-500/20"
+                            : "bg-red-50 text-red-700 border-red-200"
+                    }`}
                 >
                     <span className="mt-0.5 shrink-0">⚠</span>
                     <span>{errorMessage}</span>
                 </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-8">
-
-                {/* ===== Avatar ===== */}
-                <div className="flex flex-col items-center justify-center gap-2">
-                    <ImageUploader
-                        value={formData.avatar}
-                        onChange={(url) => setFormData((prev) => ({ ...prev, avatar: url }))}
-                        theme={theme}
-                        uploadType="avatar"
-                        shape="circle"
-                        size={128}
-                        label="Profile photo"
-                    />
-                </div>
-
-                {/* ===== Identity section ===== */}
-                <div>
-                    <SectionHeading icon={<HiOutlineIdentification className="text-sm" />} title="Identity" theme={theme} />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium mb-1.5">User ID (SUID) *</label>
-                            <Input
-                                type="number"
-                                name="suid"
-                                value={formData.suid ? String(formData.suid) : ""}
-                                onChange={handleInputChange}
-                                onWheel={(e) => e.currentTarget.blur()}
-                                icon={<HiOutlineIdentification className="text-lg" />}
-                                placeholder="Ex: 221255"
-                                required
-                                disabled={isFromPipeline}
-                                className={`[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isFromPipeline ? "bg-gray-50 dark:bg-gray-800 text-gray-500" : ""
-                                    }`}
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium mb-1.5">Full Name *</label>
-                            <Input
-                                type="text"
-                                name="name"
-                                value={formData.name}
-                                onChange={handleInputChange}
-                                icon={<HiOutlineUser className="text-lg" />}
-                                placeholder="Enter full name"
-                                required
-                                disabled={isFromPipeline}
-                                className={isFromPipeline ? "bg-gray-50 dark:bg-gray-800 font-semibold" : ""}
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                {/* ===== Role & department section ===== */}
-                <div>
-                    <SectionHeading icon={<HiOutlineShieldCheck className="text-sm" />} title="Role & Department" theme={theme} />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-                        <SearchableDropdown
-                            label="Select Role *"
-                            placeholder={roles.length === 0 ? "Loading roles..." : "Choose Role"}
-                            options={roles.map(r => ({ value: r.roleCode, label: `${r.roleName} (${r.roleCode})` }))}
-                            selectedValue={formData.roleCode || ""}
-                            onSelect={(val) => {
-                                const selectedRole = roles.find(r => r.roleCode === String(val));
-
-                                setFormData(prev => ({
-                                    ...prev,
-                                    roleCode: selectedRole?.roleCode ?? "",
-                                    status: selectedRole?.roleCode === "USER" ? "PENDING" : "APPROVED",
-                                    ...(selectedRole?.roleCode !== "HEAD100" && {
-                                        departmentId: null as any,
-                                    }),
-                                }));
-                            }}
-                            required
-                            disabled={isFromPipeline || roles.length === 0}
-                        />
-
-                        {(isHeadRole || isFromPipeline) ? (
-                            <SearchableDropdown
-                                label="Assign Department *"
-                                placeholder={departments.length === 0 ? "Loading departments..." : "Choose Department"}
-                                options={departments.map((d) => ({
-                                    value: d.departmentId,
-                                    label: d.departmentName,
-                                }))}
-                                selectedValue={formData.departmentId || ""}
-                                onSelect={(val) => {
-                                    setFormData((prev) => ({ ...prev, departmentId: Number(val) }))
-                                }}
-                                required
-                                disabled={departments.length === 0}
-                            />
-                        ) : (
-                            <div
-                                className={`flex items-center gap-2.5 border border-dashed rounded-xl p-4 text-xs ${theme
-                                    ? "border-gray-700 bg-gray-800/30 text-gray-500"
-                                    : "border-neutral-200 bg-neutral-50/50 text-neutral-400"
-                                    }`}
+            <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                    <div className="lg:col-span-4 space-y-6">
+                        <div
+                            className={`rounded-2xl border p-6 flex flex-col items-center text-center transition-all ${
+                                theme ? "bg-white/[0.02] border-white/[0.08]" : "bg-white border-slate-200 shadow-sm"
+                            }`}
+                        >
+                            <span
+                                className={`text-xs font-bold uppercase tracking-wider mb-4 ${
+                                    theme ? "text-gray-300" : "text-slate-800"
+                                }`}
                             >
-                                <HiOutlineOfficeBuilding className="text-base shrink-0" />
-                                Department allocation is only available for the Department Head role.
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* ===== Account section ===== */}
-                <div>
-                    <SectionHeading icon={<HiOutlineKey className="text-sm" />} title="Account Credentials" theme={theme} />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium mb-1.5">Username *</label>
-                            <Input
-                                type="text"
-                                name="username"
-                                value={formData.username}
-                                onChange={handleInputChange}
-                                icon={<HiOutlineUser className="text-lg" />}
-                                placeholder="Ex: rahul_p"
-                                required
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium mb-1.5">Password *</label>
-                            <Input
-                                type="password"
-                                name="password"
-                                value={formData.password}
-                                onChange={handleInputChange}
-                                icon={<HiOutlineKey className="text-lg" />}
-                                placeholder="••••••••"
-                                required
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                {/* ===== Dates section ===== */}
-                <div>
-                    <SectionHeading icon={<HiOutlineCalendar className="text-sm" />} title="Important Dates" theme={theme} />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <DatePicker
-                            label="Joining Date *"
-                            selectedValue={formData.joiningDate}
-                            onChange={(dateStr) => setFormData((prev) => ({ ...prev, joiningDate: dateStr }))}
-                            required
-                        />
-                        <DatePicker
-                            label="BOD *"
-                            selectedValue={formData.bod}
-                            onChange={(dateStr) => setFormData((prev) => ({ ...prev, bod: dateStr }))}
-                            required
-                        />
-                    </div>
-                </div>
-
-                {/* ===== Submit ===== */}
-                <div className="flex justify-end items-center gap-3 pt-6 border-t border-neutral-200 dark:border-gray-800">
-                    <p className={`text-xs mr-auto hidden sm:block ${theme ? "text-gray-500" : "text-neutral-400"}`}>
-                        Fields marked * are required.
-                    </p>
-                    <Button
-                        type="submit"
-                        disabled={loading || roles.length === 0}
-                        className={`${theme ? "bg-blue-600 hover:bg-blue-700" : "bg-red-600 hover:bg-red-700"} min-w-45 transition-colors duration-150 disabled:opacity-60 disabled:cursor-not-allowed`}
-                    >
-                        {loading ? (
-                            <span className="flex items-center justify-center gap-2">
-                                <span className="w-3.5 h-3.5 rounded-full border-2 border-white/40 border-t-white animate-spin" />
-                                Processing...
+                                Profile Picture
                             </span>
-                        ) : isFromPipeline ? (
-                            "Confirm & Generate User"
-                        ) : (
-                            "Create User Profile"
-                        )}
-                    </Button>
+                            <ImageUploader
+                                value={formData.avatar}
+                                onChange={(url) => setFormData((prev) => ({ ...prev, avatar: url }))}
+                                theme={theme}
+                                uploadType="avatar"
+                                shape="circle"
+                                size={120}
+                                label="Profile photo"
+                            />
+                            <p className={`text-[11px] mt-3 ${theme ? "text-gray-400" : "text-slate-500"}`}>
+                                JPEG, PNG or WebP up to 5MB.
+                            </p>
+                        </div>
+
+                        <div
+                            className={`rounded-2xl border p-5 sm:p-6 transition-all ${
+                                theme ? "bg-white/[0.02] border-white/[0.08]" : "bg-white border-slate-200 shadow-sm"
+                            }`}
+                        >
+                            <div className="flex items-center gap-2 mb-3 pb-2 border-b border-white/[0.06] dark:border-white/[0.06]">
+                                <HiOutlineSparkles className={theme ? "text-blue-400" : "text-red-600"} size={16} />
+                                <h3 className={`text-xs font-bold uppercase tracking-wider ${theme ? "text-gray-300" : "text-slate-800"}`}>
+                                    Quick Summary
+                                </h3>
+                            </div>
+                            <div className="space-y-2 text-xs">
+                                <div className="flex justify-between py-1 border-b border-white/[0.04]">
+                                    <span className="opacity-70">Full Name</span>
+                                    <span className="font-semibold">{formData.name || "—"}</span>
+                                </div>
+                                <div className="flex justify-between py-1 border-b border-white/[0.04]">
+                                    <span className="opacity-70">SUID</span>
+                                    <span className="font-mono font-semibold">{formData.suid || "—"}</span>
+                                </div>
+                                <div className="flex justify-between py-1 border-b border-white/[0.04]">
+                                    <span className="opacity-70">Role</span>
+                                    <span className="font-semibold">{formData.roleCode || "Unselected"}</span>
+                                </div>
+                                <div className="flex justify-between py-1">
+                                    <span className="opacity-70">Status</span>
+                                    <span className={`font-semibold ${theme ? "text-blue-400" : "text-red-600"}`}>
+                                        {formData.status}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="lg:col-span-8 space-y-6">
+                        <div
+                            className={`rounded-2xl border p-5 sm:p-7 transition-all ${
+                                theme ? "bg-white/[0.02] border-white/[0.08]" : "bg-white border-slate-200 shadow-sm"
+                            }`}
+                        >
+                            <SectionHeading
+                                icon={<HiOutlineIdentification className="text-sm" />}
+                                title="Identity & Credentials"
+                                theme={theme}
+                            />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className={`block text-xs font-semibold mb-1.5 ${theme ? "text-gray-300" : "text-slate-700"}`}>
+                                        User ID (SUID) *
+                                    </label>
+                                    <Input
+                                        type="number"
+                                        name="suid"
+                                        value={formData.suid ? String(formData.suid) : ""}
+                                        onChange={handleInputChange}
+                                        onWheel={(e) => e.currentTarget.blur()}
+                                        icon={<HiOutlineIdentification className="text-lg" />}
+                                        placeholder="e.g. 221255"
+                                        required
+                                        disabled={isFromPipeline}
+                                        className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className={`block text-xs font-semibold mb-1.5 ${theme ? "text-gray-300" : "text-slate-700"}`}>
+                                        Full Name *
+                                    </label>
+                                    <Input
+                                        type="text"
+                                        name="name"
+                                        value={formData.name}
+                                        onChange={handleInputChange}
+                                        icon={<HiOutlineUser className="text-lg" />}
+                                        placeholder="Enter full name"
+                                        required
+                                        disabled={isFromPipeline}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className={`block text-xs font-semibold mb-1.5 ${theme ? "text-gray-300" : "text-slate-700"}`}>
+                                        Username *
+                                    </label>
+                                    <Input
+                                        type="text"
+                                        name="username"
+                                        value={formData.username}
+                                        onChange={handleInputChange}
+                                        icon={<HiOutlineUser className="text-lg" />}
+                                        placeholder="e.g. rahul_p"
+                                        required
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className={`block text-xs font-semibold mb-1.5 ${theme ? "text-gray-300" : "text-slate-700"}`}>
+                                        Password *
+                                    </label>
+                                    <Input
+                                        type="password"
+                                        name="password"
+                                        value={formData.password}
+                                        onChange={handleInputChange}
+                                        icon={<HiOutlineKey className="text-lg" />}
+                                        placeholder="••••••••"
+                                        required
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div
+                            className={`rounded-2xl border p-5 sm:p-7 transition-all ${
+                                theme ? "bg-white/[0.02] border-white/[0.08]" : "bg-white border-slate-200 shadow-sm"
+                            }`}
+                        >
+                            <SectionHeading
+                                icon={<HiOutlineShieldCheck className="text-sm" />}
+                                title="Role & Department Allocation"
+                                theme={theme}
+                            />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <SearchableDropdown
+                                    label="Select Role *"
+                                    placeholder={roles.length === 0 ? "Loading roles..." : "Choose Role"}
+                                    options={roles.map((r) => ({
+                                        value: r.roleCode,
+                                        label: `${r.roleName} (${r.roleCode})`,
+                                    }))}
+                                    selectedValue={formData.roleCode || ""}
+                                    onSelect={(val) => {
+                                        const selectedRole = roles.find((r) => r.roleCode === String(val));
+                                        setFormData((prev) => ({
+                                            ...prev,
+                                            roleCode: selectedRole?.roleCode ?? "",
+                                            status: selectedRole?.roleCode === "USER" ? "PENDING" : "APPROVED",
+                                            ...(selectedRole?.roleCode !== "HEAD100" && {
+                                                departmentId: null,
+                                            }),
+                                        }));
+                                    }}
+                                    required
+                                    disabled={isFromPipeline || roles.length === 0}
+                                />
+
+                                {isHeadRole || isFromPipeline ? (
+                                    <SearchableDropdown
+                                        label="Assign Department *"
+                                        placeholder={departments.length === 0 ? "Loading departments..." : "Choose Department"}
+                                        options={departments.map((d) => ({
+                                            value: d.departmentId,
+                                            label: d.departmentName,
+                                        }))}
+                                        selectedValue={formData.departmentId || ""}
+                                        onSelect={(val) => {
+                                            setFormData((prev) => ({ ...prev, departmentId: Number(val) }));
+                                        }}
+                                        required
+                                        disabled={departments.length === 0}
+                                    />
+                                ) : (
+                                    <div
+                                        className={`flex items-center gap-2.5 border border-dashed rounded-xl p-3.5 text-xs ${
+                                            theme
+                                                ? "border-white/10 bg-white/[0.02] text-gray-400"
+                                                : "border-slate-200 bg-slate-50 text-slate-500"
+                                        }`}
+                                    >
+                                        <HiOutlineOfficeBuilding className="text-base shrink-0" />
+                                        Department allocation is specifically for Department Head roles.
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div
+                            className={`rounded-2xl border p-5 sm:p-7 transition-all ${
+                                theme ? "bg-white/[0.02] border-white/[0.08]" : "bg-white border-slate-200 shadow-sm"
+                            }`}
+                        >
+                            <SectionHeading
+                                icon={<HiOutlineCalendar className="text-sm" />}
+                                title="Important Dates"
+                                theme={theme}
+                            />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <DatePicker
+                                    label="Joining Date *"
+                                    selectedValue={formData.joiningDate}
+                                    onChange={(dateStr) => setFormData((prev) => ({ ...prev, joiningDate: dateStr }))}
+                                    required
+                                />
+                                <DatePicker
+                                    label="Birth Date (DOB) *"
+                                    selectedValue={formData.bod}
+                                    onChange={(dateStr) => setFormData((prev) => ({ ...prev, bod: dateStr }))}
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <div
+                            className={`flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl border ${
+                                theme ? "bg-white/[0.02] border-white/[0.08]" : "bg-white border-slate-200 shadow-sm"
+                            }`}
+                        >
+                            <p className={`text-xs ${theme ? "text-gray-400" : "text-slate-500"}`}>
+                                Fields marked with <strong className="text-red-500">*</strong> are required.
+                            </p>
+
+                            <div className="flex items-center gap-3 w-full sm:w-auto">
+                                <button
+                                    type="button"
+                                    onClick={() => navigate("/dashboard/users/list")}
+                                    disabled={loading}
+                                    className={`flex-1 sm:flex-none px-4 py-2.5 rounded-xl text-xs font-semibold border transition-colors ${
+                                        theme
+                                            ? "bg-white/[0.04] hover:bg-white/[0.08] text-gray-300 border-white/10"
+                                            : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
+                                    }`}
+                                >
+                                    Cancel
+                                </button>
+                                <Button
+                                    type="submit"
+                                    disabled={loading || roles.length === 0}
+                                    className={`flex-1 sm:flex-none min-w-44 text-xs font-semibold ${
+                                        theme ? "bg-blue-600 hover:bg-blue-700" : "bg-red-600 hover:bg-red-700"
+                                    }`}
+                                >
+                                    {loading ? (
+                                        <span className="flex items-center justify-center gap-2">
+                                            <span className="w-3.5 h-3.5 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                                            Processing...
+                                        </span>
+                                    ) : isFromPipeline ? (
+                                        "Confirm & Generate User"
+                                    ) : (
+                                        "Create User Profile"
+                                    )}
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>

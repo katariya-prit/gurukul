@@ -107,16 +107,31 @@ export const resolveStoredChatTheme = (convKey: string) => {
 
 export const areMessagesMatching = (a: ChatMessage, b: ChatMessage): boolean => {
     if (!a || !b) return false;
-    if (a.id && b.id && a.id === b.id) return true;
-    if (a.client_id && b.client_id && a.client_id === b.client_id) return true;
-    if (a.client_id && b.id && a.client_id === b.id) return true;
-    if (a.id && b.client_id && a.id === b.client_id) return true;
-    if (
-        a.sender_suid === b.sender_suid &&
-        (a.text || "").trim() === (b.text || "").trim() &&
-        Math.abs(Date.parse(a.time) - Date.parse(b.time)) < 60000
-    ) {
-        return true;
+    const aId = a.id ? String(a.id).trim() : "";
+    const bId = b.id ? String(b.id).trim() : "";
+    const aClientId = a.client_id ? String(a.client_id).trim() : "";
+    const bClientId = b.client_id ? String(b.client_id).trim() : "";
+
+    if (aId && bId && aId === bId) return true;
+    if (aClientId && bClientId && aClientId === bClientId) return true;
+    if (aClientId && bId && aClientId === bId) return true;
+    if (aId && bClientId && aId === bClientId) return true;
+
+    const aSender = String(a.sender_suid || "").trim();
+    const bSender = String(b.sender_suid || "").trim();
+    const aText = (a.text || "").trim();
+    const bText = (b.text || "").trim();
+
+    if (aSender && bSender && aSender === bSender && aText && bText && aText === bText) {
+        const aTime = Date.parse(a.time);
+        const bTime = Date.parse(b.time);
+        if (!isNaN(aTime) && !isNaN(bTime)) {
+            if (Math.abs(aTime - bTime) < 300000) {
+                return true;
+            }
+        } else {
+            return true;
+        }
     }
     return false;
 };

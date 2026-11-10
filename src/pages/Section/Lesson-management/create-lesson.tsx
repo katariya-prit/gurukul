@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ChangeEvent, FormEvent, ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -16,6 +16,7 @@ import { sectionService } from "../../../services/sectionService";
 import { userService } from "../../../services/userService";
 import { groupService } from "../../../services/groupService";
 import { FaBuilding, FaLayerGroup, FaUserGraduate, FaUsers, FaUsersCog } from "react-icons/fa";
+import { HiOutlineArrowLeft } from "react-icons/hi";
 
 const ROLE_CODES = {
     SUPER_ADMIN: "SUPER_ADMIN",
@@ -440,21 +441,51 @@ export default function CreateLesson() {
     };
 
     return (
-        <div className={`mx-autfull rounded-2xl border p-6 shadow-sm transition-all duration-200 sm:p-8 ${theme ? "border-gray-800 bg-gray-900 text-white" : "border-neutral-200 bg-white text-neutral-900"}`}>
-            <div className="mb-8 border-b border-neutral-200 pb-6 text-center dark:border-gray-800">
-                <div className={`mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full text-white shadow-lg ${theme ? "bg-linear-to-br from-blue-300 to-blue-900 shadow-blue-950/40" : "bg-linear-to-br from-red-300 to-red-900 shadow-red-950/20"}`}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-7 w-7" aria-hidden="true">
-                        <path d="M4 6.75A2.75 2.75 0 0 1 6.75 4h10.5A2.75 2.75 0 0 1 20 6.75v10.5A2.75 2.75 0 0 1 17.25 20H6.75A2.75 2.75 0 0 1 4 17.25V6.75Z" />
-                        <path d="M10 8.5v7l6-3.5-6-3.5Z" />
-                    </svg>
+        <div className="w-full space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/[0.08] dark:border-white/[0.08]">
+                <div className="flex items-center gap-3.5">
+                    <button
+                        type="button"
+                        onClick={() => navigate("/dashboard/lessons/list")}
+                        className={`p-2.5 rounded-xl border transition-colors ${
+                            theme
+                                ? "bg-white/[0.04] hover:bg-white/[0.08] border-white/10 text-gray-300"
+                                : "bg-white hover:bg-slate-100 border-slate-200 text-slate-700 shadow-sm"
+                        }`}
+                        title="Back to lessons"
+                    >
+                        <HiOutlineArrowLeft size={18} />
+                    </button>
+                    <div
+                        className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-md ${
+                            theme
+                                ? "bg-linear-to-br from-blue-500 to-indigo-700 text-white shadow-blue-500/20"
+                                : "bg-linear-to-br from-red-600 to-rose-700 text-white shadow-red-500/20"
+                        }`}
+                    >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-6 w-6" aria-hidden="true">
+                            <path d="M4 6.75A2.75 2.75 0 0 1 6.75 4h10.5A2.75 2.75 0 0 1 20 6.75v10.5A2.75 2.75 0 0 1 17.25 20H6.75A2.75 2.75 0 0 1 4 17.25V6.75Z" />
+                            <path d="M10 8.5v7l6-3.5-6-3.5Z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <h1 className={`text-xl sm:text-2xl font-bold tracking-tight ${theme ? "text-white" : "text-slate-900"}`}>
+                                Create Lesson
+                            </h1>
+                            <span
+                                className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${
+                                    theme ? "bg-blue-500/10 text-blue-300 border border-blue-500/20" : "bg-red-50 text-red-700 border border-red-200"
+                                }`}
+                            >
+                                Content Management
+                            </span>
+                        </div>
+                        <p className={`text-xs sm:text-sm mt-0.5 ${theme ? "text-gray-400" : "text-slate-500"}`}>
+                            Add lesson details, media type, and progress tracking for your department or section.
+                        </p>
+                    </div>
                 </div>
-
-                <h2 className={`text-3xl font-bold tracking-tight sm:text-4xl ${theme ? "text-blue-200" : "text-red-600"}`}>
-                    Create Lesson
-                </h2>
-                <p className={`mx-auto mt-2 max-w-md text-sm ${theme ? "text-gray-400" : "text-neutral-500"}`}>
-                    Add lesson details, media type, and progress tracking for your department or section.
-                </p>
             </div>
 
             <div className={`mb-8 rounded-2xl border p-5 shadow-sm transition-all duration-200 ${theme ? "border-gray-800 bg-gray-900/60" : "border-neutral-200 bg-neutral-50"}`}>

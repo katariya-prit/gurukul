@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTheme } from "../../../components/theme/ThemeContext";
@@ -8,41 +7,16 @@ import SearchableDropdown from "../../../components/common/SearchableDropdown";
 import { departmentService } from "../../../services/departmentService";
 import { sectionService } from "../../../services/sectionService";
 import { SECTION_HEAD_ROLE_CODE } from "../../../Types/Section-create";
-
 import {
     HiOutlineOfficeBuilding,
-    HiOutlineUser,
     HiOutlineClipboardList,
+    HiOutlineArrowLeft,
+    HiOutlineSparkles,
+    HiOutlineInformationCircle,
+    HiOutlineCheck,
 } from "react-icons/hi";
+import { FaLayerGroup, FaUserTie, FaUsers } from "react-icons/fa";
 import { toast } from "sonner";
-
-function SectionHeading({
-    icon,
-    title,
-    theme,
-}: {
-    icon: React.ReactNode;
-    title: string;
-    theme: boolean;
-}) {
-    return (
-        <div className="flex items-center gap-2 mb-4">
-            <span
-                className={`flex items-center justify-center w-7 h-7 rounded-lg shrink-0 ${theme ? "bg-blue-500/10 text-blue-300" : "bg-red-500/10 text-red-600"
-                    }`}
-            >
-                {icon}
-            </span>
-            <h3
-                className={`text-xs font-semibold uppercase tracking-wider ${theme ? "text-gray-400" : "text-neutral-500"
-                    }`}
-            >
-                {title}
-            </h3>
-            <div className={`flex-1 h-px ${theme ? "bg-gray-800" : "bg-neutral-200"}`} />
-        </div>
-    );
-}
 
 export interface SectionCreate {
     sectionName: string;
@@ -74,13 +48,14 @@ export default function CreateSection() {
         description: "",
     });
 
-    // 🎯 FIX: backend camelCase mokle chhe (sectionHeadId, departmentId), snake_case nahi
     useEffect(() => {
         if (!sectionId) return;
         const loadSection = async () => {
             try {
                 const result = await sectionService.getSectionById(Number(sectionId));
-                if (!result.success || !result.data) throw new Error(result.message || "Section not found");
+                if (!result.success || !result.data) {
+                    throw new Error(result.message || "Section not found");
+                }
                 setFormData({
                     sectionName: result.data.name,
                     sectionHead: result.data.sectionHeadId ? String(result.data.sectionHeadId) : "",
@@ -95,20 +70,18 @@ export default function CreateSection() {
         void loadSection();
     }, [navigate, sectionId]);
 
-    // 🎯 Aa j real fix che: /departments/:id/users API vaparo (role_code sathe aave che)
-    // ane sirf SECTION_HEAD role wala users j dropdown ma batavo
     const fetchSectionHeadsForDepartment = async (departmentId: number) => {
         try {
             setHeadsLoading(true);
             const userData = await departmentService.getUsersByDepartment(departmentId);
 
             if (userData.success && Array.isArray(userData.data)) {
-                // 🎯 FIX: backend camelCase mokle chhe (roleCode), role_code nahi
                 const sectionHeadUsers = userData.data.filter(
-                    (u: any) => u.roleCode === SECTION_HEAD_ROLE_CODE
+                    (u: { roleCode?: string; role_code?: string }) =>
+                        (u.roleCode || u.role_code) === SECTION_HEAD_ROLE_CODE
                 );
 
-                const mapped = sectionHeadUsers.map((u: any) => ({
+                const mapped = sectionHeadUsers.map((u: { suid: number; name: string }) => ({
                     value: u.suid,
                     label: u.name,
                 }));
@@ -116,11 +89,11 @@ export default function CreateSection() {
                 setUserOptions(mapped);
 
                 if (sectionHeadUsers.length === 0) {
-                    toast.info("આ Department માં હાલ કોઈ Section Head role વાળો User નથી.");
+                    toast.info("No users with Section Head role found in this department.");
                 }
             }
-        } catch (error: any) {
-            toast.error(error.message || "Failed to load department users");
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : "Failed to load department users");
         } finally {
             setHeadsLoading(false);
         }
@@ -130,15 +103,14 @@ export default function CreateSection() {
         try {
             const deptData = await departmentService.getAllDepartments();
             if (deptData.success && Array.isArray(deptData.data)) {
-                // 🎯 FIX: backend camelCase mokle chhe (departmentId, departmentName), snake_case nahi
-                const mappedDepts = deptData.data.map((d: any) => ({
+                const mappedDepts = deptData.data.map((d: { departmentId: number; departmentName: string }) => ({
                     value: d.departmentId,
                     label: d.departmentName,
                 }));
                 setDeptOptions(mappedDepts);
             }
-        } catch (error: any) {
-            toast.error(error.message || "Failed to load departments");
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : "Failed to load departments");
         }
     };
 
@@ -150,7 +122,6 @@ export default function CreateSection() {
         return () => window.clearTimeout(timer);
     }, []);
 
-    // 🎯 Jyare department badlay, tyare tya na "Section Head" role wala users j fetch karo
     useEffect(() => {
         const timer = window.setTimeout(() => {
             if (formData.departmentId) {
@@ -158,11 +129,13 @@ export default function CreateSection() {
             } else {
                 setUserOptions([]);
             }
-            setFormData((prev) => ({ ...prev, sectionHead: "" }));
+            if (!isEditMode) {
+                setFormData((prev) => ({ ...prev, sectionHead: "" }));
+            }
         }, 0);
 
         return () => window.clearTimeout(timer);
-    }, [formData.departmentId]);
+    }, [formData.departmentId, isEditMode]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -170,7 +143,7 @@ export default function CreateSection() {
     };
 
     const handleSelectChange = (name: string, value: string | number) => {
-        setFormData((prev) => ({ ...prev, [name]: value }));
+        setFormData((prev) => ({ ...prev, [name]: String(value) }));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -188,7 +161,6 @@ export default function CreateSection() {
         setLoading(true);
 
         try {
-            // sectionHead ek alag field tarike jay che, description ma nahi
             const result = isEditMode
                 ? await sectionService.updateSection(Number(sectionId), {
                       name: formData.sectionName,
@@ -211,129 +183,312 @@ export default function CreateSection() {
                     description: "",
                 });
                 setUserOptions([]);
-                if (isEditMode) navigate("/dashboard/sections/list");
+                navigate("/dashboard/sections/list");
             }
-        } catch (error: any) {
-            toast.error(error.message || "Error creating section");
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : "Error creating section");
         } finally {
             setLoading(false);
         }
     };
 
+    const selectedDeptLabel = deptOptions.find((d) => String(d.value) === String(formData.departmentId))?.label;
+    const selectedHeadLabel = userOptions.find((u) => String(u.value) === String(formData.sectionHead))?.label;
+
     return (
-        <div
-            className={`max-w-full mx-auto p-6 sm:p-8 rounded-2xl shadow-sm mt-6 border transition-all duration-200 ${theme
-                ? "bg-gray-900 border-gray-800 text-white"
-                : "bg-white border-neutral-200 text-neutral-900"
-                }`}
-        >
-            <div className="mb-8 pb-6 border-b flex flex-col items-center text-center gap-2 border-neutral-200 dark:border-gray-800">
-                <div
-                    className={`w-16 h-16 text-white rounded-full shadow-lg ${theme
-                        ? "bg-linear-to-bl from-blue-300 to-blue-900 shadow-blue-950/40"
-                        : "bg-linear-to-bl from-red-300 to-red-900 shadow-red-950/20"
-                        } flex items-center justify-center mb-1`}
-                >
-                    <HiOutlineClipboardList size={24} />
-                </div>
-                <h2 className={`text-3xl sm:text-4xl font-bold tracking-tight ${theme ? "text-blue-200" : "text-red-600"}`}>
-                    {isEditMode ? "Edit Section" : "Create Section"}
-                </h2>
-                <p className={`text-sm max-w-md ${theme ? "text-gray-400" : "text-neutral-500"}`}>
-                    Fill in the details below to register a new section under a department.
-                </p>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-8">
-                <div>
-                    <SectionHeading icon={<HiOutlineOfficeBuilding size={15} />} title="Select Department" theme={theme} />
-                    <SearchableDropdown
-                        label="Department"
-                        placeholder="Select a department"
-                        searchPlaceholder="Search departments..."
-                        options={deptOptions}
-                        selectedValue={formData.departmentId}
-                        onSelect={(val) => handleSelectChange("departmentId", val)}
-                        required={true}
-                    />
-                </div>
-
-                <div>
-                    <SectionHeading icon={<HiOutlineOfficeBuilding size={15} />} title="Section Identity" theme={theme} />
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium mb-1.5">Section Name *</label>
-                            <Input
-                                type="text"
-                                name="sectionName"
-                                value={formData.sectionName}
-                                onChange={handleInputChange}
-                                icon={<HiOutlineOfficeBuilding className="text-lg" />}
-                                placeholder="Enter section name"
-                                required
-                            />
+        <div className="w-full space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/[0.08] dark:border-white/[0.08]">
+                <div className="flex items-center gap-3.5">
+                    <button
+                        type="button"
+                        onClick={() => navigate("/dashboard/sections/list")}
+                        className={`p-2.5 rounded-xl border transition-colors ${
+                            theme
+                                ? "bg-white/[0.04] hover:bg-white/[0.08] border-white/10 text-gray-300"
+                                : "bg-white hover:bg-slate-100 border-slate-200 text-slate-700 shadow-sm"
+                        }`}
+                        title="Back to sections"
+                    >
+                        <HiOutlineArrowLeft size={18} />
+                    </button>
+                    <div
+                        className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-md ${
+                            theme
+                                ? "bg-linear-to-br from-blue-500 to-indigo-700 text-white shadow-blue-500/20"
+                                : "bg-linear-to-br from-red-600 to-rose-700 text-white shadow-red-500/20"
+                        }`}
+                    >
+                        <HiOutlineClipboardList size={20} />
+                    </div>
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <h1 className={`text-xl sm:text-2xl font-bold tracking-tight ${theme ? "text-white" : "text-slate-900"}`}>
+                                {isEditMode ? "Edit Section" : "Create Section"}
+                            </h1>
+                            <span
+                                className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${
+                                    theme ? "bg-blue-500/10 text-blue-300 border border-blue-500/20" : "bg-red-50 text-red-700 border border-red-200"
+                                }`}
+                            >
+                                {isEditMode ? `Section #${sectionId}` : "New Section"}
+                            </span>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium mb-1.5">Description</label>
-                            <textarea
-                                name="description"
-                                value={formData.description}
-                                onChange={handleInputChange}
-                                placeholder="Optional description about this section"
-                                rows={3}
-                                className={`w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none transition-colors ${theme
-                                    ? "bg-gray-800/60 border-gray-700 text-white placeholder-gray-500 focus:border-blue-500"
-                                    : "bg-white border-gray-200/80 text-gray-800 placeholder-gray-400 focus:border-red-600"
-                                    }`}
-                            />
-                        </div>
+                        <p className={`text-xs sm:text-sm mt-0.5 ${theme ? "text-gray-400" : "text-slate-500"}`}>
+                            Organize students, teachers, and lessons under a department.
+                        </p>
                     </div>
                 </div>
+            </div>
 
-                <div>
-                    <SectionHeading icon={<HiOutlineUser size={15} />} title="Section Head Assignment (Optional)" theme={theme} />
-                    <SearchableDropdown
-                        label="Assign Section Head"
-                        placeholder={
-                            !formData.departmentId
-                                ? "Please select a department first"
-                                : headsLoading
-                                    ? "Loading users..."
-                                    : userOptions.length === 0
-                                        ? "No Section Head available in this department"
-                                        : "Select a user as head (optional)"
-                        }
-                        searchPlaceholder="Search users..."
-                        options={userOptions}
-                        selectedValue={formData.sectionHead}
-                        onSelect={(val) => handleSelectChange("sectionHead", val)}
-                        disabled={!formData.departmentId || headsLoading || userOptions.length === 0}
-                        required={false}
-                    />
-                    <p className={`text-xs mt-1.5 ${theme ? "text-gray-500" : "text-neutral-400"}`}>
-                        Only users with "Section Head" role from the selected department are shown here.
-                    </p>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                <div className="lg:col-span-7 space-y-6">
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        <div
+                            className={`rounded-2xl border p-5 sm:p-7 transition-all ${
+                                theme ? "bg-white/[0.02] border-white/[0.08]" : "bg-white border-slate-200 shadow-sm"
+                            }`}
+                        >
+                            <div className="flex items-center gap-2.5 mb-5 pb-3 border-b border-white/[0.06] dark:border-white/[0.06]">
+                                <span
+                                    className={`w-7 h-7 rounded-lg flex items-center justify-center ${
+                                        theme ? "bg-blue-500/10 text-blue-400" : "bg-red-500/10 text-red-600"
+                                    }`}
+                                >
+                                    <HiOutlineOfficeBuilding size={16} />
+                                </span>
+                                <h2 className={`text-sm font-bold uppercase tracking-wider ${theme ? "text-gray-300" : "text-slate-800"}`}>
+                                    Section Hierarchy & Details
+                                </h2>
+                            </div>
+
+                            <div className="space-y-5">
+                                <div>
+                                    <label className={`block text-xs font-semibold mb-1.5 ${theme ? "text-gray-300" : "text-slate-700"}`}>
+                                        Department *
+                                    </label>
+                                    <SearchableDropdown
+                                        placeholder="Select department..."
+                                        searchPlaceholder="Search departments..."
+                                        options={deptOptions}
+                                        selectedValue={formData.departmentId}
+                                        onSelect={(val) => handleSelectChange("departmentId", val)}
+                                        disabled={isEditMode}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className={`block text-xs font-semibold mb-1.5 ${theme ? "text-gray-300" : "text-slate-700"}`}>
+                                        Section Name *
+                                    </label>
+                                    <Input
+                                        type="text"
+                                        name="sectionName"
+                                        value={formData.sectionName}
+                                        onChange={handleInputChange}
+                                        icon={<HiOutlineClipboardList className="text-lg" />}
+                                        placeholder="e.g. Grade 10 - Division A, Batch 2026"
+                                        required
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className={`block text-xs font-semibold mb-1.5 ${theme ? "text-gray-300" : "text-slate-700"}`}>
+                                        Section Head <span className="opacity-60 font-normal">(Optional)</span>
+                                    </label>
+                                    <SearchableDropdown
+                                        placeholder={
+                                            headsLoading
+                                                ? "Loading section heads..."
+                                                : !formData.departmentId
+                                                ? "Select department first..."
+                                                : userOptions.length === 0
+                                                ? "No Section Heads in this department"
+                                                : "Assign section head..."
+                                        }
+                                        searchPlaceholder="Search section heads..."
+                                        options={userOptions}
+                                        selectedValue={formData.sectionHead}
+                                        onSelect={(val) => handleSelectChange("sectionHead", val)}
+                                        disabled={headsLoading || !formData.departmentId || userOptions.length === 0}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className={`block text-xs font-semibold mb-1.5 ${theme ? "text-gray-300" : "text-slate-700"}`}>
+                                        Description & Notes <span className="opacity-60 font-normal">(Optional)</span>
+                                    </label>
+                                    <textarea
+                                        name="description"
+                                        value={formData.description}
+                                        onChange={handleInputChange}
+                                        rows={3}
+                                        placeholder="Enter details, room location, or batch notes for this section..."
+                                        className={`w-full px-4 py-2.5 text-sm rounded-xl border outline-none transition-all ${
+                                            theme
+                                                ? "bg-black/30 border-white/10 text-white placeholder:text-gray-500 focus:border-blue-500"
+                                                : "bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-red-500"
+                                        }`}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div
+                            className={`flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl border ${
+                                theme ? "bg-white/[0.02] border-white/[0.08]" : "bg-white border-slate-200 shadow-sm"
+                            }`}
+                        >
+                            <p className={`text-xs ${theme ? "text-gray-400" : "text-slate-500"}`}>
+                                Fields marked with <strong className="text-red-500">*</strong> are required.
+                            </p>
+
+                            <div className="flex items-center gap-3 w-full sm:w-auto">
+                                <button
+                                    type="button"
+                                    onClick={() => navigate("/dashboard/sections/list")}
+                                    disabled={loading}
+                                    className={`flex-1 sm:flex-none px-4 py-2.5 rounded-xl text-xs font-semibold border transition-colors ${
+                                        theme
+                                            ? "bg-white/[0.04] hover:bg-white/[0.08] text-gray-300 border-white/10"
+                                            : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
+                                    }`}
+                                >
+                                    Cancel
+                                </button>
+                                <Button
+                                    type="submit"
+                                    disabled={loading}
+                                    className={`flex-1 sm:flex-none min-w-36 text-xs font-semibold ${
+                                        theme ? "bg-blue-600 hover:bg-blue-700" : "bg-red-600 hover:bg-red-700"
+                                    }`}
+                                >
+                                    {loading ? (
+                                        <span className="flex items-center justify-center gap-2">
+                                            <span className="w-3.5 h-3.5 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                                            Saving...
+                                        </span>
+                                    ) : isEditMode ? (
+                                        "Update Section"
+                                    ) : (
+                                        "Create Section"
+                                    )}
+                                </Button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
 
-                <div className="flex justify-end items-center gap-3 pt-6 border-t border-neutral-200 dark:border-gray-800">
-                    <p className={`text-xs mr-auto hidden sm:block ${theme ? "text-gray-500" : "text-neutral-400"}`}>
-                        Fields marked * are required.
-                    </p>
-                    <Button
-                        type="submit"
-                        disabled={loading}
-                        className={`${theme ? "bg-blue-600 hover:bg-blue-700" : "bg-red-600 hover:bg-red-700"
-                            } min-w-45 transition-colors duration-150 disabled:opacity-60 disabled:cursor-not-allowed`}
+                <div className="lg:col-span-5 space-y-6">
+                    <div
+                        className={`rounded-2xl border p-5 sm:p-6 transition-all ${
+                            theme ? "bg-white/[0.02] border-white/[0.08]" : "bg-white border-slate-200 shadow-sm"
+                        }`}
                     >
-                        {loading ? (
-                            <span className="flex items-center justify-center gap-2">
-                                <span className="w-3.5 h-3.5 rounded-full border-2 border-white/40 border-t-white animate-spin" />
-                                Processing...
-                            </span>
-                        ) : isEditMode ? "Update Section" : "Create Section"}
-                    </Button>
+                        <div className="flex items-center gap-2 mb-4 pb-3 border-b border-white/[0.06] dark:border-white/[0.06]">
+                            <HiOutlineSparkles className={theme ? "text-blue-400" : "text-red-600"} size={16} />
+                            <h3 className={`text-xs font-bold uppercase tracking-wider ${theme ? "text-gray-300" : "text-slate-800"}`}>
+                                Live Section Preview
+                            </h3>
+                        </div>
+
+                        <div
+                            className={`p-5 rounded-xl border transition-all ${
+                                theme ? "bg-black/30 border-white/10" : "bg-slate-50 border-slate-200"
+                            }`}
+                        >
+                            <div className="flex items-start gap-3.5">
+                                <div
+                                    className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-md ${
+                                        theme
+                                            ? "bg-linear-to-br from-blue-500 to-indigo-700 text-white shadow-blue-500/20"
+                                            : "bg-linear-to-br from-red-600 to-rose-700 text-white shadow-red-500/20"
+                                    }`}
+                                >
+                                    <FaLayerGroup size={20} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <h4 className={`text-base font-bold truncate ${theme ? "text-white" : "text-slate-900"}`}>
+                                        {formData.sectionName.trim() || "Section Name Preview"}
+                                    </h4>
+                                    <span
+                                        className={`inline-block mt-0.5 text-[10px] font-medium px-2 py-0.5 rounded ${
+                                            theme ? "bg-white/[0.06] text-gray-400" : "bg-slate-200 text-slate-600"
+                                        }`}
+                                    >
+                                        {selectedDeptLabel || "No Department Selected"}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="mt-4 pt-3 border-t border-white/[0.06] space-y-2 text-xs">
+                                <div className="flex items-center justify-between">
+                                    <span className="flex items-center gap-1.5 opacity-70">
+                                        <FaUserTie size={12} /> Section Head:
+                                    </span>
+                                    <span className="font-semibold">
+                                        {selectedHeadLabel || "Unassigned"}
+                                    </span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="flex items-center gap-1.5 opacity-70">
+                                        <FaUsers size={12} /> Enrolled Students:
+                                    </span>
+                                    <span className="font-semibold">0</span>
+                                </div>
+                            </div>
+
+                            <p
+                                className={`text-xs mt-3.5 line-clamp-3 leading-relaxed ${
+                                    theme ? "text-gray-400" : "text-slate-600"
+                                }`}
+                            >
+                                {formData.description.trim() ||
+                                    "Provide notes, room number or timing details for this section."}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div
+                        className={`rounded-2xl border p-5 sm:p-6 transition-all ${
+                            theme ? "bg-white/[0.02] border-white/[0.08]" : "bg-white border-slate-200 shadow-sm"
+                        }`}
+                    >
+                        <div className="flex items-center gap-2 mb-3 pb-2 border-b border-white/[0.06] dark:border-white/[0.06]">
+                            <HiOutlineInformationCircle className={theme ? "text-blue-400" : "text-red-600"} size={16} />
+                            <h3 className={`text-xs font-bold uppercase tracking-wider ${theme ? "text-gray-300" : "text-slate-800"}`}>
+                                Section Guidelines
+                            </h3>
+                        </div>
+
+                        <ul className="space-y-2.5 text-xs">
+                            <li className="flex items-start gap-2">
+                                <span className={`p-0.5 rounded-full mt-0.5 ${theme ? "bg-blue-500/20 text-blue-400" : "bg-red-100 text-red-600"}`}>
+                                    <HiOutlineCheck size={12} />
+                                </span>
+                                <span className={theme ? "text-gray-400" : "text-slate-600"}>
+                                    Sections subdivide departments into classrooms or batches.
+                                </span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                                <span className={`p-0.5 rounded-full mt-0.5 ${theme ? "bg-blue-500/20 text-blue-400" : "bg-red-100 text-red-600"}`}>
+                                    <HiOutlineCheck size={12} />
+                                </span>
+                                <span className={theme ? "text-gray-400" : "text-slate-600"}>
+                                    Only users with <strong>Section Head</strong> role appear in the head selector.
+                                </span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                                <span className={`p-0.5 rounded-full mt-0.5 ${theme ? "bg-blue-500/20 text-blue-400" : "bg-red-100 text-red-600"}`}>
+                                    <HiOutlineCheck size={12} />
+                                </span>
+                                <span className={theme ? "text-gray-400" : "text-slate-600"}>
+                                    Students can be enrolled under this section after creation.
+                                </span>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
-            </form>
+            </div>
         </div>
     );
 }
