@@ -874,7 +874,7 @@ export default function GurukulCommunity() {
                         toast.error(`"${f.name}" is too large to send`);
                         continue;
                     }
-                    const id = newId();
+                    const id = generateUUID();
                     if (!writeJson(fileKey(id), prepared.data, true)) {
                         toast.error(`"${f.name}" could not be saved. Browser storage is full.`);
                         continue;
