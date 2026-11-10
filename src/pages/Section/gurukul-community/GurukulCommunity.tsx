@@ -495,21 +495,6 @@ export default function GurukulCommunity() {
         return () => window.clearInterval(id);
     }, [allKeys]);
 
-    // Remote API polling (only when CHAT_API_BASE is configured)
-    useEffect(() => {
-        if (!CHAT_API_BASE || !convKey) return;
-        let alive = true;
-        const load = async () => {
-            const list = await fetchRemoteMessages(convKey);
-            if (alive && list) setRemoteState({ key: convKey, list });
-        };
-        load();
-        const id = window.setInterval(load, 2500);
-        return () => {
-            alive = false;
-            window.clearInterval(id);
-        };
-    }, [convKey]);
 
     // Chat theme + overlays reset for the opened conversation
     useEffect(() => {

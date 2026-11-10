@@ -4,7 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
-  base: './', // 👈 મોબાઈલ એપમાં વાઈટ સ્ક્રીન પ્રૉબ્લેમ ફિક્સ કરવા માટે આ લાઈન ખાસ ઉમેરી છે
+  base: process.env.CAPACITOR ? './' : '/',
   plugins: [
     react(),
     tailwindcss(),
