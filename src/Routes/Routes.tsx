@@ -46,7 +46,7 @@ import MyLessons from "../pages/Section/Lesson-management/My-Lessons";
 
 import CreateGroup from "../pages/Section/Group-Managemant/Create-Group";
 import GroupList from "../pages/Section/Group-Managemant/Group-List";
-import GurukulCommunity from "../pages/Section/Group-Managemant/GurukulCommunity";
+import GurukulCommunity from "../pages/Section/gurukul-community/GurukulCommunity";
 
 import GroupMemberDetail from "../pages/Section/Group-Managemant/Groupmemberdetail";
 

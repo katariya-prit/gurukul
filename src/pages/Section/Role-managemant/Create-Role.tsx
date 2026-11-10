@@ -15,6 +15,7 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
 // category-wise group karya, jethi Create Role form ma badha modules ni permission set kari shakay
 const moduleGroups: { category: string; modules: string[] }[] = [
     { category: "Core", modules: ["Dashboard", "Permissions", "Progress"] },
+    { category: "Communication", modules: ["Community", "Chat"] },
     { category: "User Management", modules: ["Users", "Department", "Section", "Student"] },
     { category: "Roles", modules: ["RolesPermissions"] },
     { category: "Lessons", modules: ["Lesson", "MyLessons"] },

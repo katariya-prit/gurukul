@@ -1,4 +1,4 @@
-import { useId, useState, type ComponentProps } from "react";
+import { useCallback, useEffect, useId, useState, type ComponentProps } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTheme } from "../theme/ThemeContext";
 import MorphPopover from "../overlay/MorphPopover";
@@ -6,12 +6,27 @@ import ExpandedDropdown from "./SidebarDropdown";
 
 type SidebarGroupProps = ComponentProps<typeof ExpandedDropdown>;
 
+let activeCloser: (() => void) | null = null;
+
 function MiniMorphItem({ title, icon, items, setSidebarOpen }: SidebarGroupProps) {
     const { theme } = useTheme();
     const navigate = useNavigate();
     const location = useLocation();
     const uid = useId();
     const [isOpen, setIsOpen] = useState(false);
+
+    const closeSelf = useCallback(() => setIsOpen(false), []);
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        if (activeCloser && activeCloser !== closeSelf) activeCloser();
+        activeCloser = closeSelf;
+
+        return () => {
+            if (activeCloser === closeSelf) activeCloser = null;
+        };
+    }, [isOpen, closeSelf]);
 
     const isGroupActive = items.some((item) => location.pathname === item.path);
 
@@ -24,6 +39,7 @@ function MiniMorphItem({ title, icon, items, setSidebarOpen }: SidebarGroupProps
                 : "text-gray-500 hover:bg-red-50 hover:text-red-600"
         }`;
 
+    const ghostClass = theme ? "bg-gray-800 text-blue-200" : "bg-red-50 text-red-600";
 
     const panelClass = `border shadow-2xl backdrop-blur-xl ${theme
             ? "border-gray-700/80 bg-gray-900/95 shadow-black/30"
@@ -39,12 +55,14 @@ function MiniMorphItem({ title, icon, items, setSidebarOpen }: SidebarGroupProps
     return (
         <MorphPopover
             id={`sidebar-${title}-${uid}`}
+            variant="flyout"
             isOpen={isOpen}
             onOpenChange={setIsOpen}
             placement="right"
             openOnHover
             wrapperClassName="relative flex w-full"
             triggerClassName={triggerClass}
+            ghostClassName={ghostClass}
             panelClassName={panelClass}
             triggerTitle={title}
             ariaLabel={title}

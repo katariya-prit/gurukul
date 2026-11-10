@@ -25,6 +25,7 @@ import { departmentService } from "../../services/departmentService";
 import { sectionService } from "../../services/sectionService";
 import { groupService, isGroupLeader, type GroupData } from "../../services/groupService";
 import { useSidebarView } from "../../context/SidebarViewContext";
+import { useNotifications } from "../../context/NotificationContext";
 import { createPermissionChecker } from "./core/PermitionValidetor";
 import {
     getDepartmentItems,
@@ -81,6 +82,21 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
     const [groupsLoading, setGroupsLoading] = useState<boolean>(false);
 
     const [user, setUser] = useState<AuthUser | null>(null);
+    const { hasPageUpdate, markPageChecked } = useNotifications();
+
+    useEffect(() => {
+        markPageChecked(location.pathname);
+    }, [location.pathname, markPageChecked]);
+
+    const renderTick = (path: string) => {
+        if (!hasPageUpdate(path)) return null;
+        return (
+            <span
+                title="New update available"
+                className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-red-600 ring-2 ring-white dark:ring-slate-900 animate-pulse shrink-0"
+            />
+        );
+    };
 
     useEffect(() => {
         const data = localStorage.getItem("user");
@@ -196,6 +212,8 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
     const showPermissionsBtn = hasAccess("Permissions", "view");
     const showProgressBtn = hasAccess("Progress", "view");
     const showMyLessonsBtn = createPermissionChecker(user, true)("MyLessons", "view");
+    const isStudent = user?.roleCode === "STUDENT";
+    const showCommunityBtn = isSuperAdmin || (isStudent ? myGroups.length > 0 : (hasAccess("Community", "view") || myGroups.length > 0));
 
     if (isSuperAdmin && activeDepartmentId !== null) {
         const activeDept = filteredDepartments.find((dept) => dept.departmentId === activeDepartmentId);
@@ -271,6 +289,7 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
                         <HiOutlineHome className="text-xl" />
                     </span>
                     {!isMiniSidebar && "Dashboard"}
+                    {renderTick("/dashboard")}
                 </button>
             )}
 
@@ -278,7 +297,7 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
                 <button
                     onClick={() => { navigate("/dashboard/permissions/messages"); setSidebarOpen(false); }}
                     title={isMiniSidebar ? "Permissions" : ""}
-                    className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl font-semibold text-[15px] transition-all duration-200 group cursor-pointer 
+                    className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl font-semibold text-[15px] transition-all duration-200 group cursor-pointer relative 
                         ${isMiniSidebar ? "justify-center px-2" : ""}
                         ${isPermActive
                             ? activeBtn
@@ -289,6 +308,7 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
                         <AiOutlineFileProtect className="text-xl" />
                     </span>
                     {!isMiniSidebar && "Permissions"}
+                    {renderTick("/dashboard/permissions")}
                 </button>
             )}
 
@@ -296,7 +316,7 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
                 <button
                     onClick={() => { navigate("/dashboard/progress"); setSidebarOpen(false); }}
                     title={isMiniSidebar ? "Progress" : ""}
-                    className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl font-semibold text-[15px] transition-all duration-200 group cursor-pointer 
+                    className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl font-semibold text-[15px] transition-all duration-200 group cursor-pointer relative 
                         ${isMiniSidebar ? "justify-center px-2" : ""}
                         ${isProgressActive
                             ? activeBtn
@@ -307,6 +327,7 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
                         <HiOutlineChartBar className="text-xl" />
                     </span>
                     {!isMiniSidebar && "Progress"}
+                    {renderTick("/dashboard/progress")}
                 </button>
             )}
 
@@ -314,7 +335,7 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
                 <button
                     onClick={() => { navigate("/dashboard/lessons/my-lessons"); setSidebarOpen(false); }}
                     title={isMiniSidebar ? "My Lessons" : ""}
-                    className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl font-semibold text-[15px] transition-all duration-200 group cursor-pointer 
+                    className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl font-semibold text-[15px] transition-all duration-200 group cursor-pointer relative 
                         ${isMiniSidebar ? "justify-center px-2" : ""}
                         ${isMyLessonsActive
                             ? activeBtn
@@ -325,25 +346,29 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
                         <HiOutlineClipboardCheck className="text-xl" />
                     </span>
                     {!isMiniSidebar && "My Lessons"}
+                    {renderTick("/dashboard/lessons/my-lessons")}
                 </button>
             )}
 
             {/* Gurukul Community (groups + chat) */}
-            <button
-                onClick={() => { navigate("/dashboard/community"); setSidebarOpen(false); }}
-                title={isMiniSidebar ? "Gurukul Community" : ""}
-                className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl font-semibold text-[15px] transition-all duration-200 group cursor-pointer 
-                    ${isMiniSidebar ? "justify-center px-2" : ""}
-                    ${isCommunityActive
-                        ? activeBtn
-                        : inactiveBtn
-                    }`}
-            >
-                <span className={`transition-colors ${isCommunityActive ? "text-white" : (theme ? "text-gray-300 group-hover:text-blue-200" : "text-gray-400 group-hover:text-red-600")}`}>
-                    <HiOutlineChatAlt2 className="text-xl" />
-                </span>
-                {!isMiniSidebar && "Gurukul Community"}
-            </button>
+            {showCommunityBtn && (
+                <button
+                    onClick={() => { navigate("/dashboard/community"); setSidebarOpen(false); }}
+                    title={isMiniSidebar ? "Gurukul Community" : ""}
+                    className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl font-semibold text-[15px] transition-all duration-200 group cursor-pointer relative 
+                        ${isMiniSidebar ? "justify-center px-2" : ""}
+                        ${isCommunityActive
+                            ? activeBtn
+                            : inactiveBtn
+                        }`}
+                >
+                    <span className={`transition-colors ${isCommunityActive ? "text-white" : (theme ? "text-gray-300 group-hover:text-blue-200" : "text-gray-400 group-hover:text-red-600")}`}>
+                        <HiOutlineChatAlt2 className="text-xl" />
+                    </span>
+                    {!isMiniSidebar && "Gurukul Community"}
+                    {renderTick("/dashboard/community")}
+                </button>
+            )}
 
             {myGroups.length > 0 && (
                 <div className="space-y-1">
@@ -370,6 +395,7 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
                                 <HiOutlineUserGroup className="text-lg shrink-0" />
                                 {!isMiniSidebar && <span className="flex-1 text-left truncate">{group.group_name}</span>}
                                 {leader && <HiStar className="text-amber-400 shrink-0" title="Group Leader" />}
+                                {renderTick(`/dashboard/groups/member/${group.group_id}`)}
                             </button>
                         );
                     })}

@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { HiOutlineMenuAlt2, HiOutlineBell } from "react-icons/hi";
+import { HiOutlineMenuAlt2, HiOutlineBell, HiOutlineArrowLeft, HiOutlineArrowRight } from "react-icons/hi";
 import { useTheme } from "../components/theme/ThemeContext";
 import ThemeToggle from "../components/theme/ThemeToggle";
 import EventCalendarContent from "../components/Event-Calendar/Event-Calendar";
@@ -61,6 +61,15 @@ export default function Header({ toggleSidebar }: HeaderProps) {
         localStorage.removeItem("user");
         navigate("/login");
     };
+
+    // Vibrate ane History Navigation Handler
+    const handleNavigation = (delta: number) => {
+        if ("vibrate" in navigator) {
+            navigator.vibrate(40); // 40ms haptic feedback
+        }
+        navigate(delta);
+    };
+
     const currentDate = new Date();
     const dayNumber = currentDate.getDate().toString().padStart(2, '0');
     const monthShort = currentDate.toLocaleString('en-US', { month: 'short' }).toUpperCase();
@@ -125,6 +134,27 @@ export default function Header({ toggleSidebar }: HeaderProps) {
                 >
                     <HiOutlineMenuAlt2 className="text-2xl" />
                 </button>
+
+                {/* Gradient Red Back and Forward Buttons with Soft Red Shadow */}
+                <div className="flex items-center gap-2">
+                    <button
+                        type="button"
+                        onClick={() => handleNavigation(-1)}
+                        title="Back"
+                        className="p-2.5 rounded-full text-white bg-gradient-to-r from-red-600 to-rose-400 shadow-[0_4px_14px_rgba(239,68,68,0.4)] hover:shadow-[0_6px_20px_rgba(239,68,68,0.6)] hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                    >
+                        <HiOutlineArrowLeft className="text-base" />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => handleNavigation(1)}
+                        title="Forward"
+                        className="p-2.5 rounded-full text-white bg-gradient-to-r from-red-600 to-rose-400 shadow-[0_4px_14px_rgba(239,68,68,0.4)] hover:shadow-[0_6px_20px_rgba(239,68,68,0.6)] hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                    >
+                        <HiOutlineArrowRight className="text-base" />
+                    </button>
+                </div>
+
                 <h1 className={`text-lg sm:text-2xl font-black hidden sm:block tracking-wide ${theme ? "text-white" : "text-slate-800"
                     }`}>
                     {headerTitle}

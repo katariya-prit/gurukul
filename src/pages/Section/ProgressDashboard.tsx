@@ -21,7 +21,7 @@ const SECTION_HEAD = "SECHEAD101";
 
 type AuthUserWithSection = AuthUser & { sectionId?: number };
 
-// Helper functions: Jo tasks 0 hoy to lessons no data automatic map kari deshe
+// Helper functions: Section and Department percentages are the true average across students
 const normalizeUser = (u: UserProgress): UserProgress => ({
     ...u,
     percentage: u.overallPercentage ?? u.lessonCompletionPercent ?? u.percentage ?? 0,
@@ -29,21 +29,48 @@ const normalizeUser = (u: UserProgress): UserProgress => ({
     totalTasks: (u.totalTasks || 0) + (u.totalLessons || 0),
 });
 
-const normalizeSection = (s: SectionProgress): SectionProgress => ({
-    ...s,
-    percentage: s.overallPercentage ?? s.lessonCompletionPercent ?? s.percentage ?? 0,
-    completedTasks: (s.completedTasks || 0) + (s.submittedLessons || 0),
-    totalTasks: (s.totalTasks || 0) + (s.totalLessons || 0),
-    users: (s.users || []).map(normalizeUser),
-});
+const normalizeSection = (s: SectionProgress): SectionProgress => {
+    const users = (s.users || []).map(normalizeUser);
+    const studentCount = users.length;
+    const computedAverage =
+        studentCount > 0
+            ? Math.round(users.reduce((acc, u) => acc + (u.overallPercentage ?? u.percentage ?? 0), 0) / studentCount)
+            : (s.overallPercentage ?? s.percentage ?? 0);
 
-const normalizeDepartment = (d: DepartmentProgress): DepartmentProgress => ({
-    ...d,
-    percentage: d.overallPercentage ?? d.lessonCompletionPercent ?? d.percentage ?? 0,
-    completedTasks: (d.completedTasks || 0) + (d.submittedLessons || 0),
-    totalTasks: (d.totalTasks || 0) + (d.totalLessons || 0),
-    sections: (d.sections || []).map(normalizeSection),
-});
+    return {
+        ...s,
+        percentage: computedAverage,
+        overallPercentage: computedAverage,
+        completedTasks: (s.completedTasks || 0) + (s.submittedLessons || 0),
+        totalTasks: (s.totalTasks || 0) + (s.totalLessons || 0),
+        users,
+    };
+};
+
+const normalizeDepartment = (d: DepartmentProgress): DepartmentProgress => {
+    const sections = (d.sections || []).map(normalizeSection);
+    const totalStudents = sections.reduce((acc, s) => acc + (s.users?.length || s.studentCount || 0), 0);
+    const computedAverage =
+        totalStudents > 0
+            ? Math.round(
+                  sections.reduce(
+                      (acc, s) => acc + s.percentage * (s.users?.length || s.studentCount || 1),
+                      0
+                  ) / totalStudents
+              )
+            : sections.length > 0
+            ? Math.round(sections.reduce((acc, s) => acc + s.percentage, 0) / sections.length)
+            : (d.overallPercentage ?? d.percentage ?? 0);
+
+    return {
+        ...d,
+        percentage: computedAverage,
+        overallPercentage: computedAverage,
+        completedTasks: (d.completedTasks || 0) + (d.submittedLessons || 0),
+        totalTasks: (d.totalTasks || 0) + (d.totalLessons || 0),
+        sections,
+    };
+};
 
 export default function ProgressDashboard() {
     const { theme } = useTheme();

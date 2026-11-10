@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { HiOutlineArrowLeft } from "react-icons/hi";
+import { Outlet, useLocation } from "react-router-dom";
 import Sidebar from "../Sidebar";
 import Header from "../Header";
 import { useTheme } from "../../components/theme/ThemeContext";
@@ -11,7 +10,6 @@ import NotificationToast from "../../components/notifications/NotificationToast"
 
 export default function Layout() {
     const { theme } = useTheme();
-    const navigate = useNavigate();
     const location = useLocation();
     const isDashboard = location.pathname === "/dashboard";
     const [loadingPath, setLoadingPath] = useState(location.pathname);
@@ -48,8 +46,8 @@ export default function Layout() {
                         {/* Inset Rounded Main Canvas — fixes the sharp 90° top-left corner */}
                         <main
                             className={`relative flex-1 w-full overflow-y-auto no-scrollbar p-4 sm:p-6 lg:p-7 lg:rounded-tl-[32px] border-t border-l transition-all duration-500 ${theme
-                                    ? "bg-[#060a12] border-white/[0.08] shadow-[inset_0_4px_24px_rgba(0,0,0,0.5)]"
-                                    : "bg-[#f4f7fb] border-slate-200/80 shadow-[inset_0_2px_12px_rgba(15,23,42,0.03)]"
+                                ? "bg-[#060a12] border-white/[0.08] shadow-[inset_0_4px_24px_rgba(0,0,0,0.5)]"
+                                : "bg-[#f4f7fb] border-slate-200/80 shadow-[inset_0_2px_12px_rgba(15,23,42,0.03)]"
                                 }`}
                         >
                             {/* Natural Blue & Pink Ambient Mesh Inside the Curved Canvas */}
@@ -74,27 +72,13 @@ export default function Layout() {
                             {/* Content Wrapper */}
                             <div
                                 className={`relative z-10 w-full min-h-full transition-all duration-300 ${isDashboard
-                                        ? "max-w-none"
-                                        : `rounded-3xl border p-5 sm:p-6 backdrop-blur-2xl ${theme
-                                            ? "bg-slate-900/40 text-gray-50 border-white/[0.08] shadow-[0_20px_60px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.08)]"
-                                            : "bg-white/65 text-gray-800 border-white/90 shadow-[0_20px_60px_rgba(59,130,246,0.06),inset_0_1px_2px_rgba(255,255,255,0.95)]"
-                                        }`
+                                    ? "max-w-none"
+                                    : `rounded-3xl border p-5 sm:p-6 backdrop-blur-2xl ${theme
+                                        ? "bg-slate-900/40 text-gray-50 border-white/[0.08] shadow-[0_20px_60px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.08)]"
+                                        : "bg-white/65 text-gray-800 border-white/90 shadow-[0_20px_60px_rgba(59,130,246,0.06),inset_0_1px_2px_rgba(255,255,255,0.95)]"
+                                    }`
                                     }`}
                             >
-                                {!isDashboard && (
-                                    <button
-                                        type="button"
-                                        onClick={() => navigate(-1)}
-                                        className={`inline-flex items-center gap-2 mb-6 px-4 py-2 rounded-xl text-sm font-semibold border backdrop-blur-xl transition-all cursor-pointer ${theme
-                                                ? "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 hover:text-white"
-                                                : "border-white bg-white/80 text-gray-700 hover:bg-white hover:text-gray-900 shadow-xs"
-                                            }`}
-                                    >
-                                        <HiOutlineArrowLeft className="text-base" />
-                                        Back
-                                    </button>
-                                )}
-
                                 {isRouteLoading ? (
                                     <div className="space-y-4">
                                         <SkeletonLoader variant="text" rows={3} />

@@ -31,6 +31,8 @@ interface NotificationContextValue {
     openCenter: () => void;
     closeCenter: () => void;
     toggleCenter: () => void;
+    hasPageUpdate: (path: string) => boolean;
+    markPageChecked: (path: string) => void;
 }
 
 const NotificationContext = createContext<NotificationContextValue | undefined>(undefined);
@@ -42,12 +44,10 @@ function getStoredUserId(): string | undefined {
             return undefined;
         }
 
-        const user: unknown = JSON.parse(storedUser);
-        if (typeof user === "object" && user !== null && "id" in user) {
-            const id = user.id;
-            if (typeof id === "string" || typeof id === "number") {
-                return String(id);
-            }
+        const user: any = JSON.parse(storedUser);
+        const id = user.suid ?? user.id ?? user.userId;
+        if (id !== undefined && id !== null) {
+            return String(id);
         }
     } catch (error: unknown) {
         console.warn("Unable to read the notification user id", error);
@@ -57,7 +57,22 @@ function getStoredUserId(): string | undefined {
 }
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
-    const [userId] = useState(getStoredUserId);
+    const [userId, setUserId] = useState(getStoredUserId);
+
+    useEffect(() => {
+        const syncUser = () => {
+            const current = getStoredUserId();
+            if (current !== userId) {
+                setUserId(current);
+            }
+        };
+        window.addEventListener("storage", syncUser);
+        const timer = setInterval(syncUser, 3000);
+        return () => {
+            window.removeEventListener("storage", syncUser);
+            clearInterval(timer);
+        };
+    }, [userId]);
     const [notifications, setNotifications] = useState<NotificationItem[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
@@ -233,6 +248,63 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         }
     }, [closeCenter, openCenter]);
 
+    const [checkedPages, setCheckedPages] = useState<Record<string, number>>(() => {
+        try {
+            return JSON.parse(localStorage.getItem("gurukul_checked_pages") || "{}");
+        } catch {
+            return {};
+        }
+    });
+
+    const markPageChecked = useCallback((path: string) => {
+        if (!path) return;
+        const cleanPath = path.toLowerCase();
+        setCheckedPages((prev) => {
+            const next = { ...prev, [cleanPath]: Date.now() };
+            try {
+                localStorage.setItem("gurukul_checked_pages", JSON.stringify(next));
+            } catch {}
+            return next;
+        });
+
+        // Also mark any matching unread notifications as read
+        const matching = notificationsRef.current.filter(
+            (n) => !n.isRead && n.link && cleanPath.startsWith(n.link.toLowerCase())
+        );
+        matching.forEach((m) => {
+            void markRead(m.id);
+        });
+    }, [markRead]);
+
+    const hasPageUpdate = useCallback(
+        (path: string): boolean => {
+            if (!path) return false;
+            const cleanPath = path.toLowerCase();
+            const lastChecked = checkedPages[cleanPath] || 0;
+
+            return notifications.some((n) => {
+                if (n.isRead) return false;
+                const notifTime = n.createdAt ? new Date(n.createdAt).getTime() : Date.now();
+                if (notifTime <= lastChecked) return false;
+
+                if (n.link && (cleanPath.startsWith(n.link.toLowerCase()) || n.link.toLowerCase().startsWith(cleanPath))) {
+                    return true;
+                }
+                if (cleanPath.includes("community") && (n.type === "chat" || (n.link && n.link.includes("community")))) {
+                    return true;
+                }
+                if (cleanPath.includes("lessons") && (n.type === "lesson" || n.type === "submission")) {
+                    return true;
+                }
+                if (cleanPath.includes("progress") && n.type === "progress") {
+                    return true;
+                }
+                return false;
+            });
+        },
+        [notifications, checkedPages]
+    );
+
     const contextValue = useMemo(
         () => ({
             notifications,
@@ -249,6 +321,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             openCenter,
             closeCenter,
             toggleCenter,
+            hasPageUpdate,
+            markPageChecked,
         }),
         [
             notifications,
@@ -264,6 +338,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             openCenter,
             closeCenter,
             toggleCenter,
+            hasPageUpdate,
+            markPageChecked,
         ]
     );
 

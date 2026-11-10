@@ -164,7 +164,12 @@ function DocumentPreviewModal({
 
         switch (kind) {
           case "pdf": {
+            // Correctly assigning to local objectUrl variable so cleanup can access it
             objectUrl = URL.createObjectURL(new Blob([buffer], { type: "application/pdf" }));
+            if (cancelled) {
+              URL.revokeObjectURL(objectUrl);
+              return;
+            }
             setView({ type: "pdf-blob", src: objectUrl });
             return;
           }
@@ -249,7 +254,7 @@ function DocumentPreviewModal({
           default:
             setView({ type: "unsupported", message: "Preview is not available for this file type." });
         }
-      } catch {
+      } catch (err) {
         if (!cancelled) setView({ type: "error", message: "Document could not be loaded. Please try again." });
       }
     };
@@ -258,7 +263,9 @@ function DocumentPreviewModal({
 
     return () => {
       cancelled = true;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
     };
   }, [url, extension]);
 
@@ -326,15 +333,14 @@ function DocumentPreviewModal({
                     key={item.name}
                     type="button"
                     onClick={() => setActiveSheet(index)}
-                    className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                      index === activeSheet
-                        ? theme
-                          ? "bg-blue-500 text-white"
-                          : "bg-red-500 text-white"
-                        : theme
-                          ? "bg-white/10 text-gray-300 hover:bg-white/15"
-                          : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
-                    }`}
+                    className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${index === activeSheet
+                      ? theme
+                        ? "bg-blue-500 text-white"
+                        : "bg-red-500 text-white"
+                      : theme
+                        ? "bg-white/10 text-gray-300 hover:bg-white/15"
+                        : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
+                      }`}
                   >
                     {item.name}
                   </button>
@@ -392,9 +398,8 @@ function DocumentPreviewModal({
             type="button"
             onClick={onClose}
             aria-label="Close document"
-            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors ${
-              theme ? "hover:bg-white/10" : "hover:bg-neutral-100"
-            }`}
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors ${theme ? "hover:bg-white/10" : "hover:bg-neutral-100"
+              }`}
           >
             <FaTimes />
           </button>

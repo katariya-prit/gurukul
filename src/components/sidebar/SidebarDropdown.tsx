@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTheme } from "../theme/ThemeContext";
+import { useNotifications } from "../../context/NotificationContext";
 import { HiChevronDown } from "react-icons/hi";
 import { AnimatePresence } from "motion/react";
 import SidebarHoverMenu from "./SidebarHoverMenu";
@@ -25,6 +26,9 @@ export default function SidebarDropdown({ title, icon, items, setSidebarOpen, is
     const location = useLocation();
 
     const isChildActive = items.some((item) => location.pathname === item.path);
+
+    const { hasPageUpdate } = useNotifications();
+    const hasAnyChildUpdate = items.some((item) => hasPageUpdate(item.path));
 
     const [isOpen, setIsOpen] = useState(isChildActive && !isMiniSidebar);
     const isParentActive = isChildActive;
@@ -92,11 +96,22 @@ export default function SidebarDropdown({ title, icon, items, setSidebarOpen, is
                 </div>
 
                 {!isMiniSidebar && (
-                    <HiChevronDown className={`text-lg transition-transform duration-300 ${isOpen ? "rotate-180" : ""} ${
-                        isParentActive
-                            ? "text-white"
-                            : theme ? "text-gray-400" : "text-gray-400"
-                    }`} />
+                    <div className="flex items-center gap-2">
+                        {hasAnyChildUpdate && (
+                            <span
+                                title="New update inside"
+                                className="h-2.5 w-2.5 rounded-full bg-red-600 ring-2 ring-white dark:ring-slate-900 animate-pulse shrink-0"
+                            />
+                        )}
+                        <HiChevronDown className={`text-lg transition-transform duration-300 ${isOpen ? "rotate-180" : ""} ${
+                            isParentActive
+                                ? "text-white"
+                                : theme ? "text-gray-400" : "text-gray-400"
+                        }`} />
+                    </div>
+                )}
+                {isMiniSidebar && hasAnyChildUpdate && (
+                    <span className="absolute top-1.5 right-1.5 h-2.5 w-2.5 rounded-full bg-red-600 ring-2 ring-white dark:ring-slate-900 animate-pulse" />
                 )}
             </button>
 
@@ -146,7 +161,13 @@ export default function SidebarDropdown({ title, icon, items, setSidebarOpen, is
                                 }`}>
                                     {sub.icon}
                                 </span>
-                                {sub.name}
+                                <span>{sub.name}</span>
+                                {hasPageUpdate(sub.path) && (
+                                    <span
+                                        title="New update available"
+                                        className="ml-auto h-2 w-2 rounded-full bg-red-600 ring-2 ring-white dark:ring-slate-900 animate-pulse shrink-0"
+                                    />
+                                )}
                             </button>
                         );
                     })}

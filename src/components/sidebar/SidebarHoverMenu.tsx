@@ -1,5 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTheme } from "../theme/ThemeContext";
+import { useNotifications } from "../../context/NotificationContext";
 import { motion, useReducedMotion } from "motion/react";
 
 interface SubItem {
@@ -20,6 +21,7 @@ export default function SidebarHoverMenu({ title, items, setIsOpen, parentTop }:
     const shouldReduceMotion = useReducedMotion();
     const navigate = useNavigate();
     const location = useLocation();
+    const { hasPageUpdate } = useNotifications();
 
     return (
         <motion.div
@@ -69,7 +71,13 @@ export default function SidebarHoverMenu({ title, items, setIsOpen, parentTop }:
                             }`}>
                                 {sub.icon}
                             </span>
-                            {sub.name}
+                            <span className="truncate">{sub.name}</span>
+                            {hasPageUpdate(sub.path) && (
+                                <span
+                                    title="New update available"
+                                    className="ml-auto h-2 w-2 rounded-full bg-red-600 ring-2 ring-white dark:ring-slate-900 animate-pulse shrink-0"
+                                />
+                            )}
                         </motion.button>
                     );
                 })}

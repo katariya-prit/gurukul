@@ -58,6 +58,7 @@ export default function Login() {
 
         const loggedInUserData = {
           id: userData.suid,
+          suid: userData.suid,
           username: userData.username,
           name: userData.name,
           avatar: userData.avatar,

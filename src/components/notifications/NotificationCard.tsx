@@ -5,6 +5,7 @@ import {
     HiInformationCircle,
     HiOutlineX,
     HiXCircle,
+    HiOutlineChatAlt2,
 } from "react-icons/hi";
 import { useTheme } from "../theme/ThemeContext";
 import type { NotificationItem } from "../../services/notificationService";
@@ -22,6 +23,7 @@ const typeIcons = {
     warning: HiExclamation,
     error: HiXCircle,
     info: HiInformationCircle,
+    chat: HiOutlineChatAlt2,
 };
 
 function getRelativeTime(value: string): string {

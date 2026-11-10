@@ -4,12 +4,11 @@ import {
     useLayoutEffect,
     useRef,
     useState,
-    useSyncExternalStore,
     type PointerEvent as ReactPointerEvent,
     type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
-import { LayoutGroup, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "framer-motion";
 
 interface MorphPopoverProps {
     id: string;
@@ -17,6 +16,7 @@ interface MorphPopoverProps {
     onOpenChange: (open: boolean) => void;
     renderTrigger: (state: { isOpen: boolean }) => ReactNode;
     children: ReactNode;
+    variant?: "morph" | "flyout";
     triggerClassName?: string;
     triggerContentClassName?: string;
     panelClassName?: string;
@@ -34,7 +34,6 @@ interface MorphPopoverProps {
     openOnHover?: boolean;
     hoverOpenDelay?: number;
     hoverCloseDelay?: number;
-    keepTriggerVisible?: boolean;
 }
 
 interface PanelPosition {
@@ -42,20 +41,11 @@ interface PanelPosition {
     left: number;
     width: number;
     maxHeight: number;
+    anchorCenterY: number;
 }
 
-const SPRING = { type: "spring" as const, stiffness: 220, damping: 28, mass: 1.2 };
-const DESKTOP_QUERY = "(min-width: 768px)";
-
-const subscribeDesktop = (onChange: () => void) => {
-    const media = window.matchMedia(DESKTOP_QUERY);
-    media.addEventListener("change", onChange);
-    return () => media.removeEventListener("change", onChange);
-};
-
-const getDesktopSnapshot = () => window.matchMedia(DESKTOP_QUERY).matches;
-
-const getDesktopServerSnapshot = () => true;
+const SPRING = { type: "spring" as const, stiffness: 320, damping: 30, mass: 0.9 };
+const FLYOUT_SPRING = { type: "spring" as const, stiffness: 420, damping: 34, mass: 0.8 };
 
 export default function MorphPopover({
     id,
@@ -63,6 +53,7 @@ export default function MorphPopover({
     onOpenChange,
     renderTrigger,
     children,
+    variant = "morph",
     triggerClassName = "",
     triggerContentClassName = "flex items-center",
     panelClassName = "",
@@ -80,7 +71,6 @@ export default function MorphPopover({
     openOnHover = false,
     hoverOpenDelay = 90,
     hoverCloseDelay = 180,
-    keepTriggerVisible = false,
 }: MorphPopoverProps) {
     const wrapperRef = useRef<HTMLDivElement>(null);
     const triggerRef = useRef<HTMLButtonElement>(null);
@@ -88,17 +78,11 @@ export default function MorphPopover({
     const hasOpenedRef = useRef(false);
     const hoverTimerRef = useRef<number | null>(null);
     const reduceMotion = useReducedMotion();
-    const isDesktop = useSyncExternalStore(
-        subscribeDesktop,
-        getDesktopSnapshot,
-        getDesktopServerSnapshot
-    );
-    const skipMorph = reduceMotion === true || !isDesktop;
-    const activeLayoutId = skipMorph ? undefined : `morph-${id}`;
-    const transition = skipMorph ? { duration: 0.01 } : SPRING;
-    const triggerFadeDelay = skipMorph ? 0 : 0.12;
-    const panelFadeDelay = skipMorph ? 0 : 0.14;
-    const contentFadeDuration = skipMorph ? 0.01 : 0.2;
+    const isFlyout = variant === "flyout";
+    const layoutId = `morph-${id}`;
+    const transition = reduceMotion ? { duration: 0.01 } : SPRING;
+    const triggerFadeDelay = reduceMotion ? 0 : 0.12;
+    const panelFadeDelay = reduceMotion ? 0 : isFlyout ? 0.05 : 0.14;
     const [position, setPosition] = useState<PanelPosition | null>(null);
     const [panelHeight, setPanelHeight] = useState(0);
     const hasPosition = position !== null;
@@ -112,6 +96,7 @@ export default function MorphPopover({
         const viewportHeight = window.innerHeight;
         const width = Math.min(panelWidth, Math.max(0, viewportWidth - viewportMargin * 2));
         const maxLeft = Math.max(viewportMargin, viewportWidth - width - viewportMargin);
+        const anchorCenterY = rect.top + rect.height / 2;
 
         let left: number;
         let top: number;
@@ -133,9 +118,10 @@ export default function MorphPopover({
                 prev.top === top &&
                 prev.left === left &&
                 prev.width === width &&
-                prev.maxHeight === maxHeight
+                prev.maxHeight === maxHeight &&
+                prev.anchorCenterY === anchorCenterY
                 ? prev
-                : { top, left, width, maxHeight }
+                : { top, left, width, maxHeight, anchorCenterY }
         );
     }, [align, panelGap, panelWidth, placement, viewportMargin]);
 
@@ -277,6 +263,94 @@ export default function MorphPopover({
                 )
                 : position.top;
 
+    const originY =
+        position === null
+            ? 0
+            : Math.max(
+                0,
+                panelHeight > 0
+                    ? Math.min(panelHeight, position.anchorCenterY - panelTop)
+                    : position.anchorCenterY - panelTop
+            );
+
+    const baseStyle = position
+        ? {
+            position: "fixed" as const,
+            top: panelTop,
+            left: position.left,
+            width: position.width,
+            maxHeight: position.maxHeight,
+            borderRadius: openRadius,
+            willChange: "transform, opacity",
+        }
+        : undefined;
+
+    const panelContent = (
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: panelFadeDelay, duration: 0.2 }}
+            className="max-h-full overflow-y-auto"
+        >
+            {children}
+        </motion.div>
+    );
+
+    const triggerNode = isFlyout ? (
+        <button
+            ref={triggerRef}
+            type="button"
+            onClick={() => {
+                measure();
+                onOpenChange(true);
+            }}
+            aria-haspopup="dialog"
+            aria-expanded={isOpen}
+            aria-label={ariaLabel}
+            title={isOpen ? undefined : triggerTitle}
+            className={`${triggerClassName} ${isOpen ? ghostClassName : ""}`}
+            style={{ borderRadius: closedRadius }}
+        >
+            <span className={triggerContentClassName}>{renderTrigger({ isOpen })}</span>
+        </button>
+    ) : !isOpen ? (
+        <motion.button
+            ref={triggerRef}
+            layoutId={layoutId}
+            type="button"
+            onClick={() => {
+                measure();
+                onOpenChange(true);
+            }}
+            aria-haspopup="dialog"
+            aria-expanded={false}
+            aria-label={ariaLabel}
+            title={triggerTitle}
+            className={triggerClassName}
+            style={{ borderRadius: closedRadius }}
+            transition={transition}
+        >
+            <motion.span
+                className={triggerContentClassName}
+                initial={hasOpenedRef.current ? { opacity: 0 } : false}
+                animate={{ opacity: 1 }}
+                transition={{ delay: triggerFadeDelay, duration: 0.18 }}
+            >
+                {renderTrigger({ isOpen: false })}
+            </motion.span>
+        </motion.button>
+    ) : (
+        <button
+            type="button"
+            tabIndex={-1}
+            aria-hidden="true"
+            className={`${triggerClassName} pointer-events-none invisible`}
+            style={{ borderRadius: closedRadius }}
+        >
+            <span className={triggerContentClassName}>{renderTrigger({ isOpen: true })}</span>
+        </button>
+    );
+
     return (
         <LayoutGroup id={id}>
             <div
@@ -285,49 +359,54 @@ export default function MorphPopover({
                 onPointerEnter={handleWrapperEnter}
                 onPointerLeave={handleWrapperLeave}
             >
-                {!isOpen ? (
-                    <motion.button
-                        ref={triggerRef}
-                        layoutId={activeLayoutId}
-                        type="button"
-                        onClick={() => {
-                            measure();
-                            onOpenChange(true);
-                        }}
-                        aria-haspopup="dialog"
-                        aria-expanded={false}
-                        aria-label={ariaLabel}
-                        title={triggerTitle}
-                        className={triggerClassName}
-                        style={{ borderRadius: closedRadius }}
-                        transition={transition}
-                    >
-                        <motion.span
-                            className={triggerContentClassName}
-                            initial={hasOpenedRef.current && !keepTriggerVisible && !skipMorph ? { opacity: 0 } : false}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: triggerFadeDelay, duration: contentFadeDuration }}
-                        >
-                            {renderTrigger({ isOpen: false })}
-                        </motion.span>
-                    </motion.button>
-                ) : (
-                    <button
-                        type="button"
-                        tabIndex={-1}
-                        aria-hidden="true"
-                        className={`${triggerClassName} pointer-events-none ${keepTriggerVisible ? ghostClassName : "invisible"}`}
-                        style={{ borderRadius: closedRadius }}
-                    >
-                        <span className={triggerContentClassName}>{renderTrigger({ isOpen: true })}</span>
-                    </button>
-                )}
+                {triggerNode}
             </div>
-            {isOpen && position &&
+
+            {isFlyout &&
+                createPortal(
+                    <AnimatePresence>
+                        {isOpen && position && (
+                            <motion.div
+                                key={layoutId}
+                                ref={panelRef}
+                                role="dialog"
+                                aria-modal="false"
+                                aria-label={ariaLabel}
+                                tabIndex={-1}
+                                onPointerEnter={handlePanelEnter}
+                                onPointerLeave={handlePanelLeave}
+                                className={`fixed z-50 overflow-hidden outline-none ${panelClassName}`}
+                                style={{ ...baseStyle, transformOrigin: `0px ${originY}px` }}
+                                initial={
+                                    reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.5, x: -10 }
+                                }
+                                animate={{ opacity: 1, scale: 1, x: 0 }}
+                                exit={
+                                    reduceMotion
+                                        ? { opacity: 0, transition: { duration: 0.01 } }
+                                        : {
+                                            opacity: 0,
+                                            scale: 0.6,
+                                            x: -8,
+                                            transition: { duration: 0.14, ease: "easeIn" },
+                                        }
+                                }
+                                transition={reduceMotion ? { duration: 0.01 } : FLYOUT_SPRING}
+                            >
+                                {panelContent}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>,
+                    document.body
+                )}
+
+            {!isFlyout &&
+                isOpen &&
+                position &&
                 createPortal(
                     <motion.div
                         ref={panelRef}
-                        layoutId={activeLayoutId}
+                        layoutId={layoutId}
                         role="dialog"
                         aria-modal="false"
                         aria-label={ariaLabel}
@@ -336,26 +415,13 @@ export default function MorphPopover({
                         onPointerLeave={handlePanelLeave}
                         className={`fixed z-50 overflow-hidden outline-none ${panelClassName}`}
                         style={{
-                            position: "fixed",
-                            top: panelTop,
-                            left: position.left,
-                            width: position.width,
-                            maxHeight: position.maxHeight,
-                            borderRadius: openRadius,
+                            ...baseStyle,
                             transformOrigin:
                                 placement === "right" || align === "left" ? "top left" : "top right",
-                            willChange: "transform, opacity",
                         }}
                         transition={transition}
                     >
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: panelFadeDelay, duration: contentFadeDuration }}
-                            className="max-h-full overflow-y-auto"
-                        >
-                            {children}
-                        </motion.div>
+                        {panelContent}
                     </motion.div>,
                     document.body
                 )}
