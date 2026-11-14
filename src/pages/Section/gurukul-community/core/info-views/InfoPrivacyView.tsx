@@ -1,40 +1,14 @@
-import React from "react";
-import {
-    IoChatboxOutline,
-    IoLockClosedOutline,
-    IoImageOutline,
-    IoDownloadOutline,
-} from "react-icons/io5";
+import { IoChatboxOutline, IoDownloadOutline, IoImageOutline, IoLockClosedOutline } from "react-icons/io5";
 import { SettingRow } from "../../ui/SettingRow";
 import { Switch } from "../../ui/Switch";
-import type { ChatVars, SharedSettings } from "../../types";
+import type { InfoCtx } from "./infoTypes";
 
-export type InfoPrivacyViewProps = {
-    dark: boolean;
-    cv: ChatVars;
-    surface: string;
-    subText: string;
-    isGroup: boolean;
-    shared: SharedSettings;
-    canEditSettings: boolean;
-    onTogglePrivacy: () => void;
-};
+export function InfoPrivacy({ c }: { c: InfoCtx }) {
+    const { dark, cv, surface, subText, isGroup, shared } = c;
 
-export function InfoPrivacyView({
-    dark,
-    cv,
-    surface,
-    subText,
-    isGroup,
-    shared,
-    canEditSettings,
-    onTogglePrivacy,
-}: InfoPrivacyViewProps) {
     const bullet = (icon: React.ReactNode, text: string) => (
         <div className="flex items-start gap-5 px-6 py-3">
-            <span className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center text-[22px] ${subText}`}>
-                {icon}
-            </span>
+            <span className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center text-[22px] ${subText}`}>{icon}</span>
             <p className={`text-sm leading-snug ${dark ? "text-slate-100" : "text-slate-800"}`}>{text}</p>
         </div>
     );
@@ -43,16 +17,11 @@ export function InfoPrivacyView({
         <div className={`${surface} min-h-full pb-8`}>
             <div className="flex justify-center pt-10 pb-8">
                 <span className="relative flex h-24 w-28 items-center justify-center">
-                    <span
-                        className="flex h-20 w-24 items-center justify-center rounded-3xl rounded-tl-md text-white shadow-lg"
-                        style={{ background: cv.accentGradient }}
-                    >
+                    <span className="flex h-20 w-24 items-center justify-center rounded-3xl rounded-tl-md text-white shadow-lg" style={{ background: cv.accentGradient }}>
                         <IoChatboxOutline className="text-5xl opacity-90" />
                     </span>
                     <span
-                        className={`absolute -bottom-1 -right-1 flex h-12 w-12 items-center justify-center rounded-xl border-4 text-2xl text-white ${
-                            dark ? "border-[#0E1626]" : "border-white"
-                        }`}
+                        className={`absolute -bottom-1 -right-1 flex h-12 w-12 items-center justify-center rounded-xl border-4 text-2xl text-white ${dark ? "border-[#0E1626]" : "border-white"}`}
                         style={{ background: shared.advPrivacy ? "#16a34a" : "#64748b" }}
                     >
                         <IoLockClosedOutline />
@@ -78,20 +47,17 @@ export function InfoPrivacyView({
             <div className="px-2 pt-2">
                 <SettingRow
                     dark={dark}
-                    icon={<IoLockClosedOutline />}
+                    icon={<span />}
                     title="Advanced chat privacy"
-                    subtitle={
-                        canEditSettings
-                            ? shared.advPrivacy
-                                ? "Turned on"
-                                : "Turned off"
-                            : "Only admins can change this setting"
-                    }
-                    disabled={!canEditSettings}
-                    onClick={onTogglePrivacy}
+                    switchOn={shared.advPrivacy}
+                    disabled={!c.canEditSettings}
+                    onClick={c.onTogglePrivacy}
                     trailing={<Switch on={shared.advPrivacy} dark={dark} accent={cv.accent} />}
                 />
             </div>
+            {!c.canEditSettings && <p className={`mx-6 mt-2 text-xs leading-relaxed ${subText}`}>Only admins can change this setting.</p>}
         </div>
     );
 }
+
+export default InfoPrivacy;

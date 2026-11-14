@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
+import { motion, useReducedMotion } from "framer-motion";
 import { useTheme } from "../theme/ThemeContext";
 import SidebarDropdown from "./SidebarGroup";
 import {
@@ -13,17 +14,25 @@ import {
     HiOutlineClipboardCheck,
     HiOutlineUserGroup,
     HiOutlineChatAlt2,
-    HiStar,
     HiOutlineArrowLeft
 } from "react-icons/hi";
 import { FiUsers, FiRefreshCw } from "react-icons/fi";
 import { SiNginxproxymanager } from "react-icons/si";
+import {
+    LuClipboardCheck,
+    LuLayers,
+    LuLayoutDashboard,
+    LuPuzzle,
+    LuShieldCheck,
+    LuTrendingUp,
+    LuUserRoundPlus,
+} from "react-icons/lu";
 import type { AuthUser } from "../../Types/Role-create";
 import { AiOutlineFileProtect } from "react-icons/ai";
 import { toast } from "sonner";
 import { departmentService } from "../../services/departmentService";
 import { sectionService } from "../../services/sectionService";
-import { groupService, isGroupLeader, type GroupData } from "../../services/groupService";
+import { groupService, type GroupData } from "../../services/groupService";
 import { useSidebarView } from "../../context/SidebarViewContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { createPermissionChecker } from "./core/PermitionValidetor";
@@ -61,6 +70,7 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
     const { theme } = useTheme();
     const navigate = useNavigate();
     const location = useLocation();
+    const reduceMotion = useReducedMotion();
 
     // Inactive + hover style - identical for EVERY sidebar button
     const inactiveBtn = theme
@@ -76,7 +86,12 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
     const [sectionsLoading, setSectionsLoading] = useState<boolean>(false);
 
     const [refreshing, setRefreshing] = useState<boolean>(false);
-    const { activeDepartmentId, setActiveDepartment } = useSidebarView();
+    const {
+        activeDepartmentId,
+        setActiveDepartment,
+        activeModule,
+        setActiveModule,
+    } = useSidebarView();
 
     const [myGroups, setMyGroups] = useState<GroupData[]>([]);
     const [groupsLoading, setGroupsLoading] = useState<boolean>(false);
@@ -204,7 +219,19 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
         ? departments
         : departments.filter((d) => d.departmentId === user?.departmentId)) || [];
     const isSuperAdmin = user?.roleCode === "SUPER_ADMIN";
+    const hasFunctionalityAccess = isSuperAdmin || hasAccess("Functionality", "view") || hasAccess("Functionality", "create") || hasAccess("Functionality", "edit") || hasAccess("Functionality", "delete");
     const singleDepartment = filteredDepartments.length === 1 ? filteredDepartments[0] : null;
+    const isFunctionalityManagerRoute = location.pathname.startsWith("/dashboard/functionality-manager");
+
+    useEffect(() => {
+        if (isFunctionalityManagerRoute && isSuperAdmin) {
+            if (activeModule !== "functionality-manager") {
+                setActiveModule("functionality-manager");
+            }
+        } else if (activeModule !== null) {
+            setActiveModule(null);
+        }
+    }, [activeModule, isFunctionalityManagerRoute, isSuperAdmin, setActiveModule]);
 
     const isActive = location.pathname === "/dashboard";
 
@@ -215,12 +242,92 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
     const isStudent = user?.roleCode === "STUDENT";
     const showCommunityBtn = isSuperAdmin || (isStudent ? myGroups.length > 0 : (hasAccess("Community", "view") || myGroups.length > 0));
 
+    if (hasFunctionalityAccess && (activeModule === "functionality-manager" || isFunctionalityManagerRoute)) {
+        const managerBasePath = "/dashboard/functionality-manager";
+        const managerItems = [
+            { id: "functionalities", name: "Functionalities", path: `${managerBasePath}/functionalities`, icon: <LuPuzzle className="text-xl" /> },
+            { id: "items", name: "Items", path: `${managerBasePath}/items`, icon: <LuLayers className="text-xl" /> },
+            { id: "rubrics", name: "Rubrics", path: `${managerBasePath}/rubrics`, icon: <LuClipboardCheck className="text-xl" /> },
+            { id: "levels", name: "Levels", path: `${managerBasePath}/levels`, icon: <LuTrendingUp className="text-xl" /> },
+            { id: "permissions", name: "Permissions", path: `${managerBasePath}/permissions`, icon: <LuShieldCheck className="text-xl" /> },
+            { id: "widgets", name: "Dashboard Widgets", path: `${managerBasePath}/widgets`, icon: <LuLayoutDashboard className="text-xl" /> },
+            { id: "enrollment", name: "Enrollment", path: `${managerBasePath}/enrollment`, icon: <LuUserRoundPlus className="text-xl" /> },
+        ] as const;
+
+        const isManagerItemActive = (id: (typeof managerItems)[number]["id"]) => {
+            const managerItem = managerItems.find((item) => item.id === id);
+            if (!managerItem) return false;
+            if (id === "items") return location.pathname === managerItem.path;
+            return location.pathname === managerItem.path || location.pathname.startsWith(`${managerItem.path}/`);
+        };
+
+        return (
+            <motion.div
+                initial={reduceMotion ? { opacity: 0 } : { opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: reduceMotion ? 0.12 : 0.18 }}
+                className="w-full flex flex-col space-y-1.5"
+            >
+                <button
+                    type="button"
+                    onClick={() => {
+                        setActiveModule(null);
+                        navigate("/dashboard");
+                        setSidebarOpen(false);
+                    }}
+                    className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl font-semibold text-[15px] transition-all duration-200 group cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 ${
+                        isMiniSidebar ? "justify-center px-2" : ""
+                    } ${inactiveBtn} ${theme ? "focus-visible:outline-blue-300" : "focus-visible:outline-red-600"}`}
+                >
+                    <span className={`transition-colors ${theme ? "text-gray-300 group-hover:text-blue-200" : "text-gray-400 group-hover:text-red-600"}`}>
+                        <HiOutlineArrowLeft className="text-xl" />
+                    </span>
+                    {!isMiniSidebar && "Back"}
+                </button>
+
+                {managerItems.map((item) => {
+                    const isItemActive = isManagerItemActive(item.id);
+
+                    return (
+                        <NavLink
+                            key={item.id}
+                            to={item.path}
+                            onClick={() => setSidebarOpen(false)}
+                            title={isMiniSidebar ? item.name : ""}
+                            className={() => `w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl font-semibold text-[15px] transition-all duration-200 group focus-visible:outline-2 focus-visible:outline-offset-2 ${
+                                isMiniSidebar ? "justify-center px-2" : ""
+                            } ${isItemActive ? activeBtn : inactiveBtn} ${
+                                theme ? "focus-visible:outline-blue-300" : "focus-visible:outline-red-600"
+                            }`}
+                        >
+                            <span className={`shrink-0 transition-colors ${
+                                isItemActive
+                                    ? "text-white"
+                                    : theme
+                                        ? "text-gray-300 group-hover:text-blue-200"
+                                        : "text-gray-400 group-hover:text-red-600"
+                            }`}>
+                                {item.icon}
+                            </span>
+                            {!isMiniSidebar && <span className="flex-1 text-left">{item.name}</span>}
+                        </NavLink>
+                    );
+                })}
+            </motion.div>
+        );
+    }
+
     if (isSuperAdmin && activeDepartmentId !== null) {
         const activeDept = filteredDepartments.find((dept) => dept.departmentId === activeDepartmentId);
         const activeSections = sectionsByDept[activeDepartmentId] || [];
 
         return (
-            <div className="w-full flex flex-col space-y-1.5">
+            <motion.div
+                initial={reduceMotion ? { opacity: 0 } : { opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: reduceMotion ? 0.12 : 0.18 }}
+                className="w-full flex flex-col space-y-1.5"
+            >
                 <button
                     type="button"
                     onClick={() => setActiveDepartment(null, null)}
@@ -267,12 +374,17 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
                         />
                     );
                 })}
-            </div>
+            </motion.div>
         );
     }
 
     return (
-        <div className="w-full flex flex-col space-y-1.5">
+        <motion.div
+            initial={reduceMotion ? { opacity: 0 } : { opacity: 0, x: 10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: reduceMotion ? 0.12 : 0.18 }}
+            className="w-full flex flex-col space-y-1.5"
+        >
 
             {showDashboardBtn && (
                 <button
@@ -370,37 +482,6 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
                 </button>
             )}
 
-            {myGroups.length > 0 && (
-                <div className="space-y-1">
-                    {!isMiniSidebar && (
-                        <p className={`text-xs font-bold uppercase tracking-wide px-4 mt-3 mb-1 ${theme ? "text-gray-600" : "text-gray-400"}`}>
-                            My Groups
-                        </p>
-                    )}
-                    {myGroups.map((group) => {
-                        const isGroupActive = location.pathname === `/dashboard/groups/member/${group.group_id}`;
-                        const leader = isGroupLeader(group, user?.suid);
-                        return (
-                            <button
-                                key={group.group_id}
-                                onClick={() => { navigate(`/dashboard/groups/member/${group.group_id}`); setSidebarOpen(false); }}
-                                title={isMiniSidebar ? group.group_name : ""}
-                                className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-200 group cursor-pointer
-                                    ${isMiniSidebar ? "justify-center px-2" : ""}
-                                    ${isGroupActive
-                                        ? activeBtn
-                                        : inactiveBtn
-                                    }`}
-                            >
-                                <HiOutlineUserGroup className="text-lg shrink-0" />
-                                {!isMiniSidebar && <span className="flex-1 text-left truncate">{group.group_name}</span>}
-                                {leader && <HiStar className="text-amber-400 shrink-0" title="Group Leader" />}
-                                {renderTick(`/dashboard/groups/member/${group.group_id}`)}
-                            </button>
-                        );
-                    })}
-                </div>
-            )}
             {groupsLoading && !isMiniSidebar && (
                 <p className={`text-xs px-4 ${theme ? "text-gray-600" : "text-neutral-400"}`}>Loading groups...</p>
             )}
@@ -512,6 +593,6 @@ export default function Navbar({ setSidebarOpen, isMiniSidebar }: NavbarProps) {
             {sectionsLoading && !isMiniSidebar && (
                 <p className={`text-xs px-4 ${theme ? "text-gray-600" : "text-neutral-400"}`}>Loading sections...</p>
             )}
-        </div>
+        </motion.div>
     );
 }

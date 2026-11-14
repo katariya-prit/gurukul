@@ -1,9 +1,10 @@
 import axios from 'axios'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333'
+const API_URL = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:3333').replace(/\/+$/, '')
 
 axios.defaults.baseURL = API_URL
 axios.defaults.withCredentials = true
+axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest'
 
 const nativeFetch = window.fetch.bind(window)
 

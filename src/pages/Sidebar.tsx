@@ -11,6 +11,8 @@ import {
     HiChevronRight,
     HiOutlineExclamationCircle,
 } from "react-icons/hi";
+import { LuPuzzle } from "react-icons/lu";
+import { useSidebarView } from "../context/SidebarViewContext";
 
 interface SidebarProps {
     isOpen: boolean;
@@ -33,6 +35,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
     const { theme } = useTheme(); // theme: true (Dark Mode), false (Light Mode)
     const navigate = useNavigate();
     const location = useLocation();
+    const { setActiveModule } = useSidebarView();
     const reduceMotion = useReducedMotion();
     const isDesktop = useSyncExternalStore(
         subscribeDesktop,
@@ -42,8 +45,51 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
 
     const [isCollapsed, setIsCollapsed] = useState(false);
     const isMiniSidebar = isCollapsed && isDesktop;
+    const [isSuperAdmin] = useState(() => {
+        const userData = localStorage.getItem("user");
+        if (!userData) return false;
 
-    // 🌟 Logout confirmation modal state — have direct logout nathi thatu,
+        try {
+            const parsed: unknown = JSON.parse(userData);
+            return typeof parsed === "object" && parsed !== null && "roleCode" in parsed
+                && parsed.roleCode === "SUPER_ADMIN";
+        } catch {
+            return false;
+        }
+    });
+
+    const canAccessFunctionality = (() => {
+        const userData = localStorage.getItem("user");
+        if (!userData) return false;
+
+        try {
+            const parsed: unknown = JSON.parse(userData);
+            if (typeof parsed !== "object" || parsed === null || !("permissions" in parsed)) {
+                return false;
+            }
+
+            const rawPermissions = typeof parsed.permissions === "string"
+                ? (() => {
+                    try {
+                        return JSON.parse(parsed.permissions) as Record<string, Record<string, boolean>>;
+                    } catch {
+                        return {} as Record<string, Record<string, boolean>>;
+                    }
+                })()
+                : parsed.permissions as Record<string, Record<string, boolean>> | undefined;
+
+            return Boolean(
+                isSuperAdmin ||
+                rawPermissions?.Functionality?.view ||
+                rawPermissions?.Functionality?.create ||
+                rawPermissions?.Functionality?.edit ||
+                rawPermissions?.Functionality?.delete
+            );
+        } catch {
+            return false;
+        }
+    })();
+
     // pehla confirm karavu pade chhe
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -80,6 +126,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
         // have proper cleanup thai chhe, koi stale key bachi nathi rahti
         localStorage.removeItem("user");
         localStorage.removeItem("adminData");
+        setActiveModule(null);
 
         // 🌟 Halko sa delay — UI ne "process thai rahyu chhe" jevu feedback
         // aapva mate, real API call hoy tyare aa j jagah par await thashe
@@ -177,6 +224,43 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
             <div className={`pt-4 mt-auto shrink-0 border-t 
                 ${theme ? "border-gray-800" : "border-gray-100"}`}
             >
+                {canAccessFunctionality && (
+                    <>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setActiveModule("functionality-manager");
+                                navigate("/dashboard/functionality-manager/functionalities");
+                                setIsOpen(false);
+                            }}
+                            title={isMiniSidebar ? "Functionality Manager" : ""}
+                            className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl font-semibold text-[15px] transition-all duration-200 group cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 ${
+                                isMiniSidebar ? "justify-center px-2" : ""
+                            } ${
+                                location.pathname.startsWith("/dashboard/functionality-manager")
+                                    ? theme
+                                        ? "text-white bg-linear-to-r from-blue-600 to-indigo-500 shadow-lg shadow-blue-900/40"
+                                        : "text-white bg-linear-to-r from-[#e60023] to-[#ff7a8a] shadow-lg shadow-red-500/25"
+                                    : theme
+                                        ? "text-gray-300 hover:bg-gray-800 hover:text-blue-200"
+                                        : "text-gray-500 hover:bg-red-50 hover:text-red-600"
+                            } ${theme ? "focus-visible:outline-blue-300" : "focus-visible:outline-red-600"}`}
+                        >
+                            <LuPuzzle className={`text-xl shrink-0 transition-colors ${
+                                location.pathname.startsWith("/dashboard/functionality-manager")
+                                    ? "text-white"
+                                    : theme
+                                        ? "text-gray-400 group-hover:text-blue-200"
+                                        : "text-gray-400 group-hover:text-red-600"
+                            }`} />
+                            {!isMiniSidebar && <span className="flex-1 text-left">Functionality Manager</span>}
+                            <HiChevronRight className={`text-base shrink-0 ${
+                                isMiniSidebar ? "hidden" : ""
+                            }`} />
+                        </button>
+                        <div className={`mx-4 mt-2 border-t ${theme ? "border-gray-800" : "border-gray-100"}`} />
+                    </>
+                )}
                 <button
                     onClick={handleLogoutClick}
                     title={isMiniSidebar ? "Logout" : ""}

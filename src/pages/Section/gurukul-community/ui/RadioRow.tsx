@@ -17,9 +17,7 @@ export function RadioRow({
             role="radio"
             aria-checked={selected}
             onClick={onClick}
-            className={`flex w-full items-center gap-4 px-5 py-3 text-left text-sm font-medium transition-colors ${
-                dark ? "hover:bg-slate-800/70" : "hover:bg-slate-50"
-            }`}
+            className={`flex w-full items-center gap-4 px-5 py-3 text-left text-sm font-medium transition-colors ${dark ? "hover:bg-slate-800/70" : "hover:bg-slate-50"}`}
         >
             <span
                 className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2"
@@ -31,3 +29,5 @@ export function RadioRow({
         </button>
     );
 }
+
+export default RadioRow;

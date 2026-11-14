@@ -13,10 +13,11 @@ interface SearchableDropdownProps {
     placeholder?: string;
     searchPlaceholder?: string;
     options: DropdownOption[];
-    selectedValue: string | number; // selectedId ની જગ્યાએ
+    selectedValue: string | number;
     onSelect: (value: string | number) => void;
     required?: boolean;
     disabled?: boolean;
+    triggerClassName?: string;
 }
 
 export default function SearchableDropdown({
@@ -28,6 +29,7 @@ export default function SearchableDropdown({
     onSelect,
     required = false,
     disabled = false,
+    triggerClassName,
 }: SearchableDropdownProps) {
     const { theme } = useTheme();
 
@@ -39,10 +41,9 @@ export default function SearchableDropdown({
     const listRef = useRef<HTMLDivElement>(null);
 
     const selectedOption = options.find(
-    (opt) => opt && String(opt.value).trim() === String(selectedValue).trim()
-);
+        (opt) => opt && String(opt.value).trim() === String(selectedValue).trim()
+    );
 
-    // 🎯 સર્ચ માટેનું લોજીક (હવે label નો ઉપયોગ કરશે)
     const filteredOptions = options.filter((option) => {
         const optionLabel = option?.label || "";
         const query = searchQuery || "";
@@ -50,7 +51,6 @@ export default function SearchableDropdown({
     });
 
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setHighlightedIndex(0);
     }, [searchQuery, isOpen]);
 
@@ -69,9 +69,11 @@ export default function SearchableDropdown({
 
     return (
         <div className="relative w-full">
-            <label className={`block text-sm font-medium mb-1.5 ${theme ? "text-gray-300" : "text-neutral-700"} ${disabled ? "opacity-60" : ""}`}>
-                {label} {required && !disabled && <span className="text-red-500">*</span>}
-            </label>
+            {label && (
+                <label className={`block text-sm font-medium mb-1.5 ${theme ? "text-gray-300" : "text-neutral-700"} ${disabled ? "opacity-60" : ""}`}>
+                    {label} {required && !disabled && <span className="text-red-500">*</span>}
+                </label>
+            )}
 
             <div
                 ref={triggerRef}
@@ -89,7 +91,7 @@ export default function SearchableDropdown({
                         setIsOpen(true);
                     }
                 }}
-                className={`w-full border rounded-xl px-3 py-2.5 text-sm min-h-10.5 flex items-center justify-between outline-none transition-all duration-200 ${disabled
+                className={`w-full border rounded-xl px-3 py-2.5 text-sm ${triggerClassName || "min-h-10.5"} flex items-center justify-between outline-none transition-all duration-200 ${disabled
                     ? theme
                         ? "bg-gray-800/50 border-gray-700/50 text-gray-500 cursor-not-allowed"
                         : "bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed"
@@ -155,14 +157,13 @@ export default function SearchableDropdown({
                                 const isSelected = String(selectedValue) === String(option.value);
                                 const isHighlighted = highlightedIndex === index;
 
-                                // 👑 જો value ન હોય અથવા ક્યાંક ડુપ્લિકેટ થતી હોય તો પણ index ના લીધે key હંમેશા ૧૦૦% યુનિક રહેશે
                                 const uniqueKey = option.value !== undefined && option.value !== null
                                     ? `${option.value}-${index}`
                                     : `opt-${index}`;
 
                                 return (
                                     <div
-                                        key={uniqueKey} // સાચી અને સેફ કી
+                                        key={uniqueKey}
                                         role="option"
                                         aria-selected={isSelected}
                                         tabIndex={-1}

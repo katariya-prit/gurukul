@@ -49,6 +49,7 @@ import GroupList from "../pages/Section/Group-Managemant/Group-List";
 import GurukulCommunity from "../pages/Section/gurukul-community/GurukulCommunity";
 
 import GroupMemberDetail from "../pages/Section/Group-Managemant/Groupmemberdetail";
+import { FunctionalityManagerRouteTree } from "../pages/FunctionalityManager/routes";
 
 interface ProtectedRouteProps {
   module?: string;
@@ -149,6 +150,9 @@ export default function Routers() {
           }
         >
           <Route index element={<Dashboard />} />
+          <Route element={<ProtectedRoute module="Functionality" action="view" />}>
+            <Route path="functionality-manager/*" element={<FunctionalityManagerRouteTree />} />
+          </Route>
           <Route path="unauthorized" element={<UnauthorizedView />} />
 
           <Route element={<ProtectedRoute module="Users" action="create" />}>

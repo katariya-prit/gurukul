@@ -1,7 +1,6 @@
 import type { ChatMessage, ChatUser, ConvMeta, MediaBuckets, SharedSettings } from "./types";
 
 export const AUTH_USER_STORAGE_KEYS = ["user", "userData", "authUser", "currentUser", "auth", "profile", "loginUser", "userInfo"];
-export const AUTH_TOKEN_STORAGE_KEYS = ["token", "accessToken", "access_token", "authToken", "jwt"];
 export const CHAT_API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:3333") as string;
 export const PAGE_SIZE = 80;
 export const INVITE_PARAM = "gkjoin";
@@ -32,12 +31,13 @@ export const CHAT_THEME_DEFAULT_KEY = "gurukul_chat_theme_default";
 
 export const EMPTY_MESSAGES: ChatMessage[] = [];
 
-export const DEFAULT_META: ConvMeta = { starred: [], mutedUntil: 0, muteChoice: "", clearedAt: 0, keep: false };
+export const DEFAULT_META: ConvMeta = { starred: [], hiddenIds: [], mutedUntil: 0, muteChoice: "", clearedAt: 0, keep: false };
 
 export const DEFAULT_SHARED: SharedSettings = {
     ttl: 0,
     ttlSince: 0,
     advPrivacy: false,
+    pinned: [],
     onlyAdminsSend: false,
     membersEditSettings: true,
     membersAdd: true,

@@ -2,9 +2,7 @@ export function Switch({ on, dark, accent }: { on: boolean; dark: boolean; accen
     return (
         <span
             aria-hidden="true"
-            className={`relative inline-block h-6 w-11 shrink-0 rounded-full transition-colors ${
-                on ? "" : dark ? "bg-slate-700" : "bg-slate-300"
-            }`}
+            className={`relative inline-block h-6 w-11 shrink-0 rounded-full transition-colors ${on ? "" : dark ? "bg-slate-700" : "bg-slate-300"}`}
             style={on ? { backgroundColor: accent } : undefined}
         >
             <span
@@ -14,3 +12,5 @@ export function Switch({ on, dark, accent }: { on: boolean; dark: boolean; accen
         </span>
     );
 }
+
+export default Switch;

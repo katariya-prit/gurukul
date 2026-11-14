@@ -1,5 +1,3 @@
-import React from "react";
-
 export function SettingRow({
     dark,
     icon,
@@ -37,11 +35,11 @@ export function SettingRow({
             <span className={`flex h-6 w-6 shrink-0 items-center justify-center text-[22px] ${iconColor}`}>{icon}</span>
             <span className="min-w-0 flex-1">
                 <span className={`block text-sm font-medium ${titleColor}`}>{title}</span>
-                {subtitle && (
-                    <span className={`mt-0.5 block text-xs leading-snug ${dark ? "text-slate-400" : "text-slate-500"}`}>{subtitle}</span>
-                )}
+                {subtitle && <span className={`mt-0.5 block text-xs leading-snug ${dark ? "text-slate-400" : "text-slate-500"}`}>{subtitle}</span>}
             </span>
             {trailing}
         </button>
     );
 }
+
+export default SettingRow;

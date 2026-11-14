@@ -1,4 +1,4 @@
-import { getInitials } from "../utils/formatters";
+import { getInitials } from "../utils/chatHelpers";
 
 export function PersonAvatar({
     dark,
@@ -10,7 +10,7 @@ export function PersonAvatar({
 }: {
     dark: boolean;
     name: string;
-    avatar?: string;
+    avatar?: string | null;
     size?: number;
     superBadge?: boolean;
     online?: boolean;
@@ -32,12 +32,10 @@ export function PersonAvatar({
                 {avatar ? <img src={avatar} alt="" className="h-full w-full object-cover" /> : getInitials(name)}
             </span>
             {online && (
-                <span
-                    className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 ${
-                        dark ? "border-[#0B1120]" : "border-white"
-                    }`}
-                />
+                <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 ${dark ? "border-[#0B1120]" : "border-white"}`} />
             )}
         </span>
     );
 }
+
+export default PersonAvatar;

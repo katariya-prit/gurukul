@@ -23,10 +23,6 @@ interface RoleData {
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
 
-const getAuthHeaders = () => ({
-    Authorization: `Bearer ${localStorage.getItem("token")}`,
-});
-
 export default function RoleList() {
     const { theme } = useTheme();
     const navigate = useNavigate();
@@ -39,7 +35,7 @@ export default function RoleList() {
         setLoading(true);
         try {
             const response = await fetch(`${API_URL}/roles`, {
-                headers: getAuthHeaders(),
+                credentials: "include",
             });
             const result = await response.json();
 

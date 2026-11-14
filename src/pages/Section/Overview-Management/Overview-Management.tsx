@@ -44,30 +44,13 @@ function Reveal({
     );
 }
 
-const getAuthHeaders = (): HeadersInit => {
-    const token = localStorage.getItem("token");
-
-    return token
-        ? { Authorization: `Bearer ${token}` }
-        : {};
-};
-
 async function apiRequest(
     url: string,
     options: RequestInit = {}
 ): Promise<{ response: Response; result: OverviewApiResult }> {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-        throw new Error("Login token not found. Please login again.");
-    }
-
-    const headers = new Headers(options.headers);
-    headers.set("Authorization", `Bearer ${token}`);
-
     const response = await fetch(url, {
         ...options,
-        headers,
+        credentials: "include",
     });
 
     const result = await response.json().catch(() => ({
@@ -76,7 +59,7 @@ async function apiRequest(
     }));
 
     if (response.status === 401) {
-        throw new Error("Session expired or token is invalid. Please login again.");
+        throw new Error("Session expired. Please login again.");
     }
 
     if (!response.ok || !result.success) {
@@ -323,7 +306,7 @@ export default function OverviewManagement() {
                     `${API_BASE_URL}/overview/update`,
                     {
                         method: "POST",
-                        headers: getAuthHeaders(),
+                        credentials: "include",
                         body: formData,
                     }
                 );
@@ -334,9 +317,7 @@ export default function OverviewManagement() {
                 }));
 
                 if (response.status === 401) {
-                    throw new Error(
-                        "Session expired or token is invalid. Please login again."
-                    );
+                    throw new Error("Session expired. Please login again.");
                 }
 
                 if (!response.ok || !result.success) {
