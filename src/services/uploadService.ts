@@ -2,11 +2,6 @@ import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
 
-const uploadHeaders = () => {
-  const token = localStorage.getItem("token");
-  return token ? { Authorization: `Bearer ${token}` } : undefined;
-};
-
 const getUploadedUrl = (data: { url?: string; avatarUrl?: string; data?: { url?: string; avatarUrl?: string } }) => {
   const url = data.url || data.avatarUrl || data.data?.url || data.data?.avatarUrl;
   if (!url) throw new Error("The server did not return an image URL.");
@@ -36,7 +31,7 @@ export const uploadService = {
       formData.append("avatar", file);
 
       const response = await axios.post(`${API_URL}/upload/avatar`, formData, {
-        headers: uploadHeaders(),
+        withCredentials: true,
       });
 
       if (!response.data.success) {
@@ -54,7 +49,7 @@ export const uploadService = {
       formData.append("image", file);
 
       const response = await axios.post(`${API_URL}/upload/section`, formData, {
-        headers: uploadHeaders(),
+        withCredentials: true,
       });
 
       if (!response.data.success) {

@@ -1,9 +1,13 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useState, useEffect, type ReactNode } from "react";
+
+export type ActiveModule = "functionality-manager" | null;
 
 interface SidebarViewContextType {
     activeDepartmentId: number | null;
     activeDepartmentName: string | null;
     setActiveDepartment: (id: number | null, name: string | null) => void;
+    activeModule: ActiveModule;
+    setActiveModule: (module: ActiveModule) => void;
 }
 
 const SidebarViewContext = createContext<SidebarViewContextType | undefined>(undefined);
@@ -20,6 +24,7 @@ export function SidebarViewProvider({ children }: { children: ReactNode }) {
     const [activeDepartmentName, setActiveDepartmentName] = useState<string | null>(() => {
         return localStorage.getItem(STORAGE_KEY_NAME);
     });
+    const [activeModule, setActiveModuleState] = useState<ActiveModule>(null);
 
     useEffect(() => {
         if (activeDepartmentId !== null) {
@@ -37,13 +42,31 @@ export function SidebarViewProvider({ children }: { children: ReactNode }) {
         }
     }, [activeDepartmentName]);
 
-    const setActiveDepartment = (id: number | null, name: string | null) => {
+    const setActiveDepartment = useCallback((id: number | null, name: string | null) => {
         setActiveDepartmentId(id);
         setActiveDepartmentName(name);
-    };
+        setActiveModuleState(null);
+    }, []);
+
+    const setActiveModule = useCallback((module: ActiveModule) => {
+        setActiveModuleState(module);
+
+        if (module !== null) {
+            setActiveDepartmentId(null);
+            setActiveDepartmentName(null);
+        }
+    }, []);
 
     return (
-        <SidebarViewContext.Provider value={{ activeDepartmentId, activeDepartmentName, setActiveDepartment }}>
+        <SidebarViewContext.Provider
+            value={{
+                activeDepartmentId,
+                activeDepartmentName,
+                setActiveDepartment,
+                activeModule,
+                setActiveModule,
+            }}
+        >
             {children}
         </SidebarViewContext.Provider>
     );

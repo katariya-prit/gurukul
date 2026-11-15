@@ -45,18 +45,6 @@ interface ApiResponse<T> {
   message?: string;
 }
 
-function getToken(): string | null {
-  return localStorage.getItem("token");
-}
-
-function getAuthHeaders() {
-  const token = getToken();
-
-  return token
-    ? { Authorization: `Bearer ${token}` }
-    : {};
-}
-
 function getApiError(error: unknown, fallback: string) {
   if (axios.isAxiosError<{ message?: string }>(error)) {
     return error.response?.data?.message || error.message || fallback;
@@ -93,7 +81,7 @@ export const quoteService = {
       const response = await axios.post<ApiResponse<QuoteData>>(
         `${API_BASE_URL}/quotes`,
         formData,
-        { headers: getAuthHeaders() }
+        { withCredentials: true }
       );
 
       if (response.data.success) {
@@ -121,7 +109,7 @@ export const quoteService = {
           params: includeUnapproved
             ? { includeUnapproved: "true" }
             : undefined,
-          headers: getAuthHeaders(),
+          withCredentials: true,
         }
       );
 
@@ -143,7 +131,7 @@ export const quoteService = {
     try {
       const response = await axios.delete<ApiResponse<null>>(
         `${API_BASE_URL}/quotes/${id}`,
-        { headers: getAuthHeaders() }
+        { withCredentials: true }
       );
 
       if (response.data.success) {
@@ -187,7 +175,7 @@ export const quoteService = {
       const response = await axios.put<ApiResponse<QuoteData>>(
         `${API_BASE_URL}/quotes/${id}`,
         formData,
-        { headers: getAuthHeaders() }
+        { withCredentials: true }
       );
 
       if (response.data.success) {

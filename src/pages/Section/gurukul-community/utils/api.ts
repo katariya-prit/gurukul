@@ -1,14 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { AUTH_TOKEN_STORAGE_KEYS, CHAT_API_BASE } from "../constants";
+import { CHAT_API_BASE } from "../constants";
 export { CHAT_API_BASE } from "../constants";
 import type { ChatMessage } from "../types";
 
-export const authHeaders = (): Record<string, string> => {
-    for (const k of AUTH_TOKEN_STORAGE_KEYS) {
-        const t = localStorage.getItem(k);
-        if (t) return { Authorization: `Bearer ${t.replace(/^Bearer\s+/i, "")}` };
-    }
-    return {};
+export type PeerReadMeta = {
+    conversation_id: string;
+    my_last_read_message_id: string | null;
+    peer_last_read_message_id: string | null;
+    peer_last_read_at: string | null;
 };
 
 export const toMessage = (convKey: string, m: any): ChatMessage => ({
@@ -20,13 +19,60 @@ export const toMessage = (convKey: string, m: any): ChatMessage => ({
     text: String(m.text ?? m.body ?? m.message_text ?? m.message ?? ""),
     time: String(m.time ?? m.created_at ?? new Date().toISOString()),
     deleted: Boolean(m.deleted),
+    reactions: m.reactions && typeof m.reactions === "object" && !Array.isArray(m.reactions)
+        ? (m.reactions as Record<string, string>)
+        : undefined,
 });
+
+export type ReactionResult = { ok: true; reactions: Record<string, string> } | { ok: false; status: number };
+
+export const setReactionRemote = async (p: {
+    convKey: string;
+    messageId?: string;
+    clientId?: string;
+    emoji: string | null;
+}): Promise<ReactionResult> => {
+    if (!CHAT_API_BASE) return { ok: false, status: 0 };
+    try {
+        const res = await fetch(`${CHAT_API_BASE}/chat/reactions`, {
+            method: "PUT",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                conv_key: p.convKey,
+                ...(p.messageId !== undefined ? { message_id: p.messageId } : {}),
+                ...(p.clientId !== undefined ? { client_id: p.clientId } : {}),
+                emoji: p.emoji,
+            }),
+        });
+        if (!res.ok) return { ok: false, status: res.status };
+        const json: unknown = await res.json();
+        if (
+            typeof json === "object" &&
+            json !== null &&
+            "success" in json &&
+            json.success === true &&
+            "data" in json &&
+            typeof json.data === "object" &&
+            json.data !== null &&
+            "reactions" in json.data &&
+            typeof json.data.reactions === "object" &&
+            json.data.reactions !== null &&
+            !Array.isArray(json.data.reactions)
+        ) {
+            return { ok: true, reactions: json.data.reactions as Record<string, string> };
+        }
+        return { ok: false, status: res.status };
+    } catch {
+        return { ok: false, status: 0 };
+    }
+};
 
 export const lookupUserBySuid = async (suid: string): Promise<{ suid: string; name: string; avatar: string | null; role_code?: string } | null> => {
     if (!CHAT_API_BASE || !suid) return null;
     try {
         const res = await fetch(`${CHAT_API_BASE}/chat/users/lookup/${encodeURIComponent(suid)}`, {
-            headers: authHeaders(),
+            credentials: "include",
         });
         if (!res.ok) return null;
         const json = await res.json();
@@ -40,7 +86,7 @@ export const fetchContacts = async (): Promise<any[] | null> => {
     if (!CHAT_API_BASE) return null;
     try {
         const res = await fetch(`${CHAT_API_BASE}/chat/contacts`, {
-            headers: authHeaders(),
+            credentials: "include",
         });
         if (!res.ok) return null;
         const json = await res.json();
@@ -55,7 +101,8 @@ export const saveContact = async (userId: string, nickname?: string): Promise<bo
     try {
         const res = await fetch(`${CHAT_API_BASE}/chat/contacts`, {
             method: "POST",
-            headers: { "Content-Type": "application/json", ...authHeaders() },
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ user_id: userId, nickname }),
         });
         return res.ok;
@@ -68,7 +115,7 @@ export const fetchConversations = async (): Promise<any[] | null> => {
     if (!CHAT_API_BASE) return null;
     try {
         const res = await fetch(`${CHAT_API_BASE}/chat/conversations`, {
-            headers: authHeaders(),
+            credentials: "include",
         });
         if (!res.ok) return null;
         const json = await res.json();
@@ -83,7 +130,8 @@ export const sendDirectMessage = async (toUserId: string, body: string, clientId
     try {
         const res = await fetch(`${CHAT_API_BASE}/chat/messages`, {
             method: "POST",
-            headers: { "Content-Type": "application/json", ...authHeaders() },
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ to_user_id: toUserId, body, client_id: clientId }),
         });
         if (!res.ok) return null;
@@ -94,18 +142,47 @@ export const sendDirectMessage = async (toUserId: string, body: string, clientId
     }
 };
 
-export const fetchPeerMessages = async (peerId: string): Promise<ChatMessage[] | null> => {
+export const fetchPeerMessagesWithMeta = async (
+    peerId: string
+): Promise<{ messages: ChatMessage[]; meta: PeerReadMeta | null } | null> => {
     if (!CHAT_API_BASE || !peerId) return null;
     try {
         const res = await fetch(`${CHAT_API_BASE}/chat/peer/${encodeURIComponent(peerId)}/messages`, {
-            headers: authHeaders(),
+            credentials: "include",
         });
         if (!res.ok) return null;
         const json = await res.json();
         const arr = Array.isArray(json) ? json : json?.data;
-        return Array.isArray(arr) ? arr.map((m: any) => toMessage("", m)) : null;
+        if (!Array.isArray(arr)) return null;
+        const meta =
+            json?.meta && typeof json.meta === "object" && !Array.isArray(json.meta)
+                ? (json.meta as PeerReadMeta)
+                : null;
+        return { messages: arr.map((m: any) => toMessage("", m)), meta };
     } catch {
         return null;
+    }
+};
+
+export const fetchPeerMessages = async (peerId: string): Promise<ChatMessage[] | null> => {
+    const result = await fetchPeerMessagesWithMeta(peerId);
+    return result?.messages ?? null;
+};
+
+export const markPeerRead = async (peerId: string, upToMessageId: string): Promise<boolean> => {
+    if (!CHAT_API_BASE || !peerId || !/^\d+$/.test(upToMessageId)) return false;
+    try {
+        const res = await fetch(`${CHAT_API_BASE}/chat/peer/${encodeURIComponent(peerId)}/read`, {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ up_to_message_id: upToMessageId }),
+        });
+        if (!res.ok) return false;
+        const json = await res.json();
+        return json.success === true;
+    } catch {
+        return false;
     }
 };
 
@@ -113,7 +190,7 @@ export const fetchRemoteMessages = async (convKey: string): Promise<ChatMessage[
     if (!CHAT_API_BASE) return null;
     try {
         const res = await fetch(`${CHAT_API_BASE}/chat/${encodeURIComponent(convKey)}/messages`, {
-            headers: authHeaders(),
+            credentials: "include",
         });
         if (!res.ok) return null;
         const json = await res.json();
@@ -129,7 +206,8 @@ export const postRemoteMessage = async (convKey: string, text: string, clientId?
     try {
         const res = await fetch(`${CHAT_API_BASE}/chat/${encodeURIComponent(convKey)}/messages`, {
             method: "POST",
-            headers: { "Content-Type": "application/json", ...authHeaders() },
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ text, client_id: clientId }),
         });
         if (!res.ok) return null;

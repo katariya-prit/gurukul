@@ -17,11 +17,6 @@ interface ApplicationProps {
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
 
-const getAuthHeaders = (): HeadersInit => {
-    const token = localStorage.getItem("token");
-    return token ? { Authorization: `Bearer ${token}` } : {};
-};
-
 // Defensive helper — normalizes whatever shape the API returns into a plain array.
 // Handles: a bare array, { data: [...] }, { departments: [...] }, { sections: [...] },
 // or a single object instead of a list.
@@ -37,7 +32,7 @@ const toArray = (result: any): any[] => {
 const applicationService = {
     async getDepartments(): Promise<any> {
         const response = await fetch(`${API_URL}/departments`, {
-            headers: getAuthHeaders(),
+            credentials: "include",
         });
         const result: any = await response.json();
         if (!response.ok) {
@@ -48,7 +43,7 @@ const applicationService = {
 
     async getSections(): Promise<any> {
         const response = await fetch(`${API_URL}/sections`, {
-            headers: getAuthHeaders(),
+            credentials: "include",
         });
         const result: any = await response.json();
         if (!response.ok) {

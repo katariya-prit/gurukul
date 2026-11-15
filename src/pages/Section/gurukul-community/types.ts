@@ -16,6 +16,9 @@ export type ChatMessage = {
     time: string; // ISO
     deleted?: boolean;
     file?: FileMeta; // the file data itself is stored under fileKey(id)
+    forwarded?: boolean;
+    replyTo?: { id: string; suid: string; name: string; text: string };
+    reactions?: Record<string, string>;
 };
 
 export type ChatUser = {
@@ -51,6 +54,7 @@ export type ConvItem = {
 /** Personal (per user, per conversation) settings */
 export type ConvMeta = {
     starred: string[];
+    hiddenIds: string[];
     mutedUntil: number; // 0 = not muted, -1 = always, >0 = timestamp
     muteChoice: string;
     clearedAt: number; // messages older than this are hidden for this user
@@ -62,6 +66,7 @@ export type SharedSettings = {
     ttl: number; // disappearing messages duration in ms, 0 = off
     ttlSince: number; // only messages sent after this time disappear
     advPrivacy: boolean;
+    pinned: string[];
     // ---- group permissions ----
     onlyAdminsSend: boolean; // false => members can send new messages
     membersEditSettings: boolean; // members can change group settings (disappearing timer, privacy)

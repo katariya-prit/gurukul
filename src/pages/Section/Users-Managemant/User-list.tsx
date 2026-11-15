@@ -32,11 +32,6 @@ const filterOptions = [
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
 
-const getAuthHeaders = () => ({
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${localStorage.getItem("token")}`,
-});
-
 export default function UserList() {
     const { theme } = useTheme();
 
@@ -57,7 +52,7 @@ export default function UserList() {
 
             const response = await fetch(`${API_URL}/users`, {
                 method: "GET",
-                headers: getAuthHeaders(),
+                credentials: "include",
             });
 
             if (!response.ok) {
@@ -127,7 +122,10 @@ export default function UserList() {
 
             const response = await fetch(`${API_URL}/users/${originalSuid}`, {
                 method: "PUT",
-                headers: getAuthHeaders(),
+                credentials: "include",
+                headers: {
+                    "Content-Type": "application/json",
+                },
                 body: JSON.stringify(payload),
             });
 

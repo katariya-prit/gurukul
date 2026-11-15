@@ -5,6 +5,10 @@ import { toast } from "sonner";
 import { useTheme } from "../../../components/theme/ThemeContext";
 import { DEFAULT_CHAT_THEME_ID } from "../../../components/chat/chatThemes";
 import { groupService, type GroupData } from "../../../services/groupService";
+import { applyRemoteReactions, getVisibleMessagesPlus as getVisibleMessagesShared, setPeerRead } from "./utils/messageStore";
+import { isReactionPending, useMessageActions } from "../gurukul-community/hooks/useMessageActions";
+import { useTyping, isTypingEvent, typingLabel } from "./hooks/Usetyping";
+import { useReadReceipts } from "./hooks/useReadReceipts";
 import {
     PAGE_SIZE,
     INVITE_PARAM,
@@ -38,7 +42,6 @@ import {
     markRead,
     getMeta,
     getShared,
-    getVisibleMessages,
     purgeExpired,
     dmKey,
     loadFileData,
@@ -68,7 +71,7 @@ import {
     sendDirectMessage,
     lookupUserBySuid,
     fetchConversations,
-    fetchPeerMessages,
+    fetchPeerMessagesWithMeta,
 } from "./utils/api";
 import { transmitClient } from "../../../lib/transmitClient";
 import { ConversationList } from "./core/ConversationList";
@@ -308,6 +311,10 @@ export default function GurukulCommunity() {
     const activePeer = useMemo(() => directory.find((u) => u.suid === activePeerId) || null, [directory, activePeerId]);
 
     const convKey = activeGroup ? `group_${activeGroup.group_id}` : activePeer ? dmKey(me.suid, activePeer.suid) : null;
+    const convKeyRef = useRef(convKey);
+    useEffect(() => {
+        convKeyRef.current = convKey;
+    }, [convKey]);
     const chatTitle = activeGroup ? activeGroup.group_name : activePeer?.name || "";
 
     const activeMembers = useMemo(() => (activeGroup ? membersOf(activeGroup) : []), [activeGroup, membersOf]);
@@ -332,13 +339,46 @@ export default function GurukulCommunity() {
     const canAdd = !!activeGroup && (meAdmin || (shared.membersAdd && isMember));
     const canInvite = !!activeGroup && (meAdmin || (shared.membersInvite && isMember));
 
+    const typingRecipients = useMemo(
+        () =>
+            activeGroup
+                ? activeMembers.map((m) => String(m.suid)).filter((id) => id !== me.suid)
+                : activePeer
+                    ? [activePeer.suid]
+                    : [],
+        [activeGroup, activeMembers, activePeer, me.suid]
+    );
+    const typing = useTyping({ me, convKey, recipients: typingRecipients, directory, enabled: canSend });
+    const { handleRealtime: handleTypingRealtime, clearFrom: clearTypingFrom, stop: stopTyping } = typing;
+
     const remote = remoteState && remoteState.key === convKey ? remoteState.list : null;
 
     const messages = useMemo<ChatMessage[]>(() => {
         void version;
         if (!convKey) return EMPTY_MESSAGES;
-        return getVisibleMessages(convKey, me.suid, now, remote ?? undefined);
+        return getVisibleMessagesShared(convKey, me.suid, now, remote ?? undefined);
     }, [convKey, me.suid, version, now, remote]);
+
+    const onReadMarked = useCallback(() => {
+        if (!convKey || !activePeerId) return;
+        markRead(convKey);
+        setServerConvs((prev) => {
+            const next = new Map(prev);
+            const current = next.get(activePeerId);
+            if (current) next.set(activePeerId, { ...current, unread: 0 });
+            return next;
+        });
+        setVersion((v) => v + 1);
+    }, [activePeerId, convKey]);
+
+    useReadReceipts({
+        convKey,
+        peerId: activePeerId,
+        meSuid: me.suid,
+        messages,
+        enabled: !!activePeerId && !activeGroup && !isStudent,
+        onMarked: onReadMarked,
+    });
 
     useLayoutEffect(() => {
         messagesLive.current = messages;
@@ -393,17 +433,38 @@ export default function GurukulCommunity() {
         if (!currentSuid || currentSuid === FALLBACK_USER.suid) return;
 
         const channel = `chat/${currentSuid}`;
-        console.log(`[Gurukul Community] Subscribing to Transmit channel: ${channel}`);
         const sub = transmitClient.subscription(channel);
         let active = true;
 
         void sub.create().then(() => {
             if (!active) return;
-            console.log(`[Gurukul Community] Active subscription ready on: ${channel}`);
             sub.onMessage((payload: any) => {
-                console.log("[CHAT REALTIME RECEIVED]", payload);
                 if (!active || !payload) return;
+                if (isTypingEvent(payload)) {
+                    handleTypingRealtime(payload);
+                    return;
+                }
                 const { event, message } = payload;
+                if (event === "message.reaction") {
+                    if (payload.kind === "dm") {
+                        const peerSuid = String(payload.peer_suid || "").trim();
+                        const currentSuid = meRef.current.suid;
+                        if (!peerSuid || peerSuid === currentSuid) return;
+                        const key = dmKey(currentSuid, peerSuid);
+                        const messageId = payload.message_id == null ? undefined : String(payload.message_id);
+                        const clientId = payload.client_id ? String(payload.client_id) : undefined;
+                        if (
+                            String(payload.user_suid || "") === currentSuid &&
+                            isReactionPending(key, messageId, clientId)
+                        ) {
+                            return;
+                        }
+                        if (applyRemoteReactions(key, { id: messageId, clientId }, payload.reactions)) {
+                            setVersion((v) => v + 1);
+                        }
+                    }
+                    return;
+                }
                 if (event === "message.created" && message) {
                     const currentMe = meRef.current;
                     const senderSuid = String(message.sender_id);
@@ -430,17 +491,22 @@ export default function GurukulCommunity() {
                         return next;
                     });
 
+                    const k = dmKey(currentMe.suid, peerSuid);
+                    const incomingForOpenVisibleChat =
+                        senderSuid !== currentMe.suid &&
+                        k === convKeyRef.current &&
+                        document.visibilityState === "visible";
+
                     setServerConvs((prev) => {
                         const next = new Map(prev);
                         next.set(peerSuid, {
                             preview: message.body || "New message",
                             lastTime: message.created_at || new Date().toISOString(),
-                            unread: senderSuid === currentMe.suid ? 0 : 1,
+                            unread: senderSuid === currentMe.suid || incomingForOpenVisibleChat ? 0 : 1,
                         });
                         return next;
                     });
 
-                    const k = dmKey(currentMe.suid, peerSuid);
                     const chatMsg: ChatMessage = {
                         id: String(message.id),
                         client_id: message.client_id,
@@ -451,9 +517,32 @@ export default function GurukulCommunity() {
                         time: message.created_at || new Date().toISOString(),
                     };
                     saveMessage(chatMsg, true);
+                    if (senderSuid !== currentMe.suid) clearTypingFrom(k, senderSuid);
                     setVersion((v) => v + 1);
-                } else if (event === "message.deleted" || event === "conversation.read") {
+                } else if (event === "message.deleted") {
                     setVersion((v) => v + 1);
+                } else if (event === "conversation.read") {
+                    const currentMe = meRef.current;
+                    const readerId = String(payload.reader_id ?? "");
+                    const upTo = Number(payload.up_to_message_id);
+                    if (!readerId || !Number.isFinite(upTo)) return;
+                    if (readerId !== currentMe.suid) {
+                        const key = dmKey(currentMe.suid, readerId);
+                        const at = payload.read_at ? Date.parse(payload.read_at) : Date.now();
+                        if (setPeerRead(key, upTo, at)) setVersion((v) => v + 1);
+                    } else {
+                        const peer = String(payload.peer_suid ?? "");
+                        if (peer) {
+                            markRead(dmKey(currentMe.suid, peer));
+                            setServerConvs((prev) => {
+                                const next = new Map(prev);
+                                const current = next.get(peer);
+                                if (current) next.set(peer, { ...current, unread: 0 });
+                                return next;
+                            });
+                            setVersion((v) => v + 1);
+                        }
+                    }
                 }
             });
         }).catch((err) => {
@@ -462,17 +551,24 @@ export default function GurukulCommunity() {
 
         return () => {
             active = false;
-            void sub.delete().catch(() => {});
+            void sub.delete().catch(() => { });
         };
-    }, [me.suid]);
+    }, [me.suid, handleTypingRealtime, clearTypingFrom]);
 
     // When opening a DM chat, sync past messages with this peer from server
     useEffect(() => {
         if (!activePeerId || !me.suid) return;
-        void fetchPeerMessages(activePeerId).then((remoteList) => {
-            if (Array.isArray(remoteList)) {
+        void fetchPeerMessagesWithMeta(activePeerId).then((result) => {
+            if (result) {
                 const k = dmKey(me.suid, activePeerId);
-                syncRemotePeerMessages(k, remoteList);
+                syncRemotePeerMessages(k, result.messages);
+                if (result.meta?.peer_last_read_message_id) {
+                    setPeerRead(
+                        k,
+                        Number(result.meta.peer_last_read_message_id),
+                        result.meta.peer_last_read_at ? Date.parse(result.meta.peer_last_read_at) : Date.now()
+                    );
+                }
                 setVersion((v) => v + 1);
             }
         });
@@ -551,6 +647,13 @@ export default function GurukulCommunity() {
         }
     }, [visibleCount]);
 
+    const msg = useMessageActions({
+        convKey, me, canSend, shared, meAdmin,
+        isGroup: !!activeGroup,
+        messages, groups, otherUsers, membersOf,
+        activeMembers, activePeer, version, bump,
+    });
+
     const onMessagesScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
         const el = e.currentTarget;
         nearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 160;
@@ -585,20 +688,23 @@ export default function GurukulCommunity() {
             isSuper: boolean
         ): ConvItem | null => {
             const cMeta = getMeta(me.suid, key);
-            const list = getVisibleMessages(key, me.suid, now);
+            const list = getVisibleMessagesShared(key, me.suid, now);
             const serverInfo = kind === "dm" ? serverConvs.get(id) : null;
             if (kind === "dm" && !list.length && !cMeta.keep && !serverInfo) return null; // DMs appear after first message or if on server
             const last = list.length ? list[list.length - 1] : null;
             const lastRead = getLastRead(key);
-            let unread = list.filter((m) => m.sender_suid !== me.suid && Date.parse(m.time) > lastRead).length;
-            if (unread === 0 && serverInfo?.unread) {
+            let unread =
+                key === convKey && key.startsWith("dm_")
+                    ? 0
+                    : list.filter((m) => m.sender_suid !== me.suid && Date.parse(m.time) > lastRead).length;
+            if (key !== convKey && unread === 0 && serverInfo?.unread) {
                 unread = serverInfo.unread;
             }
             let preview = serverInfo?.preview || "No messages yet";
             let lastTime = serverInfo?.lastTime ? Date.parse(serverInfo.lastTime) : 0;
             if (last) {
                 const mine = last.sender_suid === me.suid;
-                const body = (last.file ? `${isImageMime(last.file.mime) ? "📷" : "📄"} ${last.text || (isImageMime(last.file.mime) ? "Photo" : last.file.name)}` : last.text);
+                const body = last.deleted ? "🚫 This message was deleted" : (last.file ? `${isImageMime(last.file.mime) ? "📷" : "📄"} ${last.text || (isImageMime(last.file.mime) ? "Photo" : last.file.name)}` : last.text);
                 if (kind === "group") preview = `${mine ? "You" : last.sender_name}: ${body}`;
                 else preview = mine ? `You: ${body}` : body;
                 lastTime = Date.parse(last.time);
@@ -629,7 +735,7 @@ export default function GurukulCommunity() {
         });
 
         return items.sort((a, b) => b.lastTime - a.lastTime || a.title.localeCompare(b.title));
-    }, [groups, otherUsers, me.suid, serverConvs, version, now]);
+    }, [groups, otherUsers, me.suid, serverConvs, version, now, convKey]);
 
     // Toast for new messages that arrive in other (not muted) conversations
     useEffect(() => {
@@ -652,7 +758,7 @@ export default function GurukulCommunity() {
     const buckets = useMemo<MediaBuckets>(() => {
         if (mediaScope !== "all" || !infoOpen || infoView !== "media") return chatBuckets;
         return buildBuckets(
-            conversations.map((c) => ({ key: c.key, title: c.title, list: getVisibleMessages(c.key, me.suid, now) }))
+            conversations.map((c) => ({ key: c.key, title: c.title, list: getVisibleMessagesShared(c.key, me.suid, now) }))
         );
     }, [mediaScope, infoOpen, infoView, chatBuckets, conversations, me.suid, now]);
 
@@ -668,6 +774,11 @@ export default function GurukulCommunity() {
             return true;
         });
     }, [conversations, filter, q]);
+
+    const listConversations = useMemo(
+        () => visibleConversations.map((c) => (typing.labels[c.key] ? { ...c, preview: typing.labels[c.key] } : c)),
+        [visibleConversations, typing.labels]
+    );
 
     // While searching (All tab), also surface people you haven't chatted with yet
     const suggestedPeople = useMemo(() => {
@@ -733,7 +844,7 @@ export default function GurukulCommunity() {
                     });
                     setVersion((v) => v + 1);
                 }
-            }).catch(() => {});
+            }).catch(() => { });
         }
 
         setActivePeerId(peerId);
@@ -792,11 +903,13 @@ export default function GurukulCommunity() {
                 return false;
             }
             const key = convKey;
+            stopTyping();
             const clientId = generateUUID();
 
             /* ---- text only ---- */
             if (!files.length) {
                 if (!text) return false;
+                const replyRef = msg.buildReplyRef();
                 const ok = saveMessage({
                     id: clientId,
                     client_id: clientId,
@@ -805,10 +918,11 @@ export default function GurukulCommunity() {
                     sender_name: me.name,
                     text,
                     time: new Date().toISOString(),
+                    ...(replyRef ? { replyTo: replyRef } : {}),
                 });
                 if (!ok) return false;
                 markRead(key);
-                setVersion((v) => v + 1);
+                msg.setReplyTarget(null);
 
                 if (CHAT_API_BASE) {
                     if (activePeerId) {
@@ -816,7 +930,6 @@ export default function GurukulCommunity() {
                         if (!sent) {
                             console.warn("[CHAT] Message saved locally, but server sync failed");
                         } else {
-                            console.log("[CHAT] Confirmed by server:", sent);
                             saveMessage({
                                 id: String(sent.id),
                                 client_id: sent.client_id || clientId,
@@ -1209,9 +1322,14 @@ export default function GurukulCommunity() {
                 chatThemeId={chatThemeId}
                 applyThemeToAll={applyThemeToAll}
                 now={now}
+                msg={msg}
                 meta={meta}
                 shared={shared}
                 messages={messages}
+                typingEntries={typing.typingNow}
+                typingLabel={typingLabel(!!activeGroup, typing.typingNow)}
+                onComposerInput={typing.notify}
+                onComposerStop={typing.stop}
                 rows={rows}
                 starredSet={starredSet}
                 starredMessages={starredMessages}
@@ -1287,7 +1405,7 @@ export default function GurukulCommunity() {
                 isStudent={isStudent}
                 directory={directory}
                 groups={groups}
-                visibleConversations={visibleConversations}
+                visibleConversations={listConversations}
                 suggestedPeople={suggestedPeople}
                 unreadChats={unreadChats}
                 filter={filter}

@@ -38,7 +38,7 @@ const moduleGroups: CategoryMeta[] = [
     {
         category: "Core",
         icon: <FaLayerGroup className="text-sm" />,
-        modules: ["Dashboard", "Permissions", "Progress"],
+        modules: ["Dashboard", "Permissions", "Progress", "Functionality"],
     },
     {
         category: "Communication",

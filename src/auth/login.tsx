@@ -8,7 +8,7 @@ import { IoIosLock } from "react-icons/io";
 import { FaLock } from "react-icons/fa";
 import { toast } from "sonner";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
+const API_URL = (import.meta.env.VITE_API_URL || "http://127.0.0.1:3333").replace(/\/+$/, "");
 
 export default function Login() {
   const { theme } = useTheme();
@@ -37,52 +37,48 @@ export default function Login() {
         }),
       });
 
-      const result = await response.json();
+      const result = await response.json().catch(() => null);
 
       if (!response.ok) {
-        toast.error(
-          result.message ||
-          result.errors?.[0]?.message ||
-          "Invalid Username or Password."
-        );
+        const errorMessage =
+          result?.message ||
+          result?.errors?.[0]?.message ||
+          "Invalid Username or Password.";
+
+        toast.error(errorMessage);
+        setError(errorMessage);
         return;
       }
 
-      if (result.user) {
-        const userData = result.user;
+      const userData = result?.user;
 
-        if (!result.token) {
-          toast.error("Login did not return an access token");
-          return;
-        }
-
-        const loggedInUserData = {
-          id: userData.suid,
-          suid: userData.suid,
-          username: userData.username,
-          name: userData.name,
-          avatar: userData.avatar,
-          roleName: userData.roleName,
-          roleCode: userData.roleCode,
-          departmentId: userData.departmentId,
-          sectionId: userData.sectionId,
-          permissions: userData.permissions,
-        };
-
-        localStorage.setItem("user", JSON.stringify(loggedInUserData));
-        localStorage.setItem("token", result.token);
-
-        toast.success("Login Successfully");
-
-        navigate("/dashboard");
-      } else {
-        toast.error(result.message || "Invalid Username or Password.");
+      if (!userData) {
+        toast.error(result?.message || "Invalid Username or Password.");
+        setError(result?.message || "Invalid Username or Password.");
+        return;
       }
+
+      const loggedInUserData = {
+        id: userData.suid,
+        suid: userData.suid,
+        username: userData.username,
+        name: userData.name,
+        avatar: userData.avatar,
+        roleName: userData.roleName,
+        roleCode: userData.roleCode,
+        departmentId: userData.departmentId,
+        sectionId: userData.sectionId,
+        permissions: userData.permissions,
+      };
+
+      localStorage.setItem("user", JSON.stringify(loggedInUserData));
+
+      toast.success("Login Successfully");
+      navigate("/dashboard");
     } catch (err) {
       console.error("Login Connection Error:", err);
 
-      setError("સર્વર કનેક્શન ફેલ થયું અથવા કોડમાં કોઈ ભૂલ આવી છે!");
-
+      setError("Backend is not reachable. Start the Adonis server or set VITE_API_URL to the correct backend URL.");
       toast.error("Server connection failed");
     } finally {
       setLoading(false);

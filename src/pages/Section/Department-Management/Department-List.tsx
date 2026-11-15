@@ -154,7 +154,7 @@ export default function DepartmentList() {
                 <div className="flex items-center gap-3.5">
                     <span
                         className={`flex items-center justify-center w-11 h-11 rounded-2xl border shrink-0 transition-all backdrop-blur-xl ${theme
-                                ? "border-white/15 bg-gradient-to-br from-blue-500/20 to-pink-500/20 text-blue-300 shadow-[0_0_20px_rgba(59,130,246,0.2)]"
+                                ? "border-white/15 bg-linear-to-br from-blue-500/20 to-pink-500/20 text-blue-300 shadow-[0_0_20px_rgba(59,130,246,0.2)]"
                                 : "border-[#9b001c]/15 bg-[#9b001c]/10 text-[#9b001c] shadow-sm"
                             }`}
                     >
@@ -178,7 +178,7 @@ export default function DepartmentList() {
                         type="button"
                         onClick={() => navigate("/dashboard/departments/create")}
                         className={`rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition cursor-pointer ${theme
-                                ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-500 hover:to-indigo-500 shadow-blue-500/20"
+                                ? "bg-linear-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-500 hover:to-indigo-500 shadow-blue-500/20"
                                 : "bg-[#9b001c] text-white hover:bg-[#7d0017]"
                             }`}
                     >

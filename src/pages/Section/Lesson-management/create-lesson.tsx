@@ -16,7 +16,6 @@ import { sectionService } from "../../../services/sectionService";
 import { userService } from "../../../services/userService";
 import { groupService } from "../../../services/groupService";
 import { FaBuilding, FaLayerGroup, FaUserGraduate, FaUsers, FaUsersCog } from "react-icons/fa";
-import { HiOutlineArrowLeft } from "react-icons/hi";
 
 const ROLE_CODES = {
     SUPER_ADMIN: "SUPER_ADMIN",
@@ -78,14 +77,13 @@ const getUserId = (user: CreateLessonUser | null, field: "departmentId" | "secti
 
 function SectionHeading({ icon, title, theme }: { icon: ReactNode; title: string; theme: boolean }) {
     return (
-        <div className="mb-4 flex items-center gap-2">
+        <div className="mb-4 flex items-center gap-2 pb-2 border-b border-white/6 dark:border-white/6">
             <span className={`flex h-7 w-7 items-center justify-center rounded-lg ${theme ? "bg-blue-500/10 text-blue-300" : "bg-red-500/10 text-red-600"}`}>
                 {icon}
             </span>
-            <h3 className={`text-xs font-semibold uppercase tracking-wider ${theme ? "text-gray-400" : "text-neutral-500"}`}>
+            <h3 className={`text-xs font-bold uppercase tracking-wider ${theme ? "text-gray-400" : "text-slate-400"}`}>
                 {title}
             </h3>
-            <div className={`h-px flex-1 ${theme ? "bg-gray-800" : "bg-neutral-200"}`} />
         </div>
     );
 }
@@ -153,11 +151,11 @@ export default function CreateLesson() {
                 key: tab,
                 label:
                     tab === "all"
-                                ? isDepartmentHead
-                                    ? "Whole Department"
-                                    : isSectionHead
-                                        ? "Whole Section"
-                                        : "All"
+                        ? isDepartmentHead
+                            ? "Whole Department"
+                            : isSectionHead
+                                ? "Whole Section"
+                                : "All"
                         : tab === "department"
                             ? "Department wise"
                             : tab === "section"
@@ -442,245 +440,234 @@ export default function CreateLesson() {
 
     return (
         <div className="w-full space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/[0.08] dark:border-white/[0.08]">
-                <div className="flex items-center gap-3.5">
-                    <button
-                        type="button"
-                        onClick={() => navigate("/dashboard/lessons/list")}
-                        className={`p-2.5 rounded-xl border transition-colors ${
-                            theme
-                                ? "bg-white/[0.04] hover:bg-white/[0.08] border-white/10 text-gray-300"
-                                : "bg-white hover:bg-slate-100 border-slate-200 text-slate-700 shadow-sm"
-                        }`}
-                        title="Back to lessons"
-                    >
-                        <HiOutlineArrowLeft size={18} />
-                    </button>
-                    <div
-                        className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-md ${
-                            theme
-                                ? "bg-linear-to-br from-blue-500 to-indigo-700 text-white shadow-blue-500/20"
-                                : "bg-linear-to-br from-red-600 to-rose-700 text-white shadow-red-500/20"
-                        }`}
-                    >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-6 w-6" aria-hidden="true">
-                            <path d="M4 6.75A2.75 2.75 0 0 1 6.75 4h10.5A2.75 2.75 0 0 1 20 6.75v10.5A2.75 2.75 0 0 1 17.25 20H6.75A2.75 2.75 0 0 1 4 17.25V6.75Z" />
-                            <path d="M10 8.5v7l6-3.5-6-3.5Z" />
-                        </svg>
-                    </div>
-                    <div>
-                        <div className="flex items-center gap-2">
-                            <h1 className={`text-xl sm:text-2xl font-bold tracking-tight ${theme ? "text-white" : "text-slate-900"}`}>
-                                Create Lesson
-                            </h1>
-                            <span
-                                className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${
-                                    theme ? "bg-blue-500/10 text-blue-300 border border-blue-500/20" : "bg-red-50 text-red-700 border border-red-200"
-                                }`}
-                            >
-                                Content Management
-                            </span>
-                        </div>
-                        <p className={`text-xs sm:text-sm mt-0.5 ${theme ? "text-gray-400" : "text-slate-500"}`}>
-                            Add lesson details, media type, and progress tracking for your department or section.
-                        </p>
-                    </div>
+            {/* Centered Header Section */}
+            <div className="flex flex-col items-center text-center space-y-3 pb-6 border-b border-white/8 dark:border-white/8">
+                <div
+                    className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-md ${
+                        theme
+                            ? "bg-linear-to-br from-blue-500 to-indigo-700 text-white shadow-blue-500/20"
+                            : "bg-linear-to-br from-red-600 to-rose-700 text-white shadow-red-500/20"
+                    }`}
+                >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-7 w-7" aria-hidden="true">
+                        <path d="M4 6.75A2.75 2.75 0 0 1 6.75 4h10.5A2.75 2.75 0 0 1 20 6.75v10.5A2.75 2.75 0 0 1 17.25 20H6.75A2.75 2.75 0 0 1 4 17.25V6.75Z" />
+                        <path d="M10 8.5v7l6-3.5-6-3.5Z" />
+                    </svg>
+                </div>
+                <div>
+                    <h1 className={`text-2xl sm:text-3xl font-bold tracking-tight ${theme ? "text-white" : "text-slate-900"}`}>
+                        Create Lesson
+                    </h1>
+                    <p className={`text-xs sm:text-sm mt-1 ${theme ? "text-gray-400" : "text-slate-500"}`}>
+                        Add lesson details, media type, and progress tracking for your department or section.
+                    </p>
                 </div>
             </div>
 
-            <div className={`mb-8 rounded-2xl border p-5 shadow-sm transition-all duration-200 ${theme ? "border-gray-800 bg-gray-900/60" : "border-neutral-200 bg-neutral-50"}`}>
-                <SectionHeading
-                    icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4" aria-hidden="true"><path d="M7 18.5v-2.5M12 18.5v-8.5M17 18.5v-5.5" /><path d="M5 18.5h14" /></svg>}
-                    title="Assign Lesson To"
-                    theme={theme}
-                />
+            {/* Single Full-Width Main Container Form */}
+            <form onSubmit={handleSubmit}>
+                <div
+                    className={`rounded-2xl border p-6 sm:p-8 space-y-8 transition-all ${
+                        theme ? "bg-white/2 border-white/8" : "bg-white border-slate-200 shadow-sm"
+                    }`}
+                >
+                    {/* Assign Lesson To Section */}
+                    <div>
+                        <SectionHeading
+                            icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4" aria-hidden="true"><path d="M7 18.5v-2.5M12 18.5v-8.5M17 18.5v-5.5" /><path d="M5 18.5h14" /></svg>}
+                            title="Assign Lesson To"
+                            theme={theme}
+                        />
 
-                <ButtonGroup buttons={assignTabs} defaultActiveKey={activeAssignTab} className="w-full flex-wrap" />
+                        <ButtonGroup buttons={assignTabs} defaultActiveKey={activeAssignTab} className="w-full flex-wrap" />
 
-                {(activeAssignTab !== "all" || isDepartmentHead || isSectionHead) && (
-                    <div className="mt-4 grid gap-4 md:grid-cols-3">
-                        {(activeAssignTab === "department" ||
-                            activeAssignTab === "section" ||
-                            activeAssignTab === "student" ||
-                            isDepartmentHead ||
-                            isSectionHead) && (
-                            <SearchableDropdown
-                                label="Department"
-                                placeholder={isLoadingDepartments ? "Loading departments..." : "Select department"}
-                                searchPlaceholder="Search department..."
-                                options={departments}
-                                selectedValue={selectedDepartmentId}
-                                onSelect={handleDepartmentSelect}
-                                required
-                                disabled={
+                        {(activeAssignTab !== "all" || isDepartmentHead || isSectionHead) && (
+                            <div className="mt-4 grid gap-4 md:grid-cols-3">
+                                {(activeAssignTab === "department" ||
+                                    activeAssignTab === "section" ||
+                                    activeAssignTab === "student" ||
                                     isDepartmentHead ||
-                                    isSectionHead ||
-                                    isLoadingDepartments ||
-                                    departments.length === 0
-                                }
-                            />
-                        )}
+                                    isSectionHead) && (
+                                    <SearchableDropdown
+                                        label="Department"
+                                        placeholder={isLoadingDepartments ? "Loading departments..." : "Select department"}
+                                        searchPlaceholder="Search department..."
+                                        options={departments}
+                                        selectedValue={selectedDepartmentId}
+                                        onSelect={handleDepartmentSelect}
+                                        required
+                                        disabled={
+                                            isDepartmentHead ||
+                                            isSectionHead ||
+                                            isLoadingDepartments ||
+                                            departments.length === 0
+                                        }
+                                    />
+                                )}
 
-                        {(activeAssignTab === "section" ||
-                            activeAssignTab === "student" ||
-                            (isSectionHead && activeAssignTab === "all")) && (
-                            <SearchableDropdown
-                                label="Section *"
-                                placeholder={isLoadingSections ? "Loading sections..." : "Select section"}
-                                searchPlaceholder="Search section..."
-                                options={sectionOptions}
-                                selectedValue={selectedSectionId}
-                                onSelect={handleSectionSelect}
-                                required
-                                disabled={
-                                    isSectionHead ||
-                                    !selectedDepartmentId ||
-                                    isLoadingSections ||
-                                    sectionOptions.length === 0
-                                }
-                            />
-                        )}
+                                {(activeAssignTab === "section" ||
+                                    activeAssignTab === "student" ||
+                                    (isSectionHead && activeAssignTab === "all")) && (
+                                    <SearchableDropdown
+                                        label="Section *"
+                                        placeholder={isLoadingSections ? "Loading sections..." : "Select section"}
+                                        searchPlaceholder="Search section..."
+                                        options={sectionOptions}
+                                        selectedValue={selectedSectionId}
+                                        onSelect={handleSectionSelect}
+                                        required
+                                        disabled={
+                                            isSectionHead ||
+                                            !selectedDepartmentId ||
+                                            isLoadingSections ||
+                                            sectionOptions.length === 0
+                                        }
+                                    />
+                                )}
 
-                        {activeAssignTab === "student" && (
-                            <SearchableDropdown
-                                label="Student *"
-                                placeholder={isLoadingStudents ? "Loading students..." : "Select student"}
-                                searchPlaceholder="Search student..."
-                                options={studentOptions}
-                                selectedValue={selectedStudentId}
-                                onSelect={(value) => setSelectedStudentId(String(value))}
-                                required
-                                disabled={!selectedSectionId || isLoadingStudents || studentOptions.length === 0}
-                            />
-                        )}
+                                {activeAssignTab === "student" && (
+                                    <SearchableDropdown
+                                        label="Student *"
+                                        placeholder={isLoadingStudents ? "Loading students..." : "Select student"}
+                                        searchPlaceholder="Search student..."
+                                        options={studentOptions}
+                                        selectedValue={selectedStudentId}
+                                        onSelect={(value) => setSelectedStudentId(String(value))}
+                                        required
+                                        disabled={!selectedSectionId || isLoadingStudents || studentOptions.length === 0}
+                                    />
+                                )}
 
-                        {activeAssignTab === "group" && (
-                            <SearchableDropdown
-                                label="Group *"
-                                placeholder={isLoadingGroups ? "Loading groups..." : "Select group"}
-                                searchPlaceholder="Search group..."
-                                options={groups}
-                                selectedValue={selectedGroupId}
-                                onSelect={(value) => setSelectedGroupId(String(value))}
-                                required
-                                disabled={isLoadingGroups || groups.length === 0}
-                            />
-                        )}
-                    </div>
-                )}
-
-                {(activeAssignTab === "department" || activeAssignTab === "section") && (
-                    <label className={`mt-4 flex items-center gap-2 text-sm ${theme ? "text-gray-300" : "text-neutral-700"}`}>
-                        <Checkbox checked={assignHeadOnly} onChange={() => setAssignHeadOnly((prev) => !prev)} />
-                        Only assign to head (skip members)
-                    </label>
-                )}
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-8">
-                <div>
-                    <SectionHeading
-                        icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4" aria-hidden="true"><path d="M6 5.5h12M6 12h12M6 18.5h8" /><path d="M15.5 18.5 18 16l-2.5-2.5" /></svg>}
-                        title="Lesson Details"
-                        theme={theme}
-                    />
-
-                    <div className="grid gap-5 md:grid-cols-2">
-                        <div className="md:col-span-2">
-                            <SearchableDropdown
-                                label="Lesson Type *"
-                                placeholder="Select media type"
-                                options={mediaTypes}
-                                selectedValue={formData.lesson_type}
-                                onSelect={(value: string | number) => {
-                                    handleSelect("lesson_type", value);
-                                    setMediaFile(null);
-                                }}
-                                required
-                            />
-                        </div>
-
-                        {formData.lesson_type && (
-                            <div className="md:col-span-2">
-                                <LessonMediaUploader
-                                    lessonType={formData.lesson_type}
-                                    onFileChange={(file) => setMediaFile(file)}
-                                    label="Media File"
-                                />
+                                {activeAssignTab === "group" && (
+                                    <SearchableDropdown
+                                        label="Group *"
+                                        placeholder={isLoadingGroups ? "Loading groups..." : "Select group"}
+                                        searchPlaceholder="Search group..."
+                                        options={groups}
+                                        selectedValue={selectedGroupId}
+                                        onSelect={(value) => setSelectedGroupId(String(value))}
+                                        required
+                                        disabled={isLoadingGroups || groups.length === 0}
+                                    />
+                                )}
                             </div>
                         )}
 
-                        <div className="md:col-span-2">
-                            <Input
-                                label="Lesson Title *"
-                                type="text"
-                                name="lesson_title"
-                                value={formData.lesson_title}
-                                onChange={handleInputChange}
-                                placeholder="Enter lesson title"
-                                required
-                            />
-                        </div>
-
-                        <div>
-                            <label className={`mb-1.5 block text-sm font-medium ${theme ? "text-gray-300" : "text-neutral-700"}`}>
-                                Start Date *
+                        {(activeAssignTab === "department" || activeAssignTab === "section") && (
+                            <label className={`mt-4 flex items-center gap-2 text-sm ${theme ? "text-gray-300" : "text-neutral-700"}`}>
+                                <Checkbox checked={assignHeadOnly} onChange={() => setAssignHeadOnly((prev) => !prev)} />
+                                Only assign to head (skip members)
                             </label>
-                            <Input type="date" name="date_start" value={formData.date_start} onChange={handleInputChange} />
-                        </div>
+                        )}
+                    </div>
 
-                        <div>
-                            <label className={`mb-1.5 block text-sm font-medium ${theme ? "text-gray-300" : "text-neutral-700"}`}>
-                                End Date *
-                            </label>
-                            <Input type="date" name="date_end" value={formData.date_end} onChange={handleInputChange} />
-                        </div>
+                    {/* Lesson Details & Media Section */}
+                    <div>
+                        <SectionHeading
+                            icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4" aria-hidden="true"><path d="M6 5.5h12M6 12h12M6 18.5h8" /><path d="M15.5 18.5 18 16l-2.5-2.5" /></svg>}
+                            title="Lesson Details"
+                            theme={theme}
+                        />
 
-                        <div className="md:col-span-2">
-                            <label className={`mb-1.5 block text-sm font-medium ${theme ? "text-gray-300" : "text-neutral-700"}`}>
-                                Progress Points
-                            </label>
-                            <Input
-                                type="number"
-                                name="progress_points"
-                                min={0}
-                                max={100}
-                                value={formData.progress_points}
-                                onChange={handleInputChange}
-                                placeholder="50"
-                            />
+                        <div className="grid gap-5 md:grid-cols-2">
+                            <div className="md:col-span-2">
+                                <SearchableDropdown
+                                    label="Lesson Type *"
+                                    placeholder="Select media type"
+                                    options={mediaTypes}
+                                    selectedValue={formData.lesson_type}
+                                    onSelect={(value: string | number) => {
+                                        handleSelect("lesson_type", value);
+                                        setMediaFile(null);
+                                    }}
+                                    required
+                                />
+                            </div>
+
+                            {formData.lesson_type && (
+                                <div className="md:col-span-2">
+                                    <LessonMediaUploader
+                                        lessonType={formData.lesson_type}
+                                        onFileChange={(file) => setMediaFile(file)}
+                                        label="Media File"
+                                    />
+                                </div>
+                            )}
+
+                            <div className="md:col-span-2">
+                                <Input
+                                    label="Lesson Title *"
+                                    type="text"
+                                    name="lesson_title"
+                                    value={formData.lesson_title}
+                                    onChange={handleInputChange}
+                                    placeholder="Enter lesson title"
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <label className={`mb-1.5 block text-xs font-semibold ${theme ? "text-gray-300" : "text-slate-700"}`}>
+                                    Start Date *
+                                </label>
+                                <Input type="date" name="date_start" value={formData.date_start} onChange={handleInputChange} />
+                            </div>
+
+                            <div>
+                                <label className={`mb-1.5 block text-xs font-semibold ${theme ? "text-gray-300" : "text-slate-700"}`}>
+                                    End Date *
+                                </label>
+                                <Input type="date" name="date_end" value={formData.date_end} onChange={handleInputChange} />
+                            </div>
+
+                            <div className="md:col-span-2">
+                                <label className={`mb-1.5 block text-xs font-semibold ${theme ? "text-gray-300" : "text-slate-700"}`}>
+                                    Progress Points
+                                </label>
+                                <Input
+                                    type="number"
+                                    name="progress_points"
+                                    min={0}
+                                    max={100}
+                                    value={formData.progress_points}
+                                    onChange={handleInputChange}
+                                    placeholder="50"
+                                />
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div>
-                    <SectionHeading
-                        icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4" aria-hidden="true"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v11A2.5 2.5 0 0 1 17.5 20h-11A2.5 2.5 0 0 1 4 17.5v-11Z" /><path d="M8 8h8M8 12h8M8 16h5" /></svg>}
-                        title="Description"
-                        theme={theme}
-                    />
-                    <DescriptionInput
-                        name="description"
-                        value={formData.description}
-                        onChange={handleInputChange}
-                        label="Lesson Description"
-                        placeholder="Describe the lesson objective, outcome, or instructions..."
-                        maxLength={600}
-                        rows={5}
-                    />
-                </div>
+                    {/* Description Section */}
+                    <div>
+                        <SectionHeading
+                            icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4" aria-hidden="true"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v11A2.5 2.5 0 0 1 17.5 20h-11A2.5 2.5 0 0 1 4 17.5v-11Z" /><path d="M8 8h8M8 12h8M8 16h5" /></svg>}
+                            title="Description"
+                            theme={theme}
+                        />
+                        <DescriptionInput
+                            name="description"
+                            value={formData.description}
+                            onChange={handleInputChange}
+                            label="Lesson Description"
+                            placeholder="Describe the lesson objective, outcome, or instructions..."
+                            maxLength={600}
+                            rows={5}
+                        />
+                    </div>
 
-                <div className="flex items-center justify-end gap-3 border-t border-neutral-200 pt-6 dark:border-gray-800">
-                    <Button
-                        type="button"
-                        className="bg-transparent! from-transparent! to-transparent! text-current! shadow-none! hover:bg-transparent! border! border-neutral-300! dark:border-gray-700!"
-                        onClick={() => navigate("/dashboard/lessons/list")}
-                    >
-                        Cancel
-                    </Button>
-                    <Button type="submit" isLoading={loading} loadingText="Creating...">
-                        Create Lesson
-                    </Button>
+                    {/* Footer / Buttons Section */}
+                    <div className="flex items-center justify-end gap-3 border-t border-white/6 dark:border-white/6 pt-6">
+                        <Button
+                            type="button"
+                            className="bg-transparent! from-transparent! to-transparent! text-current! shadow-none! hover:bg-transparent! border! border-neutral-300! dark:border-gray-700!"
+                            onClick={() => navigate("/dashboard/lessons/list")}
+                        >
+                            Cancel
+                        </Button>
+                        <Button type="submit" isLoading={loading} loadingText="Creating...">
+                            Create Lesson
+                        </Button>
+                    </div>
                 </div>
             </form>
         </div>

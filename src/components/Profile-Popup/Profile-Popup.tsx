@@ -144,7 +144,6 @@ const ProfilePopup: React.FC<ProfilePopupProps> = ({
         if (onLogout) {
             onLogout();
         } else {
-            localStorage.removeItem("token");
             localStorage.removeItem("user");
             navigate("/login");
         }
