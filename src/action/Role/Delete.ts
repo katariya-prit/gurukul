@@ -4,15 +4,13 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
 
 export const roleDelete = async (role_code: string) => {
     try {
-        const token = localStorage.getItem("token");
-
         const response = await fetch(
             `${API_URL}/roles/delete/${role_code}`,
             {
                 method: "DELETE",
+                credentials: "include",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
                 },
             }
         );

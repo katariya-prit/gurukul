@@ -21,10 +21,6 @@ interface PendingUser {
     status: "PENDING" | "APPROVED";
 }
 
-const getAuthHeaders = (): HeadersInit => ({
-    Authorization: `Bearer ${localStorage.getItem("token")}`,
-});
-
 export default function Permission() {
     const { theme } = useTheme();
     const confirm = useConfirm();
@@ -42,7 +38,7 @@ export default function Permission() {
             setError(null);
 
             const res = await fetch(`${API_URL}/users/pending`, {
-                headers: getAuthHeaders(),
+                credentials: "include",
             });
             const json = await res.json();
 
@@ -68,7 +64,7 @@ export default function Permission() {
         try {
             const res = await fetch(`${API_URL}/users/approve/${suid}`, {
                 method: "PUT",
-                headers: getAuthHeaders(),
+                credentials: "include",
             });
             const json = await res.json();
 
@@ -93,7 +89,7 @@ export default function Permission() {
         try {
             const res = await fetch(`${API_URL}/users/delete/${suid}`, {
                 method: "DELETE",
-                headers: getAuthHeaders(),
+                credentials: "include",
             });
             const json = await res.json();
 

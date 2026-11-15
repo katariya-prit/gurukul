@@ -1,74 +1,55 @@
+import { toast } from "sonner";
 import { PersonAvatar } from "../../ui/PersonAvatar";
-import type { ChatVars, DirUser, SharedSettings } from "../../types";
+import type { InfoCtx } from "./infoTypes";
 
-export type InfoPendingViewProps = {
-    dark: boolean;
-    cv: ChatVars;
-    surface: string;
-    subText: string;
-    shared: SharedSettings;
-    directory: DirUser[];
-    onAcceptRequest: (suid: string) => void;
-    onRejectRequest: (suid: string) => void;
-};
+export function InfoPending({ c }: { c: InfoCtx }) {
+    const { dark, cv, surface, subText, shared, directory } = c;
 
-export function InfoPendingView({
-    dark,
-    cv,
-    surface,
-    subText,
-    shared,
-    directory,
-    onAcceptRequest,
-    onRejectRequest,
-}: InfoPendingViewProps) {
+    if (shared.pending.length === 0) {
+        return (
+            <div className={`${surface} min-h-full py-3`}>
+                <p className={`px-8 py-16 text-center text-sm ${subText}`}>No pending requests</p>
+            </div>
+        );
+    }
+
     return (
         <div className={`${surface} min-h-full py-3`}>
-            <p className={`px-6 pb-2 text-xs leading-relaxed ${subText}`}>
-                People who used the invite link to join this group. An admin must approve them before they can see messages.
-            </p>
-            <div className="px-3 space-y-1">
+            <div className="space-y-1 px-3">
                 {shared.pending.map((id) => {
                     const u = directory.find((d) => d.suid === id);
                     const name = u?.name || `User ${id}`;
                     return (
-                        <div
-                            key={id}
-                            className={`flex items-center gap-3.5 rounded-xl p-3 ${
-                                dark ? "bg-slate-800/50" : "bg-slate-50"
-                            }`}
-                        >
+                        <div key={id} className="flex items-center gap-3 rounded-xl px-3 py-2.5">
                             <PersonAvatar dark={dark} name={name} avatar={u?.avatar} size={44} />
-                            <div className="min-w-0 flex-1">
-                                <span className={`block truncate text-sm font-semibold ${dark ? "text-slate-100" : "text-slate-800"}`}>
-                                    {name}
-                                </span>
-                                <span className={`block truncate text-xs ${subText}`}>{u?.role_code || id}</span>
-                            </div>
-                            <div className="flex shrink-0 items-center gap-2">
-                                <button
-                                    onClick={() => onRejectRequest(id)}
-                                    className={`rounded-lg border px-3 py-1.5 text-xs font-semibold ${
-                                        dark ? "border-slate-700 text-slate-300 hover:bg-slate-800" : "border-slate-200 text-slate-600 hover:bg-slate-100"
-                                    }`}
-                                >
-                                    Reject
-                                </button>
-                                <button
-                                    onClick={() => onAcceptRequest(id)}
-                                    className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white shadow-md"
-                                    style={{ background: cv.accentGradient }}
-                                >
-                                    Approve
-                                </button>
-                            </div>
+                            <span className="min-w-0 flex-1">
+                                <span className={`block truncate text-sm font-semibold ${dark ? "text-slate-100" : "text-slate-800"}`}>{name}</span>
+                                <span className={`block truncate text-xs ${subText}`}>Wants to join via invite link</span>
+                            </span>
+                            <button
+                                onClick={() => c.onRejectRequest(id)}
+                                aria-label={`Reject ${name}`}
+                                className={`rounded-lg border px-3 py-1.5 text-xs font-semibold ${dark ? "border-slate-700 text-slate-200 hover:bg-slate-800" : "border-slate-200 text-slate-700 hover:bg-slate-100"}`}
+                            >
+                                Reject
+                            </button>
+                            <button
+                                onClick={() => {
+                                    c.onAcceptRequest(id);
+                                    toast.success(`${name} added`);
+                                }}
+                                aria-label={`Approve ${name}`}
+                                className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white"
+                                style={{ background: cv.accentGradient }}
+                            >
+                                Approve
+                            </button>
                         </div>
                     );
                 })}
-                {shared.pending.length === 0 && (
-                    <p className={`py-12 text-center text-xs ${subText}`}>No pending requests</p>
-                )}
             </div>
         </div>
     );
 }
+
+export default InfoPending;

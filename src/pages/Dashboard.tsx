@@ -119,10 +119,9 @@ export default function Dashboard() {
                 const userId = user.id ?? user.suid;
                 if (userId != null) params.set("suid", String(userId));
 
-                const token = localStorage.getItem("token");
                 const res = await fetch(`${API_URL}/dashboard/stats?${params.toString()}`, {
                     cache: "no-store",
-                    headers: token ? { Authorization: `Bearer ${token}` } : {},
+                    credentials: "include",
                 });
                 const json = await res.json();
 

@@ -118,10 +118,8 @@ function getErrorMessage(error: unknown, fallback: string): string {
 }
 
 function requestConfig() {
-    const token = localStorage.getItem("token");
     return {
         withCredentials: true,
-        ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}),
     };
 }
 

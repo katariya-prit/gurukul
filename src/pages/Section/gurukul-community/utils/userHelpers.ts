@@ -1,13 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { groupService } from "../../../../services/groupService";
-import {
-    AUTH_TOKEN_STORAGE_KEYS,
-    AUTH_USER_STORAGE_KEYS,
-    ID_KEYS,
-    NAME_KEYS,
-    ROLE_KEYS,
-    STRICT_ID_KEYS,
-} from "../constants";
+import { AUTH_USER_STORAGE_KEYS, ID_KEYS, NAME_KEYS, ROLE_KEYS, STRICT_ID_KEYS } from "../constants";
 import type { ChatUser, DirUser } from "../types";
 
 export const isSuperRole = (v: any, name?: string) => {
@@ -176,7 +169,7 @@ export const resolveBaseUser = (): ChatUser | null => {
     const entries = readAllStorage();
     const out: Candidate[] = [];
     for (const [k, raw] of entries) {
-        const known = AUTH_USER_STORAGE_KEYS.includes(k) || AUTH_TOKEN_STORAGE_KEYS.includes(k);
+        const known = AUTH_USER_STORAGE_KEYS.includes(k);
         collectUsers(raw, known ? 5 : 0, out);
     }
     out.sort((a, b) => b.score - a.score);

@@ -160,6 +160,7 @@ export const deduplicateMessages = (list: ChatMessage[]): ChatMessage[] => {
                 id: preferredId,
                 client_id: preferredClientId,
                 file: msg.file || existing.file,
+                reactions: msg.reactions ?? existing.reactions,
             };
         } else {
             clean.push(msg);
@@ -200,6 +201,7 @@ export const saveMessage = (msg: ChatMessage, silent = false): boolean => {
             id: preferredId,
             client_id: msg.client_id || existing.client_id,
             file: msg.file || existing.file,
+            reactions: msg.reactions ?? existing.reactions,
         };
         const finalClean = deduplicateMessages(updated);
         return writeJson(storageKey(msg.conv_key), finalClean, silent);
@@ -216,7 +218,11 @@ export const syncRemotePeerMessages = (convKey: string, remoteList: ChatMessage[
     // First take server messages (server is source of truth)
     remoteList.forEach((rm) => {
         if (rm.id && typeof rm.id === "string" && rm.id.startsWith("server_")) return;
-        const item: ChatMessage = { ...rm, conv_key: convKey };
+        const item: ChatMessage = {
+            ...rm,
+            conv_key: convKey,
+            reactions: rm.reactions && Object.keys(rm.reactions).length ? rm.reactions : undefined,
+        };
         const matchIdx = result.findIndex((existing) => areMessagesMatching(existing, item));
         if (matchIdx >= 0) {
             result[matchIdx] = {

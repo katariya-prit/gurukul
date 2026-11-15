@@ -1,33 +1,24 @@
-import React, { memo, useState, useEffect, useLayoutEffect, useRef, useMemo } from "react";
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import {
-    IoSend,
-    IoImageOutline,
-    IoAttachOutline,
-    IoDocumentTextOutline,
-    IoClose,
-} from "react-icons/io5";
-import {
-    MAX_PENDING_FILES,
-    MAX_IMAGE_SRC_BYTES,
-    MAX_DOC_BYTES,
-    HIDE_SCROLL,
-} from "../constants";
-import { formatBytes } from "../utils/formatters";
+import { IoAttachOutline, IoClose, IoDocumentTextOutline, IoImageOutline, IoSend } from "react-icons/io5";
+import type { ChatMessage } from "../types";
+import type { ChatVars } from "../messageTypes";
 import { isImageMime } from "../utils/linksAndMedia";
-import type { ChatVars } from "../types";
+import { HIDE_SCROLL, MAX_DOC_BYTES, MAX_IMAGE_SRC_BYTES, MAX_PENDING_FILES, formatBytes, previewOf } from "../utils/chatHelpers";
 
-export const Composer = memo(function Composer({
-    dark,
-    cv,
-    meName,
-    onSend,
-}: {
+type Props = {
     dark: boolean;
     cv: ChatVars;
     meName: string;
+    meSuid: string;
+    reply: ChatMessage | null;
+    onCancelReply: () => void;
     onSend: (text: string, files: File[]) => Promise<boolean>;
-}) {
+    onTyping?: () => void;
+    onTypingStop?: () => void;
+};
+
+export const Composer = memo(function Composer({ dark, cv, meName, meSuid, reply, onCancelReply, onSend, onTyping, onTypingStop }: Props) {
     const [draft, setDraft] = useState("");
     const [pending, setPending] = useState<File[]>([]);
     const [busy, setBusy] = useState(false);
@@ -36,10 +27,7 @@ export const Composer = memo(function Composer({
     const imgInputRef = useRef<HTMLInputElement>(null);
     const docInputRef = useRef<HTMLInputElement>(null);
 
-    const previews = useMemo(
-        () => pending.map((f) => (isImageMime(f.type) ? URL.createObjectURL(f) : null)),
-        [pending]
-    );
+    const previews = useMemo(() => pending.map((f) => (isImageMime(f.type) ? URL.createObjectURL(f) : null)), [pending]);
     useEffect(() => () => previews.forEach((u) => u && URL.revokeObjectURL(u)), [previews]);
 
     useEffect(() => {
@@ -52,6 +40,12 @@ export const Composer = memo(function Composer({
         el.style.height = "auto";
         el.style.height = `${Math.min(el.scrollHeight, 128)}px`;
     }, [draft]);
+
+    // Replying to a message -> jump straight into the text box
+    const replyId = reply?.id;
+    useEffect(() => {
+        if (replyId) ref.current?.focus({ preventScroll: true });
+    }, [replyId]);
 
     const addFiles = (files: File[]) => {
         if (!files.length) return;
@@ -82,7 +76,7 @@ export const Composer = memo(function Composer({
 
     const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
         addFiles(Array.from(e.target.files ?? []));
-        e.target.value = ""; // allow picking the same file again
+        e.target.value = "";
     };
 
     const onPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
@@ -127,10 +121,8 @@ export const Composer = memo(function Composer({
 
     return (
         <>
-            <div className="flex items-center gap-2 mb-2">
-                <span className={`text-[10px] uppercase tracking-wider font-semibold ${dark ? "text-slate-400" : "text-slate-500"}`}>
-                    Sending as
-                </span>
+            <div className="mb-2 flex items-center gap-2">
+                <span className={`text-[10px] font-semibold uppercase tracking-wider ${dark ? "text-slate-400" : "text-slate-500"}`}>Sending as</span>
                 <span
                     className="rounded-full border px-2.5 py-0.5 text-[11px] font-semibold"
                     style={{ background: cv.chip.background, color: cv.chip.color, borderColor: cv.chip.border }}
@@ -139,14 +131,31 @@ export const Composer = memo(function Composer({
                 </span>
             </div>
 
+            {reply && (
+                <div className={`mb-2 flex items-stretch gap-3 rounded-xl border-l-4 px-3 py-2 ${dark ? "bg-slate-900" : "bg-slate-100"}`} style={{ borderColor: cv.accent }}>
+                    <span className="min-w-0 flex-1">
+                        <span className="block truncate text-xs font-bold" style={{ color: cv.accent }}>
+                            Replying to {reply.sender_suid === meSuid ? "yourself" : reply.sender_name}
+                        </span>
+                        <span className={`line-clamp-2 block text-xs wrap-break-word ${dark ? "text-slate-300" : "text-slate-600"}`}>{previewOf(reply)}</span>
+                    </span>
+                    <button
+                        type="button"
+                        onClick={onCancelReply}
+                        aria-label="Cancel reply"
+                        className={`flex h-7 w-7 shrink-0 items-center justify-center self-center rounded-full ${dark ? "hover:bg-slate-800" : "hover:bg-slate-200"}`}
+                    >
+                        <IoClose className="text-lg" />
+                    </button>
+                </div>
+            )}
+
             {pending.length > 0 && (
                 <div className={`mb-2 flex gap-2 overflow-x-auto pb-1 ${HIDE_SCROLL}`}>
                     {pending.map((f, i) => (
                         <div
                             key={`${f.name}-${f.size}-${i}`}
-                            className={`relative flex h-16 shrink-0 items-center overflow-hidden rounded-xl border ${
-                                dark ? "border-slate-700 bg-slate-900" : "border-slate-200 bg-slate-50"
-                            }`}
+                            className={`relative flex h-16 shrink-0 items-center overflow-hidden rounded-xl border ${dark ? "border-slate-700 bg-slate-900" : "border-slate-200 bg-slate-50"}`}
                         >
                             {previews[i] ? (
                                 <img src={previews[i]!} alt={f.name} className="h-16 w-16 object-cover" />
@@ -154,12 +163,8 @@ export const Composer = memo(function Composer({
                                 <span className="flex items-center gap-2 px-3">
                                     <IoDocumentTextOutline className={`text-2xl ${dark ? "text-slate-300" : "text-slate-600"}`} />
                                     <span className="max-w-32">
-                                        <span className={`block truncate text-xs font-semibold ${dark ? "text-slate-100" : "text-slate-800"}`}>
-                                            {f.name}
-                                        </span>
-                                        <span className={`block text-[10px] ${dark ? "text-slate-400" : "text-slate-500"}`}>
-                                            {formatBytes(f.size)}
-                                        </span>
+                                        <span className={`block truncate text-xs font-semibold ${dark ? "text-slate-100" : "text-slate-800"}`}>{f.name}</span>
+                                        <span className={`block text-[10px] ${dark ? "text-slate-400" : "text-slate-500"}`}>{formatBytes(f.size)}</span>
                                     </span>
                                 </span>
                             )}
@@ -179,38 +184,30 @@ export const Composer = memo(function Composer({
             <div className="flex items-end gap-2">
                 <input ref={imgInputRef} type="file" accept="image/*" multiple hidden onChange={onPick} />
                 <input ref={docInputRef} type="file" multiple hidden onChange={onPick} />
-                <button
-                    type="button"
-                    className={iconBtn}
-                    onClick={() => imgInputRef.current?.click()}
-                    disabled={busy}
-                    aria-label="Attach photo"
-                    title="Photo"
-                >
+                <button type="button" className={iconBtn} onClick={() => imgInputRef.current?.click()} disabled={busy} aria-label="Attach photo" title="Photo">
                     <IoImageOutline />
                 </button>
-                <button
-                    type="button"
-                    className={iconBtn}
-                    onClick={() => docInputRef.current?.click()}
-                    disabled={busy}
-                    aria-label="Attach document"
-                    title="Document"
-                >
+                <button type="button" className={iconBtn} onClick={() => docInputRef.current?.click()} disabled={busy} aria-label="Attach document" title="Document">
                     <IoAttachOutline />
                 </button>
                 <textarea
                     ref={ref}
                     rows={1}
                     value={draft}
-                    onChange={(e) => setDraft(e.target.value)}
+                    onChange={(e) => {
+                        const value = e.target.value;
+                        setDraft(value);
+                        if (value.trim()) onTyping?.();
+                        else onTypingStop?.();
+                    }}
+                    onBlur={onTypingStop}
                     onKeyDown={onKeyDown}
                     onPaste={onPaste}
                     placeholder={pending.length ? "Add a caption..." : "Type a message..."}
-                    className={`chat-themed-input flex-1 resize-none max-h-32 px-4 py-3 rounded-2xl text-sm outline-none border transition-colors shadow-inner ${HIDE_SCROLL}
+                    className={`chat-themed-input max-h-32 flex-1 resize-none rounded-2xl border px-4 py-3 text-sm shadow-inner outline-none transition-colors ${HIDE_SCROLL}
                     ${dark
-                            ? "bg-slate-900/90 border-slate-700 text-slate-100 placeholder:text-slate-500"
-                            : "bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400"
+                            ? "border-slate-700 bg-slate-900/90 text-slate-100 placeholder:text-slate-500"
+                            : "border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400"
                         }`}
                 />
                 <button
@@ -226,3 +223,5 @@ export const Composer = memo(function Composer({
         </>
     );
 });
+
+export default Composer;

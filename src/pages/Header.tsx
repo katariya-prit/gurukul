@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { HiOutlineMenuAlt2, HiOutlineBell, HiOutlineArrowLeft, HiOutlineArrowRight } from "react-icons/hi";
+import { useLocation, useNavigate } from "react-router-dom";
+import { HiOutlineMenuAlt2, HiOutlineBell } from "react-icons/hi";
 import { useTheme } from "../components/theme/ThemeContext";
 import ThemeToggle from "../components/theme/ThemeToggle";
 import EventCalendarContent from "../components/Event-Calendar/Event-Calendar";
@@ -28,7 +28,8 @@ export default function Header({ toggleSidebar }: HeaderProps) {
         unreadCount,
     } = useNotifications();
     const navigate = useNavigate();
-    const { activeDepartmentName, setActiveDepartment } = useSidebarView();
+    const location = useLocation();
+    const { activeDepartmentName, activeModule, setActiveDepartment } = useSidebarView();
     const [user] = useState<AuthUser | null>(() => {
         const data = localStorage.getItem("user");
         if (!data) {
@@ -55,19 +56,13 @@ export default function Header({ toggleSidebar }: HeaderProps) {
         roleLabel: user?.roleName ?? user?.roleCode ?? "USER",
     };
     const userDepartmentName = user?.departmentName ?? user?.department_name ?? null;
-    const headerTitle = activeDepartmentName || (user && user.roleCode !== "SUPER_ADMIN" ? userDepartmentName || "GURUKUL" : "GURUKUL");
+    const headerTitle = activeModule === "functionality-manager" || location.pathname.startsWith("/dashboard/functionality-manager")
+        ? "Functionality Manager"
+        : activeDepartmentName || (user && user.roleCode !== "SUPER_ADMIN" ? userDepartmentName || "GURUKUL" : "GURUKUL");
     const handleLogout = () => {
         setActiveDepartment(null, null);
         localStorage.removeItem("user");
         navigate("/login");
-    };
-
-    // Vibrate ane History Navigation Handler
-    const handleNavigation = (delta: number) => {
-        if ("vibrate" in navigator) {
-            navigator.vibrate(40); // 40ms haptic feedback
-        }
-        navigate(delta);
     };
 
     const currentDate = new Date();
@@ -126,7 +121,7 @@ export default function Header({ toggleSidebar }: HeaderProps) {
                 onClose={() => setApplicationData(false)}
                 triggerRef={applicationTriggerRef}
             />
-            <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+            <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
                 <button
                     onClick={toggleSidebar}
                     className={`p-2 rounded-lg md:hidden transition-colors cursor-pointer shrink-0 ${theme ? "bg-slate-800 text-slate-300 hover:bg-slate-700" : "bg-slate-50 text-slate-600 hover:bg-slate-100"
@@ -135,68 +130,51 @@ export default function Header({ toggleSidebar }: HeaderProps) {
                     <HiOutlineMenuAlt2 className="text-xl sm:text-2xl" />
                 </button>
 
-                <div className="hidden sm:flex items-center gap-2 shrink-0">
-                    <button
-                        type="button"
-                        onClick={() => handleNavigation(-1)}
-                        title="Back"
-                        className="p-2.5 rounded-full text-white bg-gradient-to-r from-red-600 to-rose-400 shadow-[0_4px_14px_rgba(239,68,68,0.4)] hover:shadow-[0_6px_20px_rgba(239,68,68,0.6)] hover:scale-105 active:scale-95 transition-all cursor-pointer"
-                    >
-                        <HiOutlineArrowLeft className="text-base" />
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => handleNavigation(1)}
-                        title="Forward"
-                        className="p-2.5 rounded-full text-white bg-gradient-to-r from-red-600 to-rose-400 shadow-[0_4px_14px_rgba(239,68,68,0.4)] hover:shadow-[0_6px_20px_rgba(239,68,68,0.6)] hover:scale-105 active:scale-95 transition-all cursor-pointer"
-                    >
-                        <HiOutlineArrowRight className="text-base" />
-                    </button>
-                </div>
-
-                <h1 className={`text-base sm:text-2xl font-black tracking-wide truncate max-w-[120px] xs:max-w-[170px] sm:max-w-none ${theme ? "text-white" : "text-slate-800"
+                <h1 className={`text-base sm:text-2xl font-black tracking-wide truncate min-w-0 flex-1 ${theme ? "text-white" : "text-slate-800"
                     }`}>
                     {headerTitle}
                 </h1>
             </div>
             <div className="flex items-center gap-1.5 xs:gap-2 sm:gap-4 md:gap-5 h-full shrink-0">
-                <MorphPopover
-                    id="calendar"
-                    isOpen={isEventCalendarOpen}
-                    onOpenChange={handleCalendarOpenChange}
-                    ariaLabel="Event calendar"
-                    triggerTitle="Calendar"
-                    triggerClassName={calendarTriggerClass}
-                    panelClassName={calendarPanelClass}
-                    closedRadius={10}
-                    openRadius={24}
-                    panelWidth={380}
-                    renderTrigger={() => (
-                        <>
-                            <span className={`text-[15px] sm:text-[17px] font-black leading-none tracking-tight transition-colors ${theme ? "text-blue-500" : "text-red-500"
-                                }`}>
-                                {dayNumber}
-                            </span>
-                            <span className={`text-[11px] sm:text-[12px] font-light mx-1 sm:mx-2 ${theme ? "text-slate-600 group-hover:text-slate-500" : "text-slate-300 group-hover:text-slate-400"
-                                }`}>
-                                |
-                            </span>
-                            <span className={`text-[10px] sm:text-[11px] font-extrabold tracking-widest leading-none mt-0.5 ${theme ? "text-slate-300 group-hover:text-white" : "text-slate-600 group-hover:text-slate-900"
-                                }`}>
-                                {monthShort}
-                            </span>
-                            {todayEvent && (
-                                <span className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border-2 animate-pulse ${theme ? "border-slate-800" : "border-white"
-                                    } ${todayEvent.category === 'event'
-                                        ? "bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.9)]"
-                                        : "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.9)]"
-                                    }`}></span>
-                            )}
-                        </>
-                    )}
-                >
-                    <EventCalendarContent />
-                </MorphPopover>
+                <div className="hidden min-[400px]:flex items-center">
+                    <MorphPopover
+                        id="calendar"
+                        isOpen={isEventCalendarOpen}
+                        onOpenChange={handleCalendarOpenChange}
+                        ariaLabel="Event calendar"
+                        triggerTitle="Calendar"
+                        triggerClassName={calendarTriggerClass}
+                        panelClassName={calendarPanelClass}
+                        closedRadius={10}
+                        openRadius={24}
+                        panelWidth={380}
+                        renderTrigger={() => (
+                            <>
+                                <span className={`text-[15px] sm:text-[17px] font-black leading-none tracking-tight transition-colors ${theme ? "text-blue-500" : "text-red-500"
+                                    }`}>
+                                    {dayNumber}
+                                </span>
+                                <span className={`text-[11px] sm:text-[12px] font-light mx-1 sm:mx-2 ${theme ? "text-slate-600 group-hover:text-slate-500" : "text-slate-300 group-hover:text-slate-400"
+                                    }`}>
+                                    |
+                                </span>
+                                <span className={`text-[10px] sm:text-[11px] font-extrabold tracking-widest leading-none mt-0.5 ${theme ? "text-slate-300 group-hover:text-white" : "text-slate-600 group-hover:text-slate-900"
+                                    }`}>
+                                    {monthShort}
+                                </span>
+                                {todayEvent && (
+                                    <span className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border-2 animate-pulse ${theme ? "border-slate-800" : "border-white"
+                                        } ${todayEvent.category === 'event'
+                                            ? "bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.9)]"
+                                            : "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.9)]"
+                                        }`}></span>
+                                )}
+                            </>
+                        )}
+                    >
+                        <EventCalendarContent />
+                    </MorphPopover>
+                </div>
                 <div className="relative flex items-center">
                     <button
                         ref={applicationTriggerRef}

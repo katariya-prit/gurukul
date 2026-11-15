@@ -48,10 +48,8 @@ export default function StudentListPage() {
 
         console.log("🔍 Fetching from:", url); // 🎯 DEBUG
 
-        // 🎯 FIX: /users/* routes auth-protected chhe, token header vagar 401 "Unauthorized access" aave chhe
-        const token = localStorage.getItem("token");
         const res = await fetch(url, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          credentials: "include",
         });
         const json = await res.json();
 
@@ -99,10 +97,9 @@ export default function StudentListPage() {
     }))) return;
 
     try {
-      const token = localStorage.getItem("token");
       const res = await fetch(`${API_URL}/users/delete/${student.suid}`, {
         method: "DELETE",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: "include",
       });
       const json = await res.json().catch(() => null);
 

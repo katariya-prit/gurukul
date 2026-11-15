@@ -10,20 +10,16 @@ export interface DepartmentData {
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
 
-// 🎯 FIX: token header banavva mate helper function
-const getAuthHeaders = (): HeadersInit => {
-  const token = localStorage.getItem("token");
-  return {
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-};
+const getAuthHeaders = (): HeadersInit => ({
+  "Content-Type": "application/json",
+});
 
 // mapDepartment ni jarur j nathi have - backend already camelCase pathave chhe
 export const getDepartments = async (): Promise<DepartmentData[]> => {
   try {
     const response = await fetch(`${API_URL}/departments`, {
-      headers: getAuthHeaders(), // 🎯 FIX
+      credentials: "include",
+      headers: getAuthHeaders(),
     });
     const result = await response.json();
 
@@ -46,7 +42,8 @@ export const getDepartments = async (): Promise<DepartmentData[]> => {
 export const getDepartmentById = async (departmentId: number): Promise<DepartmentData | null> => {
   try {
     const response = await fetch(`${API_URL}/departments/${departmentId}`, {
-      headers: getAuthHeaders(), // 🎯 FIX
+      credentials: "include",
+      headers: getAuthHeaders(),
     });
     const result = await response.json();
 
@@ -66,7 +63,8 @@ export const deleteDepartment = async (departmentId: number): Promise<boolean> =
   try {
     const response = await fetch(`${API_URL}/departments/delete/${departmentId}`, {
       method: "DELETE",
-      headers: getAuthHeaders(), // 🎯 FIX
+      credentials: "include",
+      headers: getAuthHeaders(),
     });
 
     const result = await response.json();

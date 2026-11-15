@@ -102,10 +102,6 @@ export interface LessonGrowth {
   changePercent: number;
 }
 
-const getAuthHeaders = () => ({
-  Authorization: `Bearer ${localStorage.getItem("token")}`,
-});
-
 const errorMessage = (error: unknown, fallback: string): string => {
   if (isAxiosError<{ message?: string }>(error)) {
     return error.response?.data?.message || fallback;
@@ -117,7 +113,7 @@ export const progressService = {
   getAllDepartmentsProgress: async (): Promise<ApiResponse<DepartmentSummary[]>> => {
     try {
       const response = await axios.get<ApiResponse<DepartmentSummary[]>>(`${API_URL}/progress/departments`, {
-        headers: getAuthHeaders(),
+        withCredentials: true,
       });
       return response.data;
     } catch (error: unknown) {
@@ -129,7 +125,7 @@ export const progressService = {
     try {
       const response = await axios.get<ApiResponse<DepartmentProgress>>(
         `${API_URL}/progress/department/${departmentId}`,
-        { headers: getAuthHeaders() }
+        { withCredentials: true }
       );
       return response.data;
     } catch (error: unknown) {
@@ -141,7 +137,7 @@ export const progressService = {
     try {
       const response = await axios.get<ApiResponse<SectionProgress>>(
         `${API_URL}/progress/section/${sectionId}`,
-        { headers: getAuthHeaders() }
+        { withCredentials: true }
       );
       return response.data;
     } catch (error: unknown) {
@@ -153,7 +149,7 @@ export const progressService = {
     try {
       const response = await axios.get<ApiResponse<UserProgressDetail>>(
         `${API_URL}/progress/user/${suid}`,
-        { headers: getAuthHeaders() }
+        { withCredentials: true }
       );
       return response.data;
     } catch (error: unknown) {
@@ -168,7 +164,7 @@ export const progressService = {
   ): Promise<ApiResponse<LessonGrowth>> => {
     try {
       const response = await axios.get<ApiResponse<LessonGrowth>>(`${API_URL}/progress/lessons/growth`, {
-        headers: getAuthHeaders(),
+        withCredentials: true,
         params: { scope, id, period },
       });
       return response.data;
